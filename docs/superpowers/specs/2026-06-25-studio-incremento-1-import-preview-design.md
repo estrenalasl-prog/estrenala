@@ -211,10 +211,12 @@ proveedor de auth directamente.
 4. **Validación de contenido:** solo extensiones web-seguras (`html, htm, css, js, mjs, json,
    svg, png, jpg, jpeg, gif, webp, avif, ico, woff, woff2, ttf, otf, txt, xml, map, …`). Tipos no
    reconocidos se ignoran con aviso, no rompen el import.
-5. **Detección del `index.html` de entrada:** preferir `index.html` en la raíz del ZIP; si no,
-   el `index.html` menos profundo; si no hay ninguno, el único `.html`; si hay varios y ninguno
-   `index.html`, se pide al usuario elegir (o se toma el menos profundo y se marca editable).
-   Se normaliza el árbol si el ZIP tiene una carpeta raíz envolvente (se "sube" un nivel).
+5. **Detección del `index.html` de entrada (regla determinista):** elegir, en este orden, (a) el
+   `index.html` menos profundo; si no hay ninguno, (b) el `.html` menos profundo; si no hay
+   ningún `.html`, **error** ("el ZIP no contiene ninguna página HTML"). El resultado se guarda en
+   `Project.entry_path`. Un selector/override de la página de entrada se **difiere** (no se
+   construye en increment 1). Se normaliza el árbol si el ZIP tiene una carpeta raíz envolvente
+   (se "sube" un nivel) antes de aplicar la regla.
 6. **Escritura al storage:** cada archivo → `StorageAdapter.put(<prefijo-snapshot>/<ruta>, …)`.
 7. **Persistencia:** crea `Project` (con `entry_path`) + `Snapshot` (`tipo='import'`,
    `storage_prefix`), fija `Project.current_snapshot_id`.
