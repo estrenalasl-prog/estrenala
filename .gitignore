@@ -1,0 +1,22 @@
+# El Creador de Blog es un repo propio incluido como referencia/librería fuente.
+Creador de Blog/
+
+# Dependencias y builds
+node_modules/
+.next/
+dist/
+build/
+
+# Datos locales y storage local (local-first)
+data/
+storage/
+
+# Entorno
+.env
+.env.local
+.env.*.local
+
+# Sistema
+.DS_Store
+Thumbs.db
+*.log
