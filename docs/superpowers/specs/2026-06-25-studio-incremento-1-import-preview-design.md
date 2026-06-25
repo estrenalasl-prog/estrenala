@@ -28,15 +28,19 @@ para que las decisiones de hoy no nos cierren puertas mañana.
 > **Objetivo:** subo un ZIP de una web estática y la veo renderizada **fiel** en el dashboard,
 > como un proyecto dentro de una organización.
 
-1. Scaffold de la app Studio (Next.js App Router + TS + Tailwind + Postgres/Drizzle).
+1. Scaffold de la app **`wordclicks`** (Next.js App Router + TS + Tailwind + Drizzle sobre
+   **Supabase Postgres**).
 2. Dos **adaptadores** desde el día 1 (`StorageAdapter`, `AuthAdapter`) con implementación
    local; los proveedores reales se enchufan después sin tocar la lógica.
 3. Modelo de datos mínimo multi-tenant: `Organization`, `User`, `Project`, `Asset`, `Snapshot`.
-4. **Importar**: drag & drop de un ZIP → descompresión → validación → detección del `index.html`
-   de entrada → escritura al storage → creación de `Project` + primer `Snapshot`.
+4. **Importar**: drag & drop de un ZIP → descompresión → validación → detección de las páginas
+   HTML y de la entrada por defecto → escritura al storage → `Project` + primer `Snapshot`.
 5. **Dashboard** multi-proyecto (lista de proyectos de la organización + acción de importar).
 6. **Preview**: página de proyecto con `<iframe>` sandbox que renderiza el sitio importado
    sirviendo sus archivos a través de una ruta de Next, **sin mutar el HTML almacenado**.
+7. **Selector de página de entrada**: el usuario elige cuál de las páginas HTML del proyecto es la
+   entrada (home) que se muestra en el preview; además puede navegar entre páginas dentro del
+   iframe (los links internos resuelven solos por la ruta de preview).
 
 ### Fuera de alcance (incrementos posteriores, en este orden)
 
@@ -55,17 +59,20 @@ para que las decisiones de hoy no nos cierren puertas mañana.
 | # | Decisión | Razón | ¿Increm. 1? |
 |---|----------|-------|-------------|
 | D1 | **App Studio nueva** (no evolucionar el `Creador de Blog/`) | El blog es el Módulo 4; el increm. 1 no lo toca. El Creador queda intacto como herramienta y como "librería fuente" para portar sus libs puras. Evita entrelazar un rework grande con código que ya funciona. | Sí |
-| D2 | **Local-first detrás de adaptadores** | "Rebanada fina primero": el flujo ZIP→preview corre en la máquina del founder hoy, sin crear cuentas. Los adaptadores cumplen el principio "capa de adaptadores desde el día 1". | Sí |
-| D3 | **Postgres + Drizzle** | El brief pide Postgres (orgs, plan/uso). Drizzle ya se usa en el Creador → conceptos y patrones transfieren. En local: Postgres por Docker o un proyecto free de Neon/Supabase. | Sí |
+| D2 | **Local-first detrás de adaptadores** (Storage y Auth) | "Rebanada fina primero": el flujo ZIP→preview corre casi entero en local (Storage en disco, Auth dev-stub); la única dependencia externa es la BD. Los adaptadores cumplen el principio "capa de adaptadores desde el día 1". | Sí |
+| D3 | **Supabase (Postgres) + Drizzle** | El brief pide Postgres (orgs, plan/uso). Drizzle ya se usa en el Creador → conceptos y patrones transfieren. Se usa **Supabase desde el inicio** (un proyecto free basta); solo requiere el connection string en `.env.local`. | Sí |
 | D4 | **Preview sirviendo archivos por una ruta de Next** | Renderiza HTML arbitrario **sin mutarlo**; las root-absolutas se reescriben solo en la respuesta del preview, nunca en el archivo guardado. Es la **misma base sobre la que montará el editor** (increm. 2). | Sí |
-| D5 | Storage real: **Cloudflare R2** | S3-compatible y **sin egress fees** — clave porque servir previews y webs publicadas es lectura constante. Se enchufa vía `StorageAdapter`. | No (interfaz sí) |
-| D6 | Auth real: **Clerk** | Sus *Organizations* nativas = el multi-tenant del brief sin construirlo. Se enchufa vía `AuthAdapter`. | No (interfaz sí) |
+| D5 | Storage real: **Supabase Storage** (candidato principal) o **Cloudflare R2** | Ya que estamos en Supabase, su Storage (S3-compatible) reduce proveedores; R2 sigue como alternativa por **sin egress fees** si el coste de lectura pesa. Da igual para el increment 1: se enchufa vía `StorageAdapter`. Se decide en el Módulo Deploy. | No (interfaz sí) |
+| D6 | Auth real: **Supabase Auth** (candidato principal) o **Clerk** | Supabase Auth viene con el stack; Clerk aporta *Organizations* nativas más pulidas. Se decide al conectar auth real; se enchufa vía `AuthAdapter`. | No (interfaz sí) |
 | D7 | Host gestionado: **Cloudflare Pages** | Subdominio instantáneo + dominio propio + SSL automático; encaja con R2/Cloudflare. Es una decisión del Módulo Deploy (increm. 3). | No |
 | D8 | IA del blog: **SDK de Anthropic directo** (no OpenRouter) detrás de la misma interfaz `pedirTexto/pedirJson/pedirConBusquedaWeb` del Creador | El brief pide "Claude API (Anthropic)"; facturación/medición de créditos más limpia para el plan premium. Mantener la **interfaz** del Creador permite portar el pipeline sin cambios. | No (decisión del increm. 4) |
 
-**Naming:** la app Studio vive en la raíz del workspace (`Wordclicks/`), como hermana de
-`Creador de Blog/`. El nombre de paquete/carpeta concreto se fija al hacer el scaffold; este
-spec lo trata como "la app Studio".
+**Naming:** la app se llama **`wordclicks`** y vive en la raíz del workspace (`Wordclicks/`), como
+hermana de `Creador de Blog/`.
+
+**Prerrequisito de setup:** un proyecto **Supabase** (free) con su connection string en
+`.env.local` (`DATABASE_URL`). Las migraciones de Drizzle crean el esquema. Storage y Auth no
+requieren cuentas en increment 1 (impl. local).
 
 ---
 
@@ -87,7 +94,7 @@ Un **núcleo (Proyecto)** + cuatro módulos. El increment 1 construye el **núcl
                 │                       │
         ┌───────┴────────┐      ┌───────┴────────┐   ┌──────────┐
         │ AuthAdapter     │      │ StorageAdapter │   │ Deploy   │ (increm. 3)
-        │ (dev-stub→Clerk)│      │ (fs → R2)      │   │ adapters │
+        │ (dev-stub→real) │      │ (fs→Supabase)  │   │ adapters │
         └────────────────┘      └────────────────┘   └──────────┘
                                                        ┌──────────┐
                                                        │ Blog     │ (increm. 4)
@@ -173,8 +180,10 @@ interface StorageAdapter {
 
 - **Impl. local (`fs`)** para increment 1: raíz configurable (p. ej. `data/storage/`), fuera de
   git. `content_type` se infiere por extensión y se guarda junto al archivo (sidecar o mapa).
-- **Impl. R2** (Fase 2): mismo contrato vía SDK S3-compatible. Cambiar de una a otra **no** toca
-  la lógica de import ni de preview.
+- **Impl. Supabase Storage / R2** (Fase 2): mismo contrato vía SDK S3-compatible. Cambiar de una a
+  otra **no** toca la lógica de import ni de preview.
+- Helper `listHtmlPages(projectId)` derivado de `list(<prefijo-snapshot>)` filtrando `.html` →
+  alimenta el selector de página (§10).
 
 **Esquema de claves:**
 
@@ -194,8 +203,8 @@ interface AuthAdapter {
 
 - **Impl. dev-stub** para increment 1: garantiza (crea si no existen) un `User` y una
   `Organization` fijos de desarrollo y los devuelve. No hay login real.
-- **Impl. Clerk** (Fase 2): lee la sesión y la organización activa de Clerk y las mapea a
-  nuestras filas (`User`/`Organization`/`Membership`).
+- **Impl. real** (Fase 2, Supabase Auth o Clerk): lee la sesión y la organización activa del
+  proveedor y las mapea a nuestras filas (`User`/`Organization`/`Membership`).
 
 Todas las rutas y server components obtienen `{ user, org }` por este adaptador; nunca leen el
 proveedor de auth directamente.
@@ -211,12 +220,11 @@ proveedor de auth directamente.
 4. **Validación de contenido:** solo extensiones web-seguras (`html, htm, css, js, mjs, json,
    svg, png, jpg, jpeg, gif, webp, avif, ico, woff, woff2, ttf, otf, txt, xml, map, …`). Tipos no
    reconocidos se ignoran con aviso, no rompen el import.
-5. **Detección del `index.html` de entrada (regla determinista):** elegir, en este orden, (a) el
-   `index.html` menos profundo; si no hay ninguno, (b) el `.html` menos profundo; si no hay
-   ningún `.html`, **error** ("el ZIP no contiene ninguna página HTML"). El resultado se guarda en
-   `Project.entry_path`. Un selector/override de la página de entrada se **difiere** (no se
-   construye en increment 1). Se normaliza el árbol si el ZIP tiene una carpeta raíz envolvente
-   (se "sube" un nivel) antes de aplicar la regla.
+5. **Entrada por defecto (regla determinista):** elegir, en este orden, (a) el `index.html` menos
+   profundo; si no hay ninguno, (b) el `.html` menos profundo; si no hay ningún `.html`, **error**
+   ("el ZIP no contiene ninguna página HTML"). Es solo el **valor inicial** de `Project.entry_path`;
+   el usuario puede cambiarlo con el **selector de página** (§10). Se normaliza el árbol si el ZIP
+   tiene una carpeta raíz envolvente (se "sube" un nivel) antes de aplicar la regla.
 6. **Escritura al storage:** cada archivo → `StorageAdapter.put(<prefijo-snapshot>/<ruta>, …)`.
 7. **Persistencia:** crea `Project` (con `entry_path`) + `Snapshot` (`tipo='import'`,
    `storage_prefix`), fija `Project.current_snapshot_id`.
@@ -241,6 +249,9 @@ proveedor de auth directamente.
     - Reescribe referencias **root-absolutas** (`src="/..."`, `href="/..."`, `url(/...)` en
       estilos inline) al prefijo del preview. (Las relativas funcionan solas por el `<base>`.)
   - Assets (css/js/img/fuentes) se sirven tal cual desde storage.
+- **Multi-página:** como todas las páginas se sirven por la misma ruta y el `<base>` apunta al
+  prefijo del preview, los **links internos** (`href="about.html"`, `/contacto.html`, …) navegan
+  dentro del iframe sin trabajo extra. El selector (§10) solo fija qué página se carga al abrir.
 - **Sandbox:** `sandbox="allow-scripts"` (sin `allow-same-origin` salvo que un caso lo exija);
   CSP del preview acotada. El objetivo es **fidelidad visual**, no interactividad con el panel.
 - **Importante:** estas reescrituras son **solo de preview**. La web *publicada* (Módulo Deploy,
@@ -271,6 +282,10 @@ proveedor de auth directamente.
 - **`/projects/[id]`:** cabecera con nombre del proyecto + iframe de preview a tamaño realista
   (toggle desktop/móvil opcional, no crítico). Botón de re-importar (reemplaza creando un nuevo
   snapshot de import) — opcional para increment 1.
+- **Selector de página de entrada:** un desplegable lista todas las páginas HTML del proyecto
+  (`listHtmlPages`); al elegir una se hace `PATCH /api/projects/[id]` con el nuevo `entry_path` y
+  el preview se recarga sobre esa página. Resuelve directamente el caso de tu web con varias
+  páginas: marcas cuál es la "home".
 - Tailwind para el panel. Sin framework dentro del iframe (regla del brief; relevante en
   increment 2).
 
@@ -297,17 +312,20 @@ No se toca en increment 1, pero se documenta el mapeo para no perderlo:
 - Import: validar antes de escribir; si algo falla a mitad, no dejar un `Project` a medias
   (crear filas en transacción tras escribir storage con éxito; si la escritura falla, abortar y
   limpiar el prefijo del snapshot).
-- Preview: archivo no encontrado → 404 con mensaje; entry no detectable → estado de proyecto
-  "necesita elegir entrada".
+- Import: si el ZIP no tiene ningún `.html`, **falla antes de crear el `Project`** con mensaje
+  claro (no quedan proyectos a medias).
+- Preview: archivo no encontrado → 404 con mensaje. Si `entry_path` apunta a un archivo borrado
+  (no debería en increment 1), cae al entry por defecto.
 - Adaptadores: errores envueltos con contexto (qué clave/operación falló).
 
 ---
 
 ## 13. Testing y verificación
 
-- **Unit:** detección de entry (varios layouts de ZIP), normalización de carpeta raíz, rechazo
-  zip-slip, validación de extensiones, reescritura de root-absolutas del preview (entrada con
-  rutas relativas, root-absolutas y mixtas), esquema de claves del storage.
+- **Unit:** detección de entry por defecto (varios layouts de ZIP), normalización de carpeta raíz,
+  rechazo zip-slip, validación de extensiones, reescritura de root-absolutas del preview (entrada
+  con rutas relativas, root-absolutas y mixtas), esquema de claves del storage, `listHtmlPages` y
+  `PATCH entry_path`.
 - **Integración:** `StorageAdapter` local (put/get/list/delete round-trip).
 - **Verificación visual (definición de hecho):** importar un ZIP real de una web estática
   (HTML+CSS+imágenes) → aparece en el dashboard → abrir el proyecto → **el preview se ve idéntico
@@ -321,16 +339,17 @@ No se toca en increment 1, pero se documenta el mapeo para no perderlo:
 | Riesgo | Mitigación |
 |---|---|
 | Rutas de assets root-absolutas no cargan en el preview | Reescritura on-the-fly solo en la respuesta del preview + `<base>`; no toca el archivo guardado. En producción (raíz propia) el problema no existe. |
-| ZIPs con carpeta raíz envolvente o estructuras raras | Normalizar el árbol; heurística de detección de entry con fallback a elección del usuario. |
+| ZIPs con carpeta raíz envolvente o estructuras raras | Normalizar el árbol; entry por defecto determinista + **selector de página** para que el usuario corrija la home. |
 | Seguridad del unzip (zip-slip, bombas zip) | Rechazar rutas `..`/absolutas; límites de tamaño/nº de archivos; descompresión acotada. |
-| Acoplarse a fs y luego sufrir al pasar a R2 | Todo pasa por `StorageAdapter`; la impl. local respeta exactamente el contrato. |
+| Acoplarse a fs y luego sufrir al pasar a Supabase Storage/R2 | Todo pasa por `StorageAdapter`; la impl. local respeta exactamente el contrato. |
 | El preview parece "suficiente" y se cuela mutación del HTML | Test que compara byte a byte el HTML almacenado con el subido; la reescritura vive en la capa de servir, no en el import. |
 
 ---
 
 ## 15. Decisiones diferidas (no resolver ahora)
 
-- Proveedor exacto de Postgres gestionado (Neon vs Supabase) — en increment 1 da igual (Drizzle).
+- Postgres: **decidido = Supabase** (desde el inicio). Storage y Auth reales (Supabase vs R2/Clerk)
+  se deciden en sus módulos.
 - Detalles de Cloudflare Pages API (Módulo Deploy, increment 3).
 - SDK/medición de créditos de Anthropic (Módulo Blog, increment 4).
 - Stripe, dominios, white-label, BYO-host, importar desde GitHub — Fase 2.
