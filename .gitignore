@@ -7,9 +7,10 @@ node_modules/
 dist/
 build/
 
-# Datos locales y storage local (local-first)
+# Datos locales y storage local (local-first).
+# OJO: anclados a la raíz con "/" para NO ignorar el código fuente en src/storage/.
 data/
-storage/
+/storage/
 
 # Entorno
 .env
