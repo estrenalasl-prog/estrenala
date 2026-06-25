@@ -47,6 +47,13 @@ describe("LocalFsStorage", () => {
     expect(pages.sort()).toEqual(["about/team.html", "index.html"]);
   });
 
+  it("put acepta un contentType explícito (interfaz) y el round-trip funciona", async () => {
+    await s.put("a/b.html", Buffer.from("<p>x</p>"), "text/html; charset=utf-8");
+    const got = await s.get("a/b.html");
+    expect(got?.body.toString()).toBe("<p>x</p>");
+    expect(got?.contentType).toBe("text/html; charset=utf-8");
+  });
+
   it("delete borra la clave", async () => {
     await s.put("a/b.txt", "x");
     await s.delete("a/b.txt");

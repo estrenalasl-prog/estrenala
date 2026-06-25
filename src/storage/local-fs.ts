@@ -10,10 +10,13 @@ export class LocalFsStorage implements StorageAdapter {
     return path.join(this.rootDir, key);
   }
 
-  async put(key: string, body: Buffer | string): Promise<void> {
+  async put(key: string, body: Buffer | string, _contentType?: string): Promise<void> {
     const full = this.full(key);
     await fs.mkdir(path.dirname(full), { recursive: true });
     await fs.writeFile(full, body);
+    // LocalFs no guarda metadata aparte: get() infiere el content-type por la
+    // extensión de la clave. El parámetro se acepta por compatibilidad con la
+    // interfaz (una impl. con sidecar podría persistirlo en el futuro).
   }
 
   async get(key: string): Promise<{ body: Buffer; contentType: string } | null> {
