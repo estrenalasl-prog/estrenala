@@ -20,6 +20,9 @@ const TIPOS: Record<string, string> = {
   txt: "text/plain; charset=utf-8",
   xml: "application/xml; charset=utf-8",
   map: "application/json; charset=utf-8",
+  eot: "application/vnd.ms-fontobject",
+  webmanifest: "application/manifest+json",
+  csv: "text/csv; charset=utf-8",
 };
 
 export function contentTypeFor(pathOrName: string): string {

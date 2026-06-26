@@ -47,4 +47,12 @@ describe("resolvePreview", () => {
     });
     expect(r.status).toBe(404);
   });
+
+  it("rechaza traversal (..) con 400", async () => {
+    const storage = new MapStorage({});
+    const r = await resolvePreview({ storage }, {
+      projectId: "p1", storagePrefix: prefix, entryPath: "index.html", pathSegments: ["..", "secret"],
+    });
+    expect(r.status).toBe(400);
+  });
 });

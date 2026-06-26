@@ -28,5 +28,5 @@ export interface ProjectStore {
   getProject(orgId: string, projectId: string): Promise<ProjectRow | null>;
   listProjects(orgId: string): Promise<ProjectRow[]>;
   setEntryPath(orgId: string, projectId: string, entryPath: string): Promise<void>;
-  getCurrentSnapshot(projectId: string): Promise<SnapshotRow | null>;
+  getCurrentSnapshot(orgId: string, projectId: string): Promise<SnapshotRow | null>;
 }

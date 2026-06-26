@@ -13,7 +13,7 @@ export async function GET(
   const { orgId } = await getDevContext();
   const project = await projectStore.getProject(orgId, id);
   if (!project) return new Response("Proyecto no encontrado", { status: 404 });
-  const snap = await projectStore.getCurrentSnapshot(id);
+  const snap = await projectStore.getCurrentSnapshot(orgId, id);
   if (!snap) return new Response("Sin snapshot", { status: 404 });
 
   const r = await resolvePreview(

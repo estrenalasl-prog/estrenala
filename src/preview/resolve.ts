@@ -5,6 +5,9 @@ export async function resolvePreview(
   deps: { storage: StorageAdapter },
   input: { projectId: string; storagePrefix: string; entryPath: string; pathSegments: string[] }
 ): Promise<{ status: number; body: Buffer; contentType: string }> {
+  if (input.pathSegments.some((s) => s === ".." || s.includes("/") || s.includes("\\"))) {
+    return { status: 400, body: Buffer.from("Ruta no válida"), contentType: "text/plain; charset=utf-8" };
+  }
   const rel = input.pathSegments.length > 0 ? input.pathSegments.join("/") : input.entryPath;
   const file = await deps.storage.get(input.storagePrefix + rel);
   if (!file) {

@@ -6,7 +6,7 @@ async function paginas(
   deps: { store: ProjectStore; storage: StorageAdapter },
   input: { orgId: string; projectId: string }
 ): Promise<string[]> {
-  const snap = await deps.store.getCurrentSnapshot(input.projectId);
+  const snap = await deps.store.getCurrentSnapshot(input.orgId, input.projectId);
   if (!snap) return [];
   return listHtmlPages(deps.storage, snap.storagePrefix);
 }

@@ -33,4 +33,23 @@ describe("unzipSafe", () => {
     const zip = makeZip({ "../evil.html": "x" });
     expect(() => unzipSafe(zip)).toThrow(ImportError);
   });
+
+  it("rechaza ruta absoluta", () => {
+    expect(() => unzipSafe(makeZip({ "/etc/passwd": "x" }))).toThrow(ImportError);
+  });
+
+  it("rechaza ruta con unidad de Windows", () => {
+    expect(() => unzipSafe(makeZip({ "C:/Windows/evil.html": "x" }))).toThrow(ImportError);
+  });
+
+  it("rechaza si supera el máximo de archivos", () => {
+    const many: Record<string, string> = {};
+    for (let i = 0; i < 2001; i++) many[`f${i}.txt`] = "x";
+    expect(() => unzipSafe(makeZip(many))).toThrow(ImportError);
+  });
+
+  it("rechaza si el contenido descomprimido supera 50 MB", () => {
+    const big = "a".repeat(51 * 1024 * 1024);
+    expect(() => unzipSafe(makeZip({ "big.txt": big }))).toThrow(ImportError);
+  });
 });

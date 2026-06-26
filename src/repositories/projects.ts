@@ -53,8 +53,9 @@ export class DrizzleProjectStore implements ProjectStore {
       .where(and(eq(projects.id, projectId), eq(projects.orgId, orgId)));
   }
 
-  async getCurrentSnapshot(projectId: string): Promise<SnapshotRow | null> {
-    const p = await db.select().from(projects).where(eq(projects.id, projectId)).limit(1);
+  async getCurrentSnapshot(orgId: string, projectId: string): Promise<SnapshotRow | null> {
+    const p = await db.select().from(projects)
+      .where(and(eq(projects.id, projectId), eq(projects.orgId, orgId))).limit(1);
     const snapId = p[0]?.currentSnapshotId;
     if (!snapId) return null;
     const s = await db.select().from(snapshots).where(eq(snapshots.id, snapId)).limit(1);
