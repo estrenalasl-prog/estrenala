@@ -7,7 +7,21 @@ const DEV_ORG_ID = "00000000-0000-4000-8000-000000000001";
 const DEV_USER_ID = "00000000-0000-4000-8000-000000000002";
 const DEV_EMAIL = "dev@wordclicks.local";
 
-export async function getDevContext(): Promise<{ orgId: string; userId: string }> {
+// Memoizado: el alta idempotente de org/user/membership de dev se hace UNA vez
+// por proceso, no en cada request (evita martillear el pooler de Supabase).
+let cache: Promise<{ orgId: string; userId: string }> | null = null;
+
+export function getDevContext(): Promise<{ orgId: string; userId: string }> {
+  if (!cache) {
+    cache = ensureDevContext().catch((e) => {
+      cache = null; // un fallo transitorio no envenena la caché
+      throw e;
+    });
+  }
+  return cache;
+}
+
+async function ensureDevContext(): Promise<{ orgId: string; userId: string }> {
   await db.insert(organizations)
     .values({ id: DEV_ORG_ID, nombre: "Organización de desarrollo" })
     .onConflictDoNothing();
