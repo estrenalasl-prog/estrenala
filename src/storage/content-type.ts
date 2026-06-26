@@ -23,6 +23,20 @@ const TIPOS: Record<string, string> = {
   eot: "application/vnd.ms-fontobject",
   webmanifest: "application/manifest+json",
   csv: "text/csv; charset=utf-8",
+  // Vídeo
+  mp4: "video/mp4",
+  m4v: "video/mp4",
+  webm: "video/webm",
+  ogv: "video/ogg",
+  mov: "video/quicktime",
+  // Audio
+  mp3: "audio/mpeg",
+  m4a: "audio/mp4",
+  wav: "audio/wav",
+  aac: "audio/aac",
+  oga: "audio/ogg",
+  ogg: "audio/ogg",
+  flac: "audio/flac",
 };
 
 export function contentTypeFor(pathOrName: string): string {

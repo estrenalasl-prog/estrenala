@@ -5,6 +5,9 @@ const SEGURAS = new Set([
   "png", "jpg", "jpeg", "gif", "webp", "avif", "ico",
   "woff", "woff2", "ttf", "otf", "eot",
   "txt", "xml", "map", "webmanifest", "csv",
+  // Vídeo y audio (fondos, hero videos, etc.)
+  "mp4", "m4v", "webm", "ogv", "mov",
+  "mp3", "m4a", "wav", "aac", "oga", "ogg", "flac",
 ]);
 
 function ext(p: string): string {

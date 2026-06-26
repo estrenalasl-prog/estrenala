@@ -16,4 +16,18 @@ describe("filtrarSeguros", () => {
     ]);
     expect(ignorados.sort()).toEqual(["notas.docx", "raro.exe"]);
   });
+
+  it("conserva vídeo y audio (mp4, webm, mov, mp3)", () => {
+    const files = [
+      { path: "media/fondo.mp4", bytes: Buffer.from("v") },
+      { path: "media/clip.webm", bytes: Buffer.from("w") },
+      { path: "media/old.MOV", bytes: Buffer.from("m") },
+      { path: "audio/son.mp3", bytes: Buffer.from("a") },
+    ];
+    const { seguros, ignorados } = filtrarSeguros(files);
+    expect(seguros.map((f) => f.path).sort()).toEqual([
+      "audio/son.mp3", "media/clip.webm", "media/fondo.mp4", "media/old.MOV",
+    ]);
+    expect(ignorados).toEqual([]);
+  });
 });
