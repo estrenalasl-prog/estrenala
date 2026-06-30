@@ -18,12 +18,16 @@ export function isUuid(s: string): boolean {
 
 export function isSafeHref(href: string): boolean {
   if (typeof href !== "string") return false;
-  const t = href.trim();
+  // Los navegadores ELIMINAN TAB/LF/CR (y otros controles C0) de la URL antes de
+  // interpretar el esquema: `java\tscript:` o `javascript\n:` se ejecutan como
+  // `javascript:`. Normalizamos igual (quitamos todos los controles C0 + DEL) y
+  // recortamos los extremos para detectar el esquema REAL antes de validar.
+  const t = href.replace(/[\x00-\x1f\x7f]/g, "").trim();
   if (t === "") return false;
   if (/^(javascript|data|vbscript):/i.test(t)) return false;
   const m = t.match(/^([a-z][a-z0-9+.-]*):/i);
   if (m) return ["http", "https", "mailto", "tel"].includes(m[1].toLowerCase());
-  return true; // sin esquema → relativa, ancla, root-absoluta
+  return true;
 }
 
 export function isValidOp(op: EditOp): boolean {

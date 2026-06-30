@@ -24,6 +24,12 @@ describe("isSafeHref", () => {
   it("rechaza vacío", () => {
     expect(isSafeHref("   ")).toBe(false);
   });
+  it("rechaza javascript con tab/newline incrustado o como prefijo", () => {
+    expect(isSafeHref("java\tscript:alert(1)")).toBe(false);
+    expect(isSafeHref("\njavascript:alert(1)")).toBe(false);
+    expect(isSafeHref("javascript\n:alert(1)")).toBe(false);
+    expect(isSafeHref("ja\rva\tscript:alert(1)")).toBe(false);
+  });
 });
 
 describe("isValidOp", () => {
@@ -46,6 +52,12 @@ describe("isValidOp", () => {
     expect(isValidOp({ page: "i", nodeId: 0, kind: "style", property: "color", value: "red" })).toBe(true);
     expect(isValidOp({ page: "i", nodeId: 0, kind: "style", property: "color", value: "red; x: y" })).toBe(false);
     expect(isValidOp({ page: "i", nodeId: 0, kind: "style", property: "color", value: "url(x)" })).toBe(false);
+  });
+  it("style: rechaza una propiedad que no es color", () => {
+    expect(isValidOp({ page: "i", nodeId: 0, kind: "style", property: "background", value: "red" } as unknown as Parameters<typeof isValidOp>[0])).toBe(false);
+  });
+  it("src: acepta assetId con mayúsculas (comparación case-insensitive)", () => {
+    expect(isValidOp({ page: "i", nodeId: 0, kind: "src", value: `/wc-uploads/${UUID}.png`, assetId: UUID.toUpperCase() })).toBe(true);
   });
   it("rechaza kind desconocido", () => {
     expect(isValidOp({ kind: "otro" } as unknown as Parameters<typeof isValidOp>[0])).toBe(false);
