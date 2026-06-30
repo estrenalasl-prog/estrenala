@@ -61,4 +61,36 @@ describe("saveEdits", () => {
       saveEdits({ store: new FakeStore(), storage }, { orgId: "org1", projectId: "p1", ops: [] })
     ).rejects.toThrow(EditorError);
   });
+
+  it("rechaza más de 1000 ops con 400", async () => {
+    const storage = new FakeStorage();
+    storage.files.set(CUR + "index.html", Buffer.from(`<h1>x</h1>`));
+    const ops = Array.from({ length: 1001 }, (_, i) => ({ page: "index.html", nodeId: i, kind: "text" as const, value: "x" }));
+    await expect(saveEdits({ store: new FakeStore(), storage }, { orgId: "org1", projectId: "p1", ops }))
+      .rejects.toThrow(EditorError);
+  });
+
+  it("rechaza un value demasiado largo con 400", async () => {
+    const storage = new FakeStorage();
+    storage.files.set(CUR + "index.html", Buffer.from(`<h1>x</h1>`));
+    const ops = [{ page: "index.html", nodeId: 0, kind: "text" as const, value: "a".repeat(50001) }];
+    await expect(saveEdits({ store: new FakeStore(), storage }, { orgId: "org1", projectId: "p1", ops }))
+      .rejects.toThrow(EditorError);
+  });
+
+  it("lanza 404 si el proyecto no existe", async () => {
+    const storage = new FakeStorage();
+    class NoProjectStore extends FakeStore { async getProject() { return null; } }
+    await expect(
+      saveEdits({ store: new NoProjectStore(), storage }, { orgId: "org1", projectId: "p1", ops: [{ page: "index.html", nodeId: 0, kind: "text", value: "x" }] })
+    ).rejects.toThrow(EditorError);
+  });
+
+  it("ignora ops de kind no-text → 400 si no queda ninguna válida", async () => {
+    const storage = new FakeStorage();
+    storage.files.set(CUR + "index.html", Buffer.from(`<h1>x</h1>`));
+    await expect(
+      saveEdits({ store: new FakeStore(), storage }, { orgId: "org1", projectId: "p1", ops: [{ page: "index.html", nodeId: 0, kind: "imagen" as unknown as "text", value: "x" }] })
+    ).rejects.toThrow(EditorError);
+  });
 });

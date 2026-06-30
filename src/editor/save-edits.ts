@@ -8,6 +8,10 @@ export async function saveEdits(
   deps: { store: ProjectStore; storage: StorageAdapter },
   input: { orgId: string; projectId: string; ops: EditOp[] }
 ): Promise<{ snapshotId: string }> {
+  if (input.ops.length > 1000) throw new EditorError("Demasiadas ediciones (máx. 1000)", 400);
+  if (input.ops.some((o) => typeof o.value === "string" && o.value.length > 50000)) {
+    throw new EditorError("Texto demasiado largo (máx. 50000 caracteres)", 400);
+  }
   const project = await deps.store.getProject(input.orgId, input.projectId);
   if (!project) throw new EditorError("Proyecto no encontrado", 404);
   const current = await deps.store.getCurrentSnapshot(input.orgId, input.projectId);

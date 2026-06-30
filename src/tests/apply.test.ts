@@ -37,4 +37,14 @@ describe("applyTextEdits", () => {
     expect(applyTextEdits(html, [{ nodeId: 0, value: "A" }, { nodeId: 2, value: "C" }]))
       .toBe(`<h1>A</h1><p>Uno <b>C</b></p>`);
   });
+
+  it("dedup por nodeId: la última op gana", () => {
+    expect(applyTextEdits(`<h1>x</h1>`, [{ nodeId: 0, value: "A" }, { nodeId: 0, value: "B" }]))
+      .toBe(`<h1>B</h1>`);
+  });
+
+  it("ignora un elemento void (img, sin endTag)", () => {
+    const html = `<p>hola</p><img src="x.png">`; // p=0, img=1
+    expect(applyTextEdits(html, [{ nodeId: 1, value: "y" }])).toBe(html);
+  });
 });

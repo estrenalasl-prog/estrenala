@@ -48,13 +48,16 @@ export function PreviewPane({
 
   async function guardarEdicion() {
     setGuardando(true);
-    const res = await fetch(`/api/projects/${projectId}/edits`, {
-      method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ ops: [...ops.values()] }),
-    });
-    setGuardando(false);
-    if (res.ok) { setOps(new Map()); setEditMode(false); setRecarga((n) => n + 1); setSnapshots(null); }
-    else { const d = await res.json().catch(() => ({})); alert(d.error ?? "Error al guardar"); }
+    try {
+      const res = await fetch(`/api/projects/${projectId}/edits`, {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ ops: [...ops.values()] }),
+      });
+      if (res.ok) { setOps(new Map()); setEditMode(false); setRecarga((n) => n + 1); setSnapshots(null); }
+      else { const d = await res.json().catch(() => ({})); alert(d.error ?? "Error al guardar"); }
+    } finally {
+      setGuardando(false);
+    }
   }
 
   async function verHistorial() {

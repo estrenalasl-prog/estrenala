@@ -11,13 +11,15 @@ export function applyTextEdits(
   ops: { nodeId: number; value: string }[]
 ): string {
   const byId = new Map(walkElementsInOrder(html).map((e) => [e.id, e]));
+  const dedup = new Map<number, string>();
+  for (const op of ops) dedup.set(op.nodeId, op.value);
   const edits: { start: number; end: number; text: string }[] = [];
-  for (const op of ops) {
-    const el = byId.get(op.nodeId);
+  for (const [nodeId, value] of dedup) {
+    const el = byId.get(nodeId);
     if (!el) continue;                    // id inexistente
     if (el.hasElementChildren) continue;  // no es hoja de texto
     if (el.endTagStart == null) continue; // void / sin endTag
-    edits.push({ start: el.startTagEnd, end: el.endTagStart, text: escapeHtmlText(op.value) });
+    edits.push({ start: el.startTagEnd, end: el.endTagStart, text: escapeHtmlText(value) });
   }
   edits.sort((a, b) => b.start - a.start); // descendente
   let out = html;

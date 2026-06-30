@@ -71,5 +71,6 @@
     if (e.key === "Escape") { e.preventDefault(); terminarEdicion(false); }
     else if (e.key === "Enter") { e.preventDefault(); terminarEdicion(true); }
   });
+  // El guard !editando en terminarEdicion hace que el blur disparado por Enter→blur sea un no-op
   document.addEventListener("blur", function () { terminarEdicion(true); }, true);
 })();
