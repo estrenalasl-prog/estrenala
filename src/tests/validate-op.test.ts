@@ -29,6 +29,10 @@ describe("isSafeHref", () => {
     expect(isSafeHref("\njavascript:alert(1)")).toBe(false);
     expect(isSafeHref("javascript\n:alert(1)")).toBe(false);
     expect(isSafeHref("ja\rva\tscript:alert(1)")).toBe(false);
+    expect(isSafeHref("d\tata:text/html,x")).toBe(false);
+    expect(isSafeHref("DA\nTA:x")).toBe(false);
+    expect(isSafeHref("vbscript:calc")).toBe(false);
+    expect(isSafeHref("vb\tscript:calc")).toBe(false);
   });
 });
 
