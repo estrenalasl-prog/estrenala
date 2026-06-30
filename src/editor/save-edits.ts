@@ -3,7 +3,7 @@ import { applyEdits, type EditOp, type PageOp } from "./apply";
 import { isValidOp } from "./validate-op";
 import { EditorError } from "./errors";
 import type { StorageAdapter } from "@/src/storage/types";
-import type { AssetRow, ProjectStore } from "@/src/repositories/types";
+import type { ProjectStore } from "@/src/repositories/types";
 
 function toPageOp(op: EditOp): PageOp {
   switch (op.kind) {
@@ -27,17 +27,20 @@ export async function saveEdits(
   const current = await deps.store.getCurrentSnapshot(input.orgId, input.projectId);
   if (!current) throw new EditorError("El proyecto no tiene snapshot actual", 400);
 
-  // Validar y separar por página. Las ops de imagen exigen un asset propio;
-  // se acumulan para copiarlas al snapshot (clave = ruta destino en wc-uploads).
+  // Validar y separar por página. Las ops de imagen exigen un asset propio
+  // Y que el fichero exista en storage; se acumulan ya con los bytes para
+  // copiarlos al snapshot (clave = ruta destino en wc-uploads).
   const porPagina = new Map<string, PageOp[]>();
-  const assetCopias = new Map<string, AssetRow>(); // path destino (sin "/") -> asset
+  const assetCopias = new Map<string, { body: Buffer; contentType: string }>(); // path destino (sin "/") -> asset
   for (const op of input.ops) {
     if (typeof op?.nodeId !== "number" || !op.page) continue;
     if (!isValidOp(op)) continue;
     if (op.kind === "src") {
       const row = await deps.store.getAsset(input.orgId, input.projectId, op.assetId);
-      if (!row) continue; // asset ajeno/inexistente → ignora esta op
-      assetCopias.set(op.value.replace(/^\//, ""), row);
+      if (!row) continue; // asset ajeno/inexistente → ignora la op
+      const file = await deps.storage.get(row.storageKey);
+      if (!file) continue; // fichero ausente (incoherencia storage/DB) → ignora la op (no rompe el guardado)
+      assetCopias.set(op.value.replace(/^\//, ""), { body: file.body, contentType: row.contentType });
     }
     const arr = porPagina.get(op.page) ?? [];
     arr.push(toPageOp(op));
@@ -65,10 +68,8 @@ export async function saveEdits(
   }
 
   // 2) Copiar los assets usados a wc-uploads/ → la web queda auto-contenida.
-  for (const [path, row] of assetCopias) {
-    const src = await deps.storage.get(row.storageKey);
-    if (!src) continue;
-    await deps.storage.put(newPrefix + path, src.body, row.contentType);
+  for (const [path, asset] of assetCopias) {
+    await deps.storage.put(newPrefix + path, asset.body, asset.contentType);
     written.push(newPrefix + path);
   }
 

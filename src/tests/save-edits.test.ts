@@ -166,5 +166,25 @@ describe("saveEdits", () => {
     })).rejects.toThrow("boom");
     const huerfanos = [...storage.files.keys()].filter((k) => k.startsWith("projects/p1/snapshots/") && !k.startsWith(CUR));
     expect(huerfanos).toEqual([]);
+    expect(storage.files.has(CUR + "index.html")).toBe(true); // el snapshot original queda intacto
+  });
+
+  it("ignora la op src si el asset existe en BD pero falta el fichero en storage", async () => {
+    const storage = new FakeStorage();
+    storage.files.set(CUR + "index.html", Buffer.from(`<img src="/a.png"><a href="/o">x</a>`));
+    const store = new FakeStore();
+    const A = "11111111-2222-4333-8444-555555555555";
+    store.assets.set(A, { id: A, projectId: "p1", storageKey: "projects/p1/assets/aa.png", contentType: "image/png", bytes: 7, createdAt: "" });
+    // adrede: NO añadimos el fichero projects/p1/assets/aa.png al storage
+    const { snapshotId } = await saveEdits({ store, storage }, {
+      orgId: "org1", projectId: "p1",
+      ops: [
+        { page: "index.html", nodeId: 0, kind: "src", value: `/wc-uploads/${A}.png`, assetId: A },
+        { page: "index.html", nodeId: 1, kind: "href", value: "/n" },
+      ],
+    });
+    const np = `projects/p1/snapshots/${snapshotId}/`;
+    expect(storage.files.get(np + "index.html")!.toString()).toBe(`<img src="/a.png"><a href="/n">x</a>`);
+    expect(storage.files.get(np + `wc-uploads/${A}.png`)).toBeUndefined();
   });
 });
