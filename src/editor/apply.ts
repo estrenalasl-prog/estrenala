@@ -49,7 +49,10 @@ export function applyEdits(html: string, ops: PageOp[]): string {
     const prop = op.kind === "style" ? op.property : "";
     dedup.set(`${op.nodeId}#${op.kind}#${prop}`, op);
   }
-  // Track which attributes are being replaced per node (for insertion positioning)
+  // Un atributo NUEVO se inserta tras el tramo de cualquier atributo que se
+  // esté REEMPLAZANDO en el mismo nodo: así los reemplazados conservan su
+  // posición original y los nuevos quedan después (orden determinista). El
+  // orden de atributos es irrelevante para HTML; esto solo fija el resultado.
   const replacedAttrsPerNode = new Map<number, Set<string>>();
   for (const op of dedup.values()) {
     const el = byId.get(op.nodeId);

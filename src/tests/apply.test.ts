@@ -87,4 +87,20 @@ describe("applyEdits — combinados", () => {
       { nodeId: 0, kind: "href", value: "/b" },
     ])).toBe(`<a href="/b">x</a>`);
   });
+
+  it("dos atributos NUEVOS en el mismo punto: ambos quedan presentes", () => {
+    const out = applyEdits(`<a>link</a>`, [
+      { nodeId: 0, kind: "href", value: "/n" },
+      { nodeId: 0, kind: "style", property: "color", value: "red" },
+    ]);
+    expect(out).toContain(`href="/n"`);
+    expect(out).toContain(`style="color: red"`);
+    expect(out.startsWith("<a ")).toBe(true);
+    expect(out.endsWith(">link</a>")).toBe(true);
+  });
+
+  it("edita el texto de un nodo anidado (b) dejando el resto intacto", () => {
+    expect(applyEdits(`<h1>Hola</h1><p>Uno <b>dos</b></p>`, [{ nodeId: 2, kind: "text", value: "DOS" }]))
+      .toBe(`<h1>Hola</h1><p>Uno <b>DOS</b></p>`);
+  });
 });
