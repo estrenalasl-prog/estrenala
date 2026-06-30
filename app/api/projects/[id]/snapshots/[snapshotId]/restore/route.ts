@@ -1,0 +1,19 @@
+import { NextResponse } from "next/server";
+import { getDevContext } from "@/src/auth/dev-stub";
+import { projectStore } from "@/src/repositories/projects";
+import { restoreSnapshot } from "@/src/editor/restore";
+import { EditorError } from "@/src/editor/errors";
+
+export const runtime = "nodejs";
+
+export async function POST(_req: Request, ctx: { params: Promise<{ id: string; snapshotId: string }> }) {
+  const { id, snapshotId } = await ctx.params;
+  const { orgId } = await getDevContext();
+  try {
+    await restoreSnapshot({ store: projectStore }, { orgId, projectId: id, snapshotId });
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    if (e instanceof EditorError) return NextResponse.json({ error: e.message }, { status: e.status });
+    return NextResponse.json({ error: "Error" }, { status: 500 });
+  }
+}
