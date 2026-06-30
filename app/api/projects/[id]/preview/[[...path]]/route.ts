@@ -6,7 +6,7 @@ import { projectStore } from "@/src/repositories/projects";
 export const runtime = "nodejs";
 
 export async function GET(
-  _req: Request,
+  req: Request,
   ctx: { params: Promise<{ id: string; path?: string[] }> }
 ) {
   const { id, path } = await ctx.params;
@@ -16,9 +16,10 @@ export async function GET(
   const snap = await projectStore.getCurrentSnapshot(orgId, id);
   if (!snap) return new Response("Sin snapshot", { status: 404 });
 
+  const edit = new URL(req.url).searchParams.get("edit") === "1";
   const r = await resolvePreview(
     { storage: getStorage() },
-    { projectId: id, storagePrefix: snap.storagePrefix, entryPath: project.entryPath, pathSegments: path ?? [] }
+    { projectId: id, storagePrefix: snap.storagePrefix, entryPath: project.entryPath, pathSegments: path ?? [], edit }
   );
   return new Response(new Uint8Array(r.body), { status: r.status, headers: { "content-type": r.contentType } });
 }

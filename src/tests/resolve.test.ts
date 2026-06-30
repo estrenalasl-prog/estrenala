@@ -55,4 +55,28 @@ describe("resolvePreview", () => {
     });
     expect(r.status).toBe(400);
   });
+
+  it("en modo edición inyecta data-wc-id y el script del editor", async () => {
+    const storage = new MapStorage({
+      [prefix + "index.html"]: { body: `<body><h1>Hola</h1></body>`, ct: "text/html; charset=utf-8" },
+    });
+    const r = await resolvePreview({ storage }, {
+      projectId: "p1", storagePrefix: prefix, entryPath: "index.html", pathSegments: [], edit: true,
+    });
+    const html = r.body.toString();
+    expect(html).toContain(`data-wc-id="`);
+    expect(html).toContain(`<script src="/wc-editor.js" data-project="p1" data-page="index.html"></script>`);
+  });
+
+  it("sin modo edición NO inyecta data-wc-id ni el script", async () => {
+    const storage = new MapStorage({
+      [prefix + "index.html"]: { body: `<body><h1>Hola</h1></body>`, ct: "text/html; charset=utf-8" },
+    });
+    const r = await resolvePreview({ storage }, {
+      projectId: "p1", storagePrefix: prefix, entryPath: "index.html", pathSegments: [],
+    });
+    const html = r.body.toString();
+    expect(html).not.toContain(`data-wc-id`);
+    expect(html).not.toContain(`wc-editor.js`);
+  });
 });
