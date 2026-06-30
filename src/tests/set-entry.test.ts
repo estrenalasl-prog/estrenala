@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { setEntryPath, listPages } from "@/src/projects/entry";
 import type { StorageAdapter } from "@/src/storage/types";
-import type { ProjectStore, ProjectRow, SnapshotRow, CreateProjectInput } from "@/src/repositories/types";
+import type { ProjectStore, ProjectRow, SnapshotRow, SnapshotInfo, CreateProjectInput, CreateSnapshotInput } from "@/src/repositories/types";
 
 const prefix = "projects/p1/snapshots/s1/";
 
@@ -24,6 +24,10 @@ class StubStore implements ProjectStore {
   async getCurrentSnapshot(): Promise<SnapshotRow | null> {
     return { id: "s1", projectId: "p1", storagePrefix: prefix, tipo: "import" };
   }
+  async createSnapshot(_input: CreateSnapshotInput): Promise<void> {}
+  async setCurrentSnapshot(): Promise<void> {}
+  async listSnapshots(): Promise<SnapshotInfo[]> { return []; }
+  async getSnapshotById(): Promise<SnapshotRow | null> { return null; }
 }
 
 describe("setEntryPath / listPages", () => {

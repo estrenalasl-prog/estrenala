@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { zipSync, strToU8 } from "fflate";
 import { importProject } from "@/src/import/import-project";
 import type { StorageAdapter } from "@/src/storage/types";
-import type { ProjectStore, CreateProjectInput, ProjectRow, SnapshotRow } from "@/src/repositories/types";
+import type { ProjectStore, CreateProjectInput, CreateSnapshotInput, ProjectRow, SnapshotRow, SnapshotInfo } from "@/src/repositories/types";
 
 function makeZip(files: Record<string, string>): Buffer {
   const data: Record<string, Uint8Array> = {};
@@ -35,6 +35,10 @@ class FakeStore implements ProjectStore {
   async listProjects(): Promise<ProjectRow[]> { return []; }
   async setEntryPath(): Promise<void> {}
   async getCurrentSnapshot(): Promise<SnapshotRow | null> { return null; }
+  async createSnapshot(_input: CreateSnapshotInput): Promise<void> {}
+  async setCurrentSnapshot(): Promise<void> {}
+  async listSnapshots(): Promise<SnapshotInfo[]> { return []; }
+  async getSnapshotById(): Promise<SnapshotRow | null> { return null; }
 }
 
 describe("importProject", () => {
