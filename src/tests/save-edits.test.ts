@@ -104,4 +104,67 @@ describe("saveEdits", () => {
       saveEdits({ store: new FakeStore(), storage }, { orgId: "org1", projectId: "p1", ops: [{ page: "index.html", nodeId: 0, kind: "imagen" as unknown as "text", value: "x" }] })
     ).rejects.toThrow(EditorError);
   });
+
+  it("aplica href/color y copia el asset de imagen a wc-uploads/", async () => {
+    const storage = new FakeStorage();
+    storage.files.set(CUR + "index.html", Buffer.from(`<a href="/o">x</a><img src="/a.png"><p>t</p>`));
+    storage.files.set("projects/p1/assets/aa.png", Buffer.from("PNGDATA"));
+    const store = new FakeStore();
+    store.assets.set("11111111-2222-4333-8444-555555555555", {
+      id: "11111111-2222-4333-8444-555555555555", projectId: "p1",
+      storageKey: "projects/p1/assets/aa.png", contentType: "image/png", bytes: 7, createdAt: "",
+    });
+    const A = "11111111-2222-4333-8444-555555555555";
+
+    const { snapshotId } = await saveEdits({ store, storage }, {
+      orgId: "org1", projectId: "p1",
+      ops: [
+        { page: "index.html", nodeId: 0, kind: "href", value: "/n" },
+        { page: "index.html", nodeId: 1, kind: "src", value: `/wc-uploads/${A}.png`, assetId: A },
+        { page: "index.html", nodeId: 2, kind: "style", property: "color", value: "red" },
+      ],
+    });
+
+    const np = `projects/p1/snapshots/${snapshotId}/`;
+    const html = storage.files.get(np + "index.html")!.toString();
+    expect(html).toBe(`<a href="/n">x</a><img src="/wc-uploads/${A}.png"><p style="color: red">t</p>`);
+    expect(storage.files.get(np + `wc-uploads/${A}.png`)!.toString()).toBe("PNGDATA");
+  });
+
+  it("ignora una op src cuyo assetId no existe (no rompe el guardado)", async () => {
+    const storage = new FakeStorage();
+    storage.files.set(CUR + "index.html", Buffer.from(`<a href="/o">x</a>`));
+    const A = "11111111-2222-4333-8444-555555555555";
+    const { snapshotId } = await saveEdits({ store: new FakeStore(), storage }, {
+      orgId: "org1", projectId: "p1",
+      ops: [
+        { page: "index.html", nodeId: 0, kind: "href", value: "/n" },
+        { page: "index.html", nodeId: 9, kind: "src", value: `/wc-uploads/${A}.png`, assetId: A },
+      ],
+    });
+    const np = `projects/p1/snapshots/${snapshotId}/`;
+    expect(storage.files.get(np + "index.html")!.toString()).toBe(`<a href="/n">x</a>`);
+    expect(storage.files.get(np + `wc-uploads/${A}.png`)).toBeUndefined();
+  });
+
+  it("rechaza una href insegura → 400 si no queda ninguna válida", async () => {
+    const storage = new FakeStorage();
+    storage.files.set(CUR + "index.html", Buffer.from(`<a href="/o">x</a>`));
+    await expect(saveEdits({ store: new FakeStore(), storage }, {
+      orgId: "org1", projectId: "p1",
+      ops: [{ page: "index.html", nodeId: 0, kind: "href", value: "javascript:alert(1)" }],
+    })).rejects.toThrow(EditorError);
+  });
+
+  it("limpia el prefijo nuevo si createSnapshot falla", async () => {
+    const storage = new FakeStorage();
+    storage.files.set(CUR + "index.html", Buffer.from(`<a href="/o">x</a>`));
+    class FallaStore extends FakeStore { async createSnapshot() { throw new Error("boom"); } }
+    await expect(saveEdits({ store: new FallaStore(), storage }, {
+      orgId: "org1", projectId: "p1",
+      ops: [{ page: "index.html", nodeId: 0, kind: "href", value: "/n" }],
+    })).rejects.toThrow("boom");
+    const huerfanos = [...storage.files.keys()].filter((k) => k.startsWith("projects/p1/snapshots/") && !k.startsWith(CUR));
+    expect(huerfanos).toEqual([]);
+  });
 });
