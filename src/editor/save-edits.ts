@@ -1,5 +1,5 @@
 import { snapshotPrefix } from "@/src/storage/keys";
-import { applyTextEdits, type EditOp } from "./apply";
+import { applyEdits, type EditOp } from "./apply";
 import { EditorError } from "./errors";
 import type { StorageAdapter } from "@/src/storage/types";
 import type { ProjectStore } from "@/src/repositories/types";
@@ -36,7 +36,8 @@ export async function saveEdits(
     let body = file.body;
     const ops = porPagina.get(rel);
     if (ops && /\.html?$/i.test(rel)) {
-      body = Buffer.from(applyTextEdits(body.toString("utf-8"), ops), "utf-8");
+      const pageOps = ops.map((o) => ({ nodeId: o.nodeId, kind: "text" as const, value: o.value }));
+      body = Buffer.from(applyEdits(body.toString("utf-8"), pageOps), "utf-8");
     }
     await deps.storage.put(newPrefix + rel, body);
   }
