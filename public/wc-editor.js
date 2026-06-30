@@ -99,8 +99,8 @@
   }
 
   // ---------- marcado visual ----------
-  function marcar(el) { el.style.outline = "2px dashed #6366f1"; el.style.outlineOffset = "2px"; }
-  function desmarcar(el) { if (el === editando) return; el.style.outline = ""; el.style.outlineOffset = ""; }
+  function marcar(el) { el.style.outline = "2px dashed #6366f1"; el.style.outlineOffset = "2px"; if (esTextoHoja(el)) el.style.cursor = "text"; }
+  function desmarcar(el) { if (el === editando) return; el.style.outline = ""; el.style.outlineOffset = ""; el.style.cursor = ""; }
 
   // ---------- edición de texto in-situ ----------
   var editando = null, valorPrevio = "";
@@ -143,7 +143,14 @@
     if (e.key === "Escape") { e.preventDefault(); terminarEdicion(false); }
     else if (e.key === "Enter") { e.preventDefault(); terminarEdicion(true); }
   });
-  document.addEventListener("blur", function () { terminarEdicion(true); }, true);
+  // Usamos focusout (trae relatedTarget) en vez de blur: si el foco pasa AL
+  // popover (p.ej. el campo href o el selector de color de un <a> que se está
+  // editando como texto), NO cerramos la edición de texto. El guard !editando
+  // en terminarEdicion mantiene el caso Enter->focusout como no-op.
+  document.addEventListener("focusout", function (e) {
+    if (dentroDePop(e.relatedTarget)) return;
+    terminarEdicion(true);
+  }, true);
 
   // ---------- recepción del padre: fijar la imagen subida en vivo ----------
   window.addEventListener("message", function (e) {
