@@ -1,8 +1,17 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 
-type EditOp = { page: string; nodeId: number; kind: "text"; value: string };
+type EditOp =
+  | { page: string; nodeId: number; kind: "text"; value: string }
+  | { page: string; nodeId: number; kind: "href"; value: string }
+  | { page: string; nodeId: number; kind: "src"; value: string; assetId: string }
+  | { page: string; nodeId: number; kind: "style"; property: "color"; value: string };
 type SnapshotInfo = { id: string; tipo: string; parentId: string | null; createdAt: string; esActual: boolean };
+
+function opKey(op: EditOp): string {
+  const prop = op.kind === "style" ? op.property : "";
+  return `${op.page}#${op.nodeId}#${op.kind}#${prop}`;
+}
 
 export function PreviewPane({
   projectId, entryPath, pages,
@@ -14,6 +23,8 @@ export function PreviewPane({
   const [snapshots, setSnapshots] = useState<SnapshotInfo[] | null>(null);
   const [recarga, setRecarga] = useState(0);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const pendingImg = useRef<{ nodeId: number; page: string } | null>(null);
 
   const relPath = actual === entryPath ? "" : actual;
   const src = `/api/projects/${projectId}/preview/${relPath}${editMode ? "?edit=1" : ""}#${recarga}`;
@@ -21,17 +32,50 @@ export function PreviewPane({
   useEffect(() => {
     function onMsg(e: MessageEvent) {
       if (!iframeRef.current || e.source !== iframeRef.current.contentWindow) return;
-      const data = e.data as { type?: string; op?: EditOp };
-      if (data?.type !== "wc-edit" || !data.op) return;
-      setOps((prev) => {
-        const next = new Map(prev);
-        next.set(`${data.op!.page}#${data.op!.nodeId}`, data.op!);
-        return next;
-      });
+      const data = e.data as { type?: string; op?: EditOp; nodeId?: number; page?: string };
+      if (data?.type === "wc-edit" && data.op) {
+        setOps((prev) => {
+          const next = new Map(prev);
+          next.set(opKey(data.op!), data.op!);
+          return next;
+        });
+      } else if (data?.type === "wc-image-request" && typeof data.nodeId === "number" && data.page) {
+        pendingImg.current = { nodeId: data.nodeId, page: data.page };
+        fileInputRef.current?.click();
+      }
     }
     window.addEventListener("message", onMsg);
     return () => window.removeEventListener("message", onMsg);
   }, []);
+
+  async function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    const pend = pendingImg.current;
+    pendingImg.current = null;
+    if (!file || !pend) return;
+    setGuardando(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch(`/api/projects/${projectId}/assets`, { method: "POST", body: fd });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        alert(d.error ?? "Error al subir la imagen");
+        return;
+      }
+      const { assetId, ext, url } = (await res.json()) as { assetId: string; ext: string; url: string };
+      iframeRef.current?.contentWindow?.postMessage({ type: "wc-image-set", nodeId: pend.nodeId, previewUrl: url }, "*");
+      const op: EditOp = { page: pend.page, nodeId: pend.nodeId, kind: "src", value: `/wc-uploads/${assetId}.${ext}`, assetId };
+      setOps((prev) => {
+        const next = new Map(prev);
+        next.set(opKey(op), op);
+        return next;
+      });
+    } finally {
+      setGuardando(false);
+    }
+  }
 
   async function cambiarEntrada(nuevo: string) {
     setActual(nuevo);
@@ -71,6 +115,13 @@ export function PreviewPane({
 
   return (
     <div>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/gif,image/webp,image/avif,image/svg+xml"
+        className="hidden"
+        onChange={(e) => void onFileChange(e)}
+      />
       <div className="mb-3 flex flex-wrap items-center gap-3">
         {!editMode ? (
           <>
@@ -87,7 +138,7 @@ export function PreviewPane({
             <span className="text-sm font-medium text-indigo-700">Modo edición · {ops.size} cambios</span>
             <button onClick={() => void guardarEdicion()} disabled={ops.size === 0 || guardando} className="rounded bg-indigo-600 px-3 py-1 text-sm text-white disabled:opacity-50">Guardar</button>
             <button onClick={cancelarEdicion} className="rounded border px-3 py-1 text-sm">Cancelar</button>
-            <span className="text-xs text-gray-400">Pasa el ratón sobre un texto y haz click para editarlo</span>
+            <span className="text-xs text-gray-400">Texto: click para editar · enlace/color: usa el panel flotante · imagen: «Cambiar imagen»</span>
           </>
         )}
       </div>
