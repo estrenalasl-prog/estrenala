@@ -36,4 +36,29 @@ describe("walkElementsInOrder", () => {
     expect(els[0].tagName).toBe("img");
     expect(els[0].endTagStart).toBeNull();
   });
+
+  it("expone los valores de atributos en attrs", () => {
+    const els = walkElementsInOrder(`<a href="/x" class="c">hi</a>`);
+    expect(els[0].attrs.href).toBe("/x");
+    expect(els[0].attrs.class).toBe("c");
+  });
+
+  it("expone el tramo name=\"value\" de cada atributo en attrLocations", () => {
+    const src = `<a href="/x">hi</a>`;
+    const a = walkElementsInOrder(src)[0];
+    const loc = a.attrLocations.href;
+    expect(src.slice(loc.start, loc.end)).toBe(`href="/x"`);
+  });
+
+  it("attrs vacío y attrLocations vacío cuando no hay atributos", () => {
+    const els = walkElementsInOrder(`<p>hi</p>`);
+    expect(els[0].attrs).toEqual({});
+    expect(els[0].attrLocations).toEqual({});
+  });
+
+  it("el punto de inserción startTagStart+1+tagName.length cae tras '<tag'", () => {
+    const src = `<a href="/x">hi</a>`;
+    const a = walkElementsInOrder(src)[0];
+    expect(src.slice(a.startTagStart, a.startTagStart + 1 + a.tagName.length)).toBe("<a");
+  });
 });
