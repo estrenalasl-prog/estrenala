@@ -36,7 +36,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     return NextResponse.json(r, { status: 201 });
   } catch (e) {
     if (e instanceof EditorError) return NextResponse.json({ error: e.message }, { status: e.status });
-    const msg = e instanceof Error ? e.message : "Error";
+    const msg = e instanceof Error ? e.message : "Error interno";
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

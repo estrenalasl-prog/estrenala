@@ -5,7 +5,7 @@ import { isUuid } from "@/src/editor/validate-op";
 
 export const runtime = "nodejs";
 
-export async function GET(req: Request, ctx: { params: Promise<{ id: string; asset: string }> }) {
+export async function GET(_req: Request, ctx: { params: Promise<{ id: string; asset: string }> }) {
   const { id, asset } = await ctx.params;
   const { orgId } = await getDevContext();
 

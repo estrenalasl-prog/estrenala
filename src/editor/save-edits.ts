@@ -31,7 +31,7 @@ export async function saveEdits(
   // Y que el fichero exista en storage; se acumulan ya con los bytes para
   // copiarlos al snapshot (clave = ruta destino en wc-uploads).
   const porPagina = new Map<string, PageOp[]>();
-  const assetCopias = new Map<string, { body: Buffer; contentType: string }>(); // path destino (sin "/") -> asset
+  const assetCopias = new Map<string, { body: Buffer; contentType: string }>(); // path destino (sin "/") -> { body, contentType }
   for (const op of input.ops) {
     if (typeof op?.nodeId !== "number" || !op.page) continue;
     if (!isValidOp(op)) continue;
