@@ -1,41 +1,114 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+
+type EditOp = { page: string; nodeId: number; kind: "text"; value: string };
+type SnapshotInfo = { id: string; tipo: string; parentId: string | null; createdAt: string; esActual: boolean };
 
 export function PreviewPane({
   projectId, entryPath, pages,
 }: { projectId: string; entryPath: string; pages: string[] }) {
   const [actual, setActual] = useState(entryPath);
   const [guardando, setGuardando] = useState(false);
-  const src = `/api/projects/${projectId}/preview/${actual === entryPath ? "" : actual}`;
+  const [editMode, setEditMode] = useState(false);
+  const [ops, setOps] = useState<Map<string, EditOp>>(new Map());
+  const [snapshots, setSnapshots] = useState<SnapshotInfo[] | null>(null);
+  const [recarga, setRecarga] = useState(0);
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+
+  const relPath = actual === entryPath ? "" : actual;
+  const src = `/api/projects/${projectId}/preview/${relPath}${editMode ? "?edit=1" : ""}#${recarga}`;
+
+  useEffect(() => {
+    function onMsg(e: MessageEvent) {
+      if (!iframeRef.current || e.source !== iframeRef.current.contentWindow) return;
+      const data = e.data as { type?: string; op?: EditOp };
+      if (data?.type !== "wc-edit" || !data.op) return;
+      setOps((prev) => {
+        const next = new Map(prev);
+        next.set(`${data.op!.page}#${data.op!.nodeId}`, data.op!);
+        return next;
+      });
+    }
+    window.addEventListener("message", onMsg);
+    return () => window.removeEventListener("message", onMsg);
+  }, []);
 
   async function cambiarEntrada(nuevo: string) {
     setActual(nuevo);
     setGuardando(true);
     await fetch(`/api/projects/${projectId}`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
+      method: "PATCH", headers: { "content-type": "application/json" },
       body: JSON.stringify({ entryPath: nuevo }),
     });
     setGuardando(false);
   }
 
+  function entrarEdicion() { setOps(new Map()); setEditMode(true); }
+  function cancelarEdicion() { setOps(new Map()); setEditMode(false); setRecarga((n) => n + 1); }
+
+  async function guardarEdicion() {
+    setGuardando(true);
+    const res = await fetch(`/api/projects/${projectId}/edits`, {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ ops: [...ops.values()] }),
+    });
+    setGuardando(false);
+    if (res.ok) { setOps(new Map()); setEditMode(false); setRecarga((n) => n + 1); setSnapshots(null); }
+    else { const d = await res.json().catch(() => ({})); alert(d.error ?? "Error al guardar"); }
+  }
+
+  async function verHistorial() {
+    const d = await fetch(`/api/projects/${projectId}/snapshots`).then((r) => r.json());
+    setSnapshots(d.snapshots ?? []);
+  }
+  async function restaurar(snapshotId: string) {
+    await fetch(`/api/projects/${projectId}/snapshots/${snapshotId}/restore`, { method: "POST" });
+    setSnapshots(null); setRecarga((n) => n + 1);
+  }
+
   return (
     <div>
-      <div className="mb-3 flex items-center gap-3">
-        <label className="text-sm text-gray-600">Página de entrada:</label>
-        <select
-          value={actual}
-          onChange={(e) => void cambiarEntrada(e.target.value)}
-          className="rounded border px-2 py-1 text-sm"
-        >
-          {pages.map((p) => (
-            <option key={p} value={p}>{p}</option>
-          ))}
-        </select>
-        {guardando && <span className="text-sm text-gray-400">guardando…</span>}
+      <div className="mb-3 flex flex-wrap items-center gap-3">
+        {!editMode ? (
+          <>
+            <label className="text-sm text-gray-600">Página de entrada:</label>
+            <select value={actual} onChange={(e) => void cambiarEntrada(e.target.value)} className="rounded border px-2 py-1 text-sm">
+              {pages.map((p) => <option key={p} value={p}>{p}</option>)}
+            </select>
+            <button onClick={entrarEdicion} className="rounded bg-indigo-600 px-3 py-1 text-sm text-white">Editar</button>
+            <button onClick={() => void verHistorial()} className="rounded border px-3 py-1 text-sm">Historial</button>
+            {guardando && <span className="text-sm text-gray-400">guardando…</span>}
+          </>
+        ) : (
+          <>
+            <span className="text-sm font-medium text-indigo-700">Modo edición · {ops.size} cambios</span>
+            <button onClick={() => void guardarEdicion()} disabled={ops.size === 0 || guardando} className="rounded bg-indigo-600 px-3 py-1 text-sm text-white disabled:opacity-50">Guardar</button>
+            <button onClick={cancelarEdicion} className="rounded border px-3 py-1 text-sm">Cancelar</button>
+            <span className="text-xs text-gray-400">Pasa el ratón sobre un texto y haz click para editarlo</span>
+          </>
+        )}
       </div>
+
+      {snapshots && (
+        <div className="mb-3 rounded-lg border p-3">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-sm font-semibold">Historial</span>
+            <button onClick={() => setSnapshots(null)} className="text-xs text-gray-500">cerrar</button>
+          </div>
+          <ul className="space-y-1">
+            {snapshots.map((s) => (
+              <li key={s.id} className="flex items-center justify-between text-sm">
+                <span>{s.tipo} · {s.createdAt.slice(0, 19).replace("T", " ")} {s.esActual && <em className="text-indigo-600">(actual)</em>}</span>
+                {!s.esActual && <button onClick={() => void restaurar(s.id)} className="rounded border px-2 py-0.5 text-xs">Restaurar</button>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <iframe
         key={src}
+        ref={iframeRef}
         src={src}
         sandbox="allow-scripts"
         className="h-[80vh] w-full rounded-lg border"
