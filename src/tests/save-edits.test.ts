@@ -4,6 +4,7 @@ import { EditorError } from "@/src/editor/errors";
 import type { StorageAdapter } from "@/src/storage/types";
 import type {
   ProjectStore, ProjectRow, SnapshotRow, SnapshotInfo, CreateProjectInput, CreateSnapshotInput,
+  AssetRow, CreateAssetInput,
 } from "@/src/repositories/types";
 
 const CUR = "projects/p1/snapshots/s0/";
@@ -32,6 +33,16 @@ class FakeStore implements ProjectStore {
   async setCurrentSnapshot(_o: string, _p: string, id: string) { this.actualFijado = id; }
   async listSnapshots(): Promise<SnapshotInfo[]> { return []; }
   async getSnapshotById(): Promise<SnapshotRow | null> { return null; }
+  assets = new Map<string, AssetRow>();
+  async createAsset(i: CreateAssetInput) {
+    this.assets.set(i.assetId, {
+      id: i.assetId, projectId: i.projectId, storageKey: i.storageKey,
+      contentType: i.contentType, bytes: i.bytes, createdAt: "",
+    });
+  }
+  async getAsset(_o: string, _p: string, id: string): Promise<AssetRow | null> {
+    return this.assets.get(id) ?? null;
+  }
 }
 
 describe("saveEdits", () => {

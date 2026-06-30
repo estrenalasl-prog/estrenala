@@ -40,6 +40,23 @@ export type CreateSnapshotInput = {
   operacionesJson: unknown;
 };
 
+export type AssetRow = {
+  id: string;
+  projectId: string;
+  storageKey: string;
+  contentType: string;
+  bytes: number;
+  createdAt: string;
+};
+
+export type CreateAssetInput = {
+  assetId: string;
+  projectId: string;
+  storageKey: string;
+  contentType: string;
+  bytes: number;
+};
+
 export interface ProjectStore {
   createProjectWithSnapshot(input: CreateProjectInput): Promise<{ projectId: string }>;
   getProject(orgId: string, projectId: string): Promise<ProjectRow | null>;
@@ -50,4 +67,6 @@ export interface ProjectStore {
   setCurrentSnapshot(orgId: string, projectId: string, snapshotId: string): Promise<void>;
   listSnapshots(orgId: string, projectId: string): Promise<SnapshotInfo[]>;
   getSnapshotById(orgId: string, projectId: string, snapshotId: string): Promise<SnapshotRow | null>;
+  createAsset(input: CreateAssetInput): Promise<void>;
+  getAsset(orgId: string, projectId: string, assetId: string): Promise<AssetRow | null>;
 }

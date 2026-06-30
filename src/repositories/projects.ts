@@ -1,8 +1,9 @@
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/src/db/client";
-import { projects, snapshots } from "@/src/db/schema";
+import { assets, projects, snapshots } from "@/src/db/schema";
 import type {
-  CreateProjectInput, CreateSnapshotInput, ProjectRow, ProjectStore, SnapshotInfo, SnapshotRow,
+  AssetRow, CreateAssetInput, CreateProjectInput, CreateSnapshotInput,
+  ProjectRow, ProjectStore, SnapshotInfo, SnapshotRow,
 } from "./types";
 
 function toProjectRow(r: typeof projects.$inferSelect): ProjectRow {
@@ -102,6 +103,33 @@ export class DrizzleProjectStore implements ProjectStore {
       .where(and(eq(snapshots.id, snapshotId), eq(snapshots.projectId, projectId))).limit(1);
     if (!s[0]) return null;
     return { id: s[0].id, projectId: s[0].projectId, storagePrefix: s[0].storagePrefix, tipo: s[0].tipo };
+  }
+
+  async createAsset(input: CreateAssetInput): Promise<void> {
+    await db.insert(assets).values({
+      id: input.assetId,
+      projectId: input.projectId,
+      storageKey: input.storageKey,
+      contentType: input.contentType,
+      bytes: input.bytes,
+    });
+  }
+
+  async getAsset(orgId: string, projectId: string, assetId: string): Promise<AssetRow | null> {
+    const proj = await db.select().from(projects)
+      .where(and(eq(projects.id, projectId), eq(projects.orgId, orgId))).limit(1);
+    if (!proj[0]) return null;
+    const r = await db.select().from(assets)
+      .where(and(eq(assets.id, assetId), eq(assets.projectId, projectId))).limit(1);
+    if (!r[0]) return null;
+    return {
+      id: r[0].id,
+      projectId: r[0].projectId,
+      storageKey: r[0].storageKey,
+      contentType: r[0].contentType,
+      bytes: r[0].bytes,
+      createdAt: r[0].createdAt.toISOString(),
+    };
   }
 }
 

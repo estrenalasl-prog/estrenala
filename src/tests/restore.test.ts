@@ -3,6 +3,7 @@ import { restoreSnapshot } from "@/src/editor/restore";
 import { EditorError } from "@/src/editor/errors";
 import type {
   ProjectStore, ProjectRow, SnapshotRow, SnapshotInfo, CreateProjectInput, CreateSnapshotInput,
+  AssetRow, CreateAssetInput,
 } from "@/src/repositories/types";
 
 class StubStore implements ProjectStore {
@@ -19,6 +20,11 @@ class StubStore implements ProjectStore {
   async getSnapshotById(): Promise<SnapshotRow | null> {
     return this.existe ? { id: "s1", projectId: "p1", storagePrefix: "x", tipo: "edit" } : null;
   }
+  assets = new Map<string, AssetRow>();
+  async createAsset(i: CreateAssetInput) {
+    this.assets.set(i.assetId, { id: i.assetId, projectId: i.projectId, storageKey: i.storageKey, contentType: i.contentType, bytes: i.bytes, createdAt: "" });
+  }
+  async getAsset(_o: string, _p: string, id: string): Promise<AssetRow | null> { return this.assets.get(id) ?? null; }
 }
 
 describe("restoreSnapshot", () => {
