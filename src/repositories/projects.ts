@@ -13,6 +13,9 @@ function toProjectRow(r: typeof projects.$inferSelect): ProjectRow {
     nombre: r.nombre,
     entryPath: r.entryPath,
     currentSnapshotId: r.currentSnapshotId,
+    subdominio: r.subdominio,
+    dominio: r.dominio,
+    publishedSnapshotId: r.publishedSnapshotId,
     createdAt: r.createdAt.toISOString(),
   };
 }
@@ -130,6 +133,45 @@ export class DrizzleProjectStore implements ProjectStore {
       bytes: r[0].bytes,
       createdAt: r[0].createdAt.toISOString(),
     };
+  }
+
+  async getPublishedSiteByHost(
+    q: { subdominio: string } | { dominio: string }
+  ): Promise<{ entryPath: string; storagePrefix: string } | null> {
+    const cond = "subdominio" in q
+      ? eq(projects.subdominio, q.subdominio)
+      : eq(projects.dominio, q.dominio);
+    const r = await db
+      .select({ entryPath: projects.entryPath, storagePrefix: snapshots.storagePrefix })
+      .from(projects)
+      .innerJoin(snapshots, eq(projects.publishedSnapshotId, snapshots.id))
+      .where(cond)
+      .limit(1);
+    return r[0] ?? null;
+  }
+
+  async setPublished(orgId: string, projectId: string, snapshotId: string | null): Promise<void> {
+    await db.update(projects).set({ publishedSnapshotId: snapshotId })
+      .where(and(eq(projects.id, projectId), eq(projects.orgId, orgId)));
+  }
+
+  async subdominioLibre(subdominio: string): Promise<boolean> {
+    const r = await db.select({ id: projects.id }).from(projects)
+      .where(eq(projects.subdominio, subdominio)).limit(1);
+    return !r[0];
+  }
+
+  async setSubdominio(orgId: string, projectId: string, subdominio: string): Promise<boolean> {
+    try {
+      await db.update(projects).set({ subdominio })
+        .where(and(eq(projects.id, projectId), eq(projects.orgId, orgId)));
+      return true;
+    } catch (e) {
+      const code = (e as { code?: string; cause?: { code?: string } })?.code
+        ?? (e as { cause?: { code?: string } })?.cause?.code;
+      if (code === "23505") return false; // unique_violation
+      throw e;
+    }
   }
 }
 

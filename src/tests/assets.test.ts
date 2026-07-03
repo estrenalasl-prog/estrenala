@@ -19,7 +19,7 @@ class FakeStore implements ProjectStore {
   hayProyecto = true;
   async createProjectWithSnapshot(i: CreateProjectInput) { return { projectId: i.projectId }; }
   async getProject(): Promise<ProjectRow | null> {
-    return this.hayProyecto ? { id: "p1", orgId: "org1", nombre: "x", entryPath: "i.html", currentSnapshotId: "s0", createdAt: "" } : null;
+    return this.hayProyecto ? { id: "p1", orgId: "org1", nombre: "x", entryPath: "i.html", currentSnapshotId: "s0", subdominio: null, dominio: null, publishedSnapshotId: null, createdAt: "" } : null;
   }
   async listProjects(): Promise<ProjectRow[]> { return []; }
   async setEntryPath(): Promise<void> {}
@@ -32,6 +32,10 @@ class FakeStore implements ProjectStore {
     this.assets.set(i.assetId, { id: i.assetId, projectId: i.projectId, storageKey: i.storageKey, contentType: i.contentType, bytes: i.bytes, createdAt: "" });
   }
   async getAsset(_o: string, _p: string, id: string): Promise<AssetRow | null> { return this.assets.get(id) ?? null; }
+  async getPublishedSiteByHost(): Promise<{ entryPath: string; storagePrefix: string } | null> { return null; }
+  async setPublished(): Promise<void> {}
+  async subdominioLibre(): Promise<boolean> { return true; }
+  async setSubdominio(): Promise<boolean> { return true; }
 }
 
 describe("uploadAsset", () => {

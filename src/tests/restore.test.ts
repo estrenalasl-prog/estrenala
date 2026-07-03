@@ -25,6 +25,10 @@ class StubStore implements ProjectStore {
     this.assets.set(i.assetId, { id: i.assetId, projectId: i.projectId, storageKey: i.storageKey, contentType: i.contentType, bytes: i.bytes, createdAt: "" });
   }
   async getAsset(_o: string, _p: string, id: string): Promise<AssetRow | null> { return this.assets.get(id) ?? null; }
+  async getPublishedSiteByHost(): Promise<{ entryPath: string; storagePrefix: string } | null> { return null; }
+  async setPublished(): Promise<void> {}
+  async subdominioLibre(): Promise<boolean> { return true; }
+  async setSubdominio(): Promise<boolean> { return true; }
 }
 
 describe("restoreSnapshot", () => {

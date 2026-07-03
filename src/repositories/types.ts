@@ -4,6 +4,9 @@ export type ProjectRow = {
   nombre: string;
   entryPath: string;
   currentSnapshotId: string | null;
+  subdominio: string | null;
+  dominio: string | null;
+  publishedSnapshotId: string | null;
   createdAt: string;
 };
 
@@ -69,4 +72,11 @@ export interface ProjectStore {
   getSnapshotById(orgId: string, projectId: string, snapshotId: string): Promise<SnapshotRow | null>;
   createAsset(input: CreateAssetInput): Promise<void>;
   getAsset(orgId: string, projectId: string, assetId: string): Promise<AssetRow | null>;
+  getPublishedSiteByHost(
+    q: { subdominio: string } | { dominio: string }
+  ): Promise<{ entryPath: string; storagePrefix: string } | null>;
+  setPublished(orgId: string, projectId: string, snapshotId: string | null): Promise<void>;
+  subdominioLibre(subdominio: string): Promise<boolean>;
+  /** false si el subdominio ya está en uso (violación de unicidad en carrera). */
+  setSubdominio(orgId: string, projectId: string, subdominio: string): Promise<boolean>;
 }

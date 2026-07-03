@@ -26,10 +26,11 @@ export const projects = pgTable("projects", {
   id: uuid("id").primaryKey().defaultRandom(),
   orgId: uuid("org_id").notNull().references(() => organizations.id),
   nombre: text("nombre").notNull(),
-  subdominio: text("subdominio"),
+  subdominio: text("subdominio").unique(),
   dominio: text("dominio"),
   entryPath: text("entry_path").notNull(),
   currentSnapshotId: uuid("current_snapshot_id"),
+  publishedSnapshotId: uuid("published_snapshot_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
