@@ -30,7 +30,7 @@ export function PublishBar({
     try {
       const res = await fetch(`/api/projects/${projectId}/publish`, { method: metodo });
       const d = (await res.json().catch(() => ({}))) as { error?: string };
-      if (!res.ok) { setError(d.error ?? "Error"); return; }
+      if (!res.ok) { setError(d.error ?? "Error"); setConfirmando(false); return; }
       setConfirmando(false);
       router.refresh();
     } finally {
@@ -78,10 +78,13 @@ export function PublishBar({
               Despublicar
             </button>
           ) : (
-            <button onClick={() => void llamar("DELETE")} disabled={ocupado}
-              className="rounded border border-red-300 bg-red-50 px-3 py-1 text-sm text-red-700">
-              ¿Seguro? Sí, despublicar
-            </button>
+            <span className="flex items-center gap-1">
+              <button onClick={() => void llamar("DELETE")} disabled={ocupado}
+                className="rounded border border-red-300 bg-red-50 px-3 py-1 text-sm text-red-700">
+                ¿Seguro? Sí, despublicar
+              </button>
+              <button onClick={() => setConfirmando(false)} className="text-xs text-gray-500">cancelar</button>
+            </span>
           )}
         </>
       )}
