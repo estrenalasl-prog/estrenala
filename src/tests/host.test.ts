@@ -27,4 +27,8 @@ describe("parseHost", () => {
     expect(parseHost("", PLAT)).toEqual({ tipo: "desconocido" });
     expect(parseHost("no válido!!", PLAT)).toEqual({ tipo: "desconocido" });
   });
+  it("subdominio con caracteres inválidos → desconocido", () => {
+    expect(parseHost("sub!.localhost:3000", PLAT)).toEqual({ tipo: "desconocido" });
+    expect(parseHost("a_b.localhost:3000", PLAT)).toEqual({ tipo: "desconocido" });
+  });
 });

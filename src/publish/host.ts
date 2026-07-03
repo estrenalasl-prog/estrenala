@@ -20,7 +20,7 @@ export function parseHost(hostRaw: string, platformHost: string): HostInfo {
 
   if (host.endsWith("." + plat)) {
     const sub = host.slice(0, host.length - plat.length - 1);
-    if (!sub || sub.includes(".")) return { tipo: "desconocido" };
+    if (!sub || sub.includes(".") || !/^[a-z0-9-]+$/.test(sub)) return { tipo: "desconocido" };
     return { tipo: "subdominio", valor: sub };
   }
 
