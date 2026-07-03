@@ -4,6 +4,7 @@ import { getDevContext } from "@/src/auth/dev-stub";
 import { getStorage } from "@/src/storage/factory";
 import { projectStore } from "@/src/repositories/projects";
 import { listPages } from "@/src/projects/entry";
+import { PublishBar } from "./PublishBar";
 import { PreviewPane } from "./PreviewPane";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +20,12 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
     <main className="mx-auto max-w-5xl p-8">
       <Link href="/" className="text-sm text-gray-500 hover:underline">← Volver</Link>
       <h1 className="mb-4 mt-2 text-2xl font-bold">{project.nombre}</h1>
+      <PublishBar
+        projectId={id}
+        subdominio={project.subdominio}
+        publishedSnapshotId={project.publishedSnapshotId}
+        currentSnapshotId={project.currentSnapshotId}
+      />
       <PreviewPane projectId={id} entryPath={project.entryPath} pages={pages} />
     </main>
   );

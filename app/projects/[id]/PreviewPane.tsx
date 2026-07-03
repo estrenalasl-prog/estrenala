@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 type EditOp =
   | { page: string; nodeId: number; kind: "text"; value: string }
@@ -25,6 +26,7 @@ export function PreviewPane({
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const pendingImg = useRef<{ nodeId: number; page: string } | null>(null);
+  const router = useRouter();
 
   const relPath = actual === entryPath ? "" : actual;
   const src = `/api/projects/${projectId}/preview/${relPath}${editMode ? "?edit=1" : ""}#${recarga}`;
@@ -97,7 +99,7 @@ export function PreviewPane({
         method: "POST", headers: { "content-type": "application/json" },
         body: JSON.stringify({ ops: [...ops.values()] }),
       });
-      if (res.ok) { setOps(new Map()); setEditMode(false); setRecarga((n) => n + 1); setSnapshots(null); }
+      if (res.ok) { setOps(new Map()); setEditMode(false); setRecarga((n) => n + 1); setSnapshots(null); router.refresh(); }
       else { const d = await res.json().catch(() => ({})); alert(d.error ?? "Error al guardar"); }
     } finally {
       setGuardando(false);
@@ -110,7 +112,7 @@ export function PreviewPane({
   }
   async function restaurar(snapshotId: string) {
     await fetch(`/api/projects/${projectId}/snapshots/${snapshotId}/restore`, { method: "POST" });
-    setSnapshots(null); setRecarga((n) => n + 1);
+    setSnapshots(null); setRecarga((n) => n + 1); router.refresh();
   }
 
   return (
