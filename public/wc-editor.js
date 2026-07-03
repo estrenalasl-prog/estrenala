@@ -13,7 +13,19 @@
   }
   function esImagen(el) { return tieneId(el) && el.tagName.toLowerCase() === "img"; }
   function esEnlace(el) { return tieneId(el) && el.tagName.toLowerCase() === "a"; }
-  function esEditable(el) { return esTextoHoja(el) || esImagen(el); }
+  function esBoton(el) { return tieneId(el) && el.tagName.toLowerCase() === "button"; }
+
+  // Objetivo editable de un evento: el elemento mismo (hoja de texto, imagen o <a>),
+  // o si no, el <a> ancestro más cercano con data-wc-id. Las webs reales (hechas con
+  // IA) traen <a><svg/></a>, <a><span>…</span></a>: el target del evento es el hijo,
+  // no el enlace — sin esta resolución, iconos y botones-enlace quedan muertos.
+  function resolverEditable(el) {
+    if (!el || el.nodeType !== 1) return null;
+    if (esTextoHoja(el) || esImagen(el) || esEnlace(el)) return el;
+    if (!el.closest) return null;
+    var a = el.closest("a[data-wc-id]");
+    return a || null;
+  }
 
   function emitir(op) { window.parent.postMessage({ type: "wc-edit", op: op }, "*"); }
   function idDe(el) { return Number(el.getAttribute("data-wc-id")); }
@@ -21,18 +33,24 @@
   // ---------- popover (DOM propio, nunca se guarda) ----------
   var pop = document.createElement("div");
   pop.setAttribute("data-wc-ui", "1");
-  pop.style.cssText = "position:absolute;z-index:2147483647;display:none;gap:6px;align-items:center;flex-wrap:wrap;max-width:340px;background:#111827;color:#fff;border-radius:8px;padding:8px;font:13px system-ui,sans-serif;box-shadow:0 4px 16px rgba(0,0,0,.3)";
+  pop.style.cssText = "position:absolute;z-index:2147483647;display:none;gap:6px;align-items:center;flex-wrap:wrap;max-width:360px;background:#111827;color:#fff;border-radius:8px;padding:8px;font:13px system-ui,sans-serif;box-shadow:0 4px 16px rgba(0,0,0,.3)";
   function montarPop() { if (!pop.parentNode && document.body) document.body.appendChild(pop); }
   if (document.body) montarPop(); else document.addEventListener("DOMContentLoaded", montarPop);
 
   var objetivo = null;
   var ocultarTimer = null;
+  var reapuntarTimer = null;
 
   function dentroDePop(el) { return el === pop || (el && pop.contains && pop.contains(el)); }
+  // Un input del popover tiene el foco (selector de color nativo abierto, campo de
+  // href/texto…) → no ocultar ni re-apuntar mientras se usa.
+  function popEnUso() { return dentroDePop(document.activeElement); }
 
   function posicionar(el) {
     var r = el.getBoundingClientRect();
-    pop.style.top = (window.scrollY + r.bottom + 6) + "px";
+    // Solapa 2px el borde inferior del elemento: sin "zona muerta" entre el elemento
+    // y el popover (si hay hueco, el ratón cruza otros editables y el popover se escapa).
+    pop.style.top = (window.scrollY + r.bottom - 2) + "px";
     pop.style.left = (window.scrollX + r.left) + "px";
   }
 
@@ -45,12 +63,29 @@
     }).join("");
   }
 
+  function inputTexto(valor, placeholder) {
+    var inp = document.createElement("input");
+    inp.type = "text"; inp.placeholder = placeholder || ""; inp.value = valor;
+    inp.style.cssText = "width:170px;padding:3px 6px;border-radius:4px;border:1px solid #374151;background:#1f2937;color:#fff";
+    return inp;
+  }
+  function botonOk() {
+    var ok = document.createElement("button"); ok.type = "button"; ok.textContent = "OK";
+    ok.style.cssText = "padding:3px 8px;border-radius:4px;border:0;background:#6366f1;color:#fff;cursor:pointer";
+    return ok;
+  }
+  function etiqueta(texto) {
+    var s = document.createElement("span"); s.textContent = texto; s.style.opacity = ".8";
+    return s;
+  }
+
   function construir(el) {
     pop.innerHTML = "";
     objetivo = el;
+    var hoja = esTextoHoja(el);
+    var enlace = esEnlace(el) ? el : (el.closest ? el.closest("a[data-wc-id]") : null);
 
-    if (esTextoHoja(el)) {
-      var lbl = document.createElement("span"); lbl.textContent = "Color"; lbl.style.opacity = ".8";
+    if (hoja) {
       var color = document.createElement("input"); color.type = "color";
       color.value = rgbAHex(getComputedStyle(el).color);
       color.style.cssText = "width:28px;height:24px;border:0;background:none;padding:0;cursor:pointer";
@@ -58,23 +93,34 @@
         el.style.color = color.value;
         emitir({ page: PAGE, nodeId: idDe(el), kind: "style", property: "color", value: color.value });
       });
-      pop.appendChild(lbl); pop.appendChild(color);
+      pop.appendChild(etiqueta("Color")); pop.appendChild(color);
     }
 
-    if (esEnlace(el)) {
-      var inp = document.createElement("input"); inp.type = "text"; inp.placeholder = "https://…";
-      inp.value = el.getAttribute("href") || "";
-      inp.style.cssText = "width:170px;padding:3px 6px;border-radius:4px;border:1px solid #374151;background:#1f2937;color:#fff";
-      var ok = document.createElement("button"); ok.type = "button"; ok.textContent = "OK";
-      ok.style.cssText = "padding:3px 8px;border-radius:4px;border:0;background:#6366f1;color:#fff;cursor:pointer";
+    if (hoja && esBoton(el)) {
+      // Los <button> no aceptan bien el caret de contenteditable (el navegador no deja
+      // escribir dentro) → el texto del botón se edita desde el popover.
+      var txt = inputTexto(el.textContent, "Texto del botón");
+      var okT = botonOk();
+      var aplicarT = function () {
+        el.textContent = txt.value;
+        emitir({ page: PAGE, nodeId: idDe(el), kind: "text", value: txt.value });
+      };
+      okT.addEventListener("click", aplicarT);
+      txt.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); aplicarT(); } });
+      pop.appendChild(etiqueta("Texto")); pop.appendChild(txt); pop.appendChild(okT);
+    }
+
+    if (enlace) {
+      var inp = inputTexto(enlace.getAttribute("href") || "", "https://…");
+      var ok = botonOk();
       var aplicar = function () {
         var v = inp.value.trim();
-        el.setAttribute("href", v);
-        emitir({ page: PAGE, nodeId: idDe(el), kind: "href", value: v });
+        enlace.setAttribute("href", v);
+        emitir({ page: PAGE, nodeId: idDe(enlace), kind: "href", value: v });
       };
       ok.addEventListener("click", aplicar);
       inp.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); aplicar(); } });
-      pop.appendChild(inp); pop.appendChild(ok);
+      pop.appendChild(etiqueta("Enlace")); pop.appendChild(inp); pop.appendChild(ok);
     }
 
     if (esImagen(el)) {
@@ -90,12 +136,16 @@
   function mostrar(el) {
     if (ocultarTimer) { clearTimeout(ocultarTimer); ocultarTimer = null; }
     if (objetivo !== el || pop.style.display === "none") construir(el);
+    if (!pop.firstChild) { pop.style.display = "none"; objetivo = null; return; }
     posicionar(el);
     pop.style.display = "flex";
   }
   function programarOcultar() {
     if (ocultarTimer) clearTimeout(ocultarTimer);
-    ocultarTimer = setTimeout(function () { pop.style.display = "none"; objetivo = null; }, 250);
+    ocultarTimer = setTimeout(function () {
+      if (popEnUso()) return;
+      pop.style.display = "none"; objetivo = null;
+    }, 350);
   }
 
   // ---------- marcado visual ----------
@@ -120,24 +170,49 @@
 
   // ---------- eventos ----------
   document.addEventListener("mouseover", function (e) {
-    var el = e.target;
-    if (dentroDePop(el)) return;
-    if (el && el.nodeType === 1 && esEditable(el)) { marcar(el); mostrar(el); }
+    if (dentroDePop(e.target)) {
+      if (ocultarTimer) { clearTimeout(ocultarTimer); ocultarTimer = null; }
+      if (reapuntarTimer) { clearTimeout(reapuntarTimer); reapuntarTimer = null; }
+      return;
+    }
+    var el = resolverEditable(e.target);
+    if (!el) return;
+    marcar(el);
+    if (objetivo && el !== objetivo && pop.style.display !== "none") {
+      // El ratón puede estar de camino al popover cruzando otro editable: espera
+      // antes de re-apuntar; si llega al popover, el re-apuntado se cancela.
+      if (reapuntarTimer) clearTimeout(reapuntarTimer);
+      reapuntarTimer = setTimeout(function () { if (!popEnUso()) mostrar(el); }, 300);
+    } else {
+      mostrar(el);
+    }
   });
   document.addEventListener("mouseout", function (e) {
-    var el = e.target, to = e.relatedTarget;
-    if (el && el.nodeType === 1 && tieneId(el)) desmarcar(el);
-    if (!dentroDePop(to) && !(to && to.nodeType === 1 && esEditable(to))) programarOcultar();
+    var res = resolverEditable(e.target), to = e.relatedTarget;
+    if (res && (!to || !res.contains || !res.contains(to))) desmarcar(res);
+    if (!dentroDePop(to) && !resolverEditable(to)) programarOcultar();
   });
-  pop.addEventListener("mouseover", function () { if (ocultarTimer) { clearTimeout(ocultarTimer); ocultarTimer = null; } });
+  pop.addEventListener("mouseover", function () {
+    if (ocultarTimer) { clearTimeout(ocultarTimer); ocultarTimer = null; }
+    if (reapuntarTimer) { clearTimeout(reapuntarTimer); reapuntarTimer = null; }
+  });
   pop.addEventListener("mouseleave", function () { programarOcultar(); });
 
   document.addEventListener("click", function (e) {
     var el = e.target;
     if (dentroDePop(el)) return;
-    if (el && el.nodeType === 1 && esEnlace(el)) e.preventDefault(); // no navegar en modo edición
-    if (el && el.nodeType === 1 && esTextoHoja(el) && el !== editando) { e.preventDefault(); iniciarEdicion(el); }
+    // En modo edición no se navega ni se pulsan botones "de verdad".
+    if (el && el.nodeType === 1 && el.closest && el.closest("a, button, [type=submit]")) e.preventDefault();
+    var objetivoClick = resolverEditable(el);
+    if (!objetivoClick) return;
+    mostrar(objetivoClick); // el click también fija el popover (por si el hover se escapó)
+    if (esTextoHoja(objetivoClick) && !esBoton(objetivoClick) && objetivoClick !== editando) {
+      iniciarEdicion(objetivoClick);
+    }
   });
+  // Nada de envíos de formularios en modo edición.
+  document.addEventListener("submit", function (e) { e.preventDefault(); }, true);
+
   document.addEventListener("keydown", function (e) {
     if (!editando) return;
     if (e.key === "Escape") { e.preventDefault(); terminarEdicion(false); }
