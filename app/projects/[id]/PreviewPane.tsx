@@ -167,6 +167,9 @@ export function PreviewPane({
         ref={iframeRef}
         src={src}
         sandbox="allow-scripts"
+        // El sandbox crea un origen opaco (cross-origin): sin delegar autoplay, los
+        // vídeos de fondo de las webs (hero videos) no arrancan dentro del preview.
+        allow="autoplay"
         className="h-[80vh] w-full rounded-lg border"
         title="preview"
       />
