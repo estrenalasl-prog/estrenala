@@ -15,8 +15,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ host: string; 
       pathSegments: path ?? [],
     }
   );
-  return new Response(new Uint8Array(r.body), {
-    status: r.status,
-    headers: { "content-type": r.contentType, "cache-control": r.cacheControl },
-  });
+  const headers: Record<string, string> = { "content-type": r.contentType, "cache-control": r.cacheControl };
+  if (r.location) headers.location = r.location;
+  return new Response(new Uint8Array(r.body), { status: r.status, headers });
 }

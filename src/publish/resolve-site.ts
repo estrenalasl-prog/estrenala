@@ -2,7 +2,7 @@ import { parseHost } from "./host";
 import type { StorageAdapter } from "@/src/storage/types";
 import type { ProjectStore } from "@/src/repositories/types";
 
-export type PublicResponse = { status: number; body: Buffer; contentType: string; cacheControl: string };
+export type PublicResponse = { status: number; body: Buffer; contentType: string; cacheControl: string; location?: string };
 
 function pagina404(mensaje: string): PublicResponse {
   const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${mensaje}</title></head>` +
@@ -18,14 +18,29 @@ export async function resolvePublicSite(
   const h = parseHost(input.host, input.platformHost, input.sitesBaseDomain ?? input.platformHost);
   if (h.tipo === "plataforma" || h.tipo === "raiz" || h.tipo === "desconocido") return pagina404("Esta web no está publicada");
 
+  // Guard de traversal: evalúa justo después de parseHost, antes de cualquier lookup
+  if (input.pathSegments.some((s) => s === ".." || s.includes("/") || s.includes("\\"))) {
+    return { status: 400, body: Buffer.from("Ruta no válida"), contentType: "text/plain; charset=utf-8", cacheControl: "no-cache" };
+  }
+
+  // www.cliente.com → 301 al dominio pelado (canónico), si ese pelado está publicado.
+  if (h.tipo === "dominio" && h.valor.startsWith("www.")) {
+    const pelado = h.valor.slice(4);
+    const canonico = await deps.store.getPublishedSiteByHost({ dominio: pelado });
+    if (canonico) {
+      const ruta = input.pathSegments.length > 0 ? "/" + input.pathSegments.join("/") : "/";
+      return {
+        status: 301, body: Buffer.alloc(0), contentType: "text/plain; charset=utf-8",
+        cacheControl: "no-cache", location: `https://${pelado}${ruta}`,
+      };
+    }
+  }
+
   const site = h.tipo === "subdominio"
     ? await deps.store.getPublishedSiteByHost({ subdominio: h.valor })
     : await deps.store.getPublishedSiteByHost({ dominio: h.valor });
   if (!site) return pagina404("Esta web no está publicada");
 
-  if (input.pathSegments.some((s) => s === ".." || s.includes("/") || s.includes("\\"))) {
-    return { status: 400, body: Buffer.from("Ruta no válida"), contentType: "text/plain; charset=utf-8", cacheControl: "no-cache" };
-  }
   const rel = input.pathSegments.length > 0 ? input.pathSegments.join("/") : site.entryPath;
   const file = await deps.storage.get(site.storagePrefix + rel);
   if (!file) return pagina404("No encontrado");

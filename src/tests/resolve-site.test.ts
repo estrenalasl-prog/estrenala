@@ -104,3 +104,41 @@ describe("resolvePublicSite", () => {
     expect(r.status).toBe(404);
   });
 });
+
+describe("redirect www → dominio pelado", () => {
+  const storeConDominio = (dominio: string) => ({
+    async getPublishedSiteByHost(q: { subdominio: string } | { dominio: string }) {
+      if ("dominio" in q && q.dominio === dominio)
+        return { entryPath: "index.html", storagePrefix: "p/" };
+      return null;
+    },
+  }) as unknown as import("@/src/repositories/types").ProjectStore;
+  const storage = {
+    async get() { return { body: Buffer.from("<html>ok</html>"), contentType: "text/html; charset=utf-8" }; },
+    async put() {}, async list() { return []; }, async delete() {},
+  } as unknown as import("@/src/storage/types").StorageAdapter;
+
+  it("www de un dominio publicado → 301 al pelado conservando la ruta", async () => {
+    const r = await resolvePublicSite(
+      { store: storeConDominio("cliente.com"), storage },
+      { host: "www.cliente.com", platformHost: "app.plataforma.com", sitesBaseDomain: "plataforma.com", pathSegments: ["contacto.html"] }
+    );
+    expect(r.status).toBe(301);
+    expect(r.location).toBe("https://cliente.com/contacto.html");
+  });
+  it("www sin ruta → 301 a la raíz", async () => {
+    const r = await resolvePublicSite(
+      { store: storeConDominio("cliente.com"), storage },
+      { host: "www.cliente.com", platformHost: "app.plataforma.com", sitesBaseDomain: "plataforma.com", pathSegments: [] }
+    );
+    expect(r.status).toBe(301);
+    expect(r.location).toBe("https://cliente.com/");
+  });
+  it("www de un dominio NO publicado → 404 normal", async () => {
+    const r = await resolvePublicSite(
+      { store: storeConDominio("otro.com"), storage },
+      { host: "www.cliente.com", platformHost: "app.plataforma.com", sitesBaseDomain: "plataforma.com", pathSegments: [] }
+    );
+    expect(r.status).toBe(404);
+  });
+});
