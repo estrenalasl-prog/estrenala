@@ -30,6 +30,18 @@ export async function middleware(req: NextRequest) {
   if (RUTAS_PUBLICAS.some((r) => pathname === r || pathname.startsWith(r + "/"))) {
     return NextResponse.next();
   }
+  // El preview del panel vive en un iframe con sandbox (origen opaco): el navegador
+  // NO adjunta la cookie a sus subrecursos (CSS, imágenes, wc-editor.js). Se permite
+  // solo LECTURA (GET) de esos recursos — el UUID v4 del proyecto es inadivinable y
+  // actúa de capacidad. La escritura (edits, publish, subida de assets…) y el resto
+  // del panel siguen tras el candado.
+  if (
+    req.method === "GET" &&
+    (/^\/api\/projects\/[0-9a-f-]{36}\/(preview(\/|$)|assets\/)/.test(pathname) ||
+      pathname === "/wc-editor.js")
+  ) {
+    return NextResponse.next();
+  }
   const secret = process.env.SESSION_SECRET;
   const cookie = req.cookies.get(SESSION_COOKIE)?.value;
   const valido = !!secret && !!cookie && (await verificarSesion(secret, cookie, Date.now()));

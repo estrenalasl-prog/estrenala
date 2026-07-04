@@ -240,7 +240,12 @@ propio» + botón Conectar / Quitar + instrucciones DNS.
 - Service key: solo en env del servidor; jamás en cliente, git o chat.
 - Cookie host-only firmada (HMAC) → sin filtración a sitios publicados.
 - Candado cubre panel + todas las APIs privadas; públicos solo: sitios publicados,
-  `/login`, `/api/login`, `/api/health`.
+  `/login`, `/api/login`, `/api/health`, y (ajuste post-validación) las **lecturas GET**
+  del preview (`/api/projects/<uuid>/preview*`), de los assets subidos
+  (`/api/projects/<uuid>/assets/*`) y `/wc-editor.js` — el iframe del preview usa
+  `sandbox` (origen opaco) y el navegador no adjunta la cookie a sus subrecursos; el
+  UUID v4 inadivinable actúa de capacidad. La escritura sigue tras el candado.
+  Follow-up para el incremento de auth real: URLs de preview con token firmado y caducidad.
 - Serving público sin cambios de garantías (byte-idéntico, guard de traversal,
   mensajes de error de literales fijos).
 - La IP del VPS no es secreta (es pública vía DNS); las API keys de Dokploy sí.
