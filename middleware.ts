@@ -9,6 +9,9 @@ const RUTAS_PUBLICAS = ["/login", "/api/login", "/api/health"];
 // 2) La raíz del dominio madre → redirect al panel.
 // 3) El panel exige la cookie de sesión firmada (candado de contraseña única).
 export async function middleware(req: NextRequest) {
+  // Healthcheck de infraestructura: responde igual con cualquier Host (Dokploy/Traefik).
+  if (req.nextUrl.pathname === "/api/health") return NextResponse.next();
+
   const host = (req.headers.get("host") ?? "").toLowerCase();
   const plat = (process.env.PLATFORM_HOST ?? "localhost:3000").toLowerCase();
   const base = (process.env.SITES_BASE_DOMAIN ?? plat).toLowerCase();
