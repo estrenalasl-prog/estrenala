@@ -1,0 +1,9 @@
+node_modules
+.next
+data
+.env*
+.git
+docs
+.superpowers
+_db*.mjs
+*.md
