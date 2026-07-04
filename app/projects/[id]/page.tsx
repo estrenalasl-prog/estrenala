@@ -15,6 +15,9 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
   const project = await projectStore.getProject(orgId, id);
   if (!project) notFound();
   const pages = await listPages({ store: projectStore, storage: getStorage() }, { orgId, projectId: id });
+  const platformHost = process.env.PLATFORM_HOST ?? "localhost:3000";
+  const sitesBaseDomain = process.env.SITES_BASE_DOMAIN ?? platformHost;
+  const dnsTargetIp = process.env.DNS_TARGET_IP ?? "127.0.0.1";
 
   return (
     <main className="mx-auto max-w-5xl p-8">
@@ -23,8 +26,11 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
       <PublishBar
         projectId={id}
         subdominio={project.subdominio}
+        dominio={project.dominio}
         publishedSnapshotId={project.publishedSnapshotId}
         currentSnapshotId={project.currentSnapshotId}
+        sitesBaseDomain={sitesBaseDomain}
+        dnsTargetIp={dnsTargetIp}
       />
       <PreviewPane projectId={id} entryPath={project.entryPath} pages={pages} />
     </main>

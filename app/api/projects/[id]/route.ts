@@ -3,7 +3,8 @@ import { getDevContext } from "@/src/auth/dev-stub";
 import { getStorage } from "@/src/storage/factory";
 import { projectStore } from "@/src/repositories/projects";
 import { listPages, setEntryPath } from "@/src/projects/entry";
-import { cambiarSubdominio } from "@/src/publish/publish-site";
+import { cambiarSubdominio, conectarDominio, quitarDominio } from "@/src/publish/publish-site";
+import { getDeploy } from "@/src/publish/deploy-factory";
 import { PublishError } from "@/src/publish/errors";
 
 export const runtime = "nodejs";
@@ -22,7 +23,25 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   const { orgId } = await getDevContext();
   const project = await projectStore.getProject(orgId, id);
   if (!project) return NextResponse.json({ error: "Proyecto no encontrado" }, { status: 404 });
-  const body = (await req.json()) as { entryPath?: string; subdominio?: string };
+  const body = (await req.json()) as { entryPath?: string; subdominio?: string; dominio?: string | null };
+  if (typeof body.dominio === "string" || body.dominio === null) {
+    const platformHost = process.env.PLATFORM_HOST ?? "localhost:3000";
+    const sitesBaseDomain = process.env.SITES_BASE_DOMAIN ?? platformHost;
+    try {
+      if (body.dominio === null) {
+        await quitarDominio({ store: projectStore, deploy: getDeploy() }, { orgId, projectId: id });
+        return NextResponse.json({ dominio: null });
+      }
+      const r = await conectarDominio(
+        { store: projectStore, deploy: getDeploy() },
+        { orgId, projectId: id, dominio: body.dominio, platformHost, sitesBaseDomain }
+      );
+      return NextResponse.json(r);
+    } catch (e) {
+      if (e instanceof PublishError) return NextResponse.json({ error: e.message }, { status: e.status });
+      return NextResponse.json({ error: "Error interno" }, { status: 500 });
+    }
+  }
   if (typeof body.subdominio === "string") {
     try {
       const r = await cambiarSubdominio({ store: projectStore }, { orgId, projectId: id, subdominio: body.subdominio });
