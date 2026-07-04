@@ -11,6 +11,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ host: string; 
     {
       host: decodeURIComponent(host),
       platformHost: process.env.PLATFORM_HOST ?? "localhost:3000",
+      sitesBaseDomain: process.env.SITES_BASE_DOMAIN ?? process.env.PLATFORM_HOST ?? "localhost:3000",
       pathSegments: path ?? [],
     }
   );

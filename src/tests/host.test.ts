@@ -32,3 +32,30 @@ describe("parseHost", () => {
     expect(parseHost("a_b.localhost:3000", PLAT)).toEqual({ tipo: "desconocido" });
   });
 });
+
+describe("parseHost con panel separado (producción)", () => {
+  const PANEL = "app.plataforma.com";
+  const BASE = "plataforma.com";
+  it("host del panel", () => {
+    expect(parseHost("app.plataforma.com", PANEL, BASE)).toEqual({ tipo: "plataforma" });
+  });
+  it("raíz del dominio madre", () => {
+    expect(parseHost("plataforma.com", PANEL, BASE)).toEqual({ tipo: "raiz" });
+  });
+  it("subdominio de sitio bajo la base", () => {
+    expect(parseHost("cafeteria.plataforma.com", PANEL, BASE))
+      .toEqual({ tipo: "subdominio", valor: "cafeteria" });
+  });
+  it("multi-etiqueta bajo la base → desconocido", () => {
+    expect(parseHost("a.b.plataforma.com", PANEL, BASE)).toEqual({ tipo: "desconocido" });
+  });
+  it("dominio propio", () => {
+    expect(parseHost("quantivatechnology.com", PANEL, BASE))
+      .toEqual({ tipo: "dominio", valor: "quantivatechnology.com" });
+  });
+  it("sin tercer argumento se comporta como hoy (dev)", () => {
+    expect(parseHost("sub.localhost:3000", "localhost:3000"))
+      .toEqual({ tipo: "subdominio", valor: "sub" });
+    expect(parseHost("localhost:3000", "localhost:3000")).toEqual({ tipo: "plataforma" });
+  });
+});

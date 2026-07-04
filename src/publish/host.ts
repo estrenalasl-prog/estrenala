@@ -1,14 +1,23 @@
 export type HostInfo =
   | { tipo: "plataforma" }
+  | { tipo: "raiz" }
   | { tipo: "subdominio"; valor: string }
   | { tipo: "dominio"; valor: string }
   | { tipo: "desconocido" };
 
-// Clasifica el Host de una petición. `platformHost` es la autoridad completa de la
-// plataforma (con puerto en dev, p. ej. "localhost:3000").
-export function parseHost(hostRaw: string, platformHost: string): HostInfo {
+// Clasifica el Host de una petición.
+// - `platformHost`: autoridad completa del PANEL (con puerto en dev, p. ej.
+//   "localhost:3000"; en producción "app.PLATAFORMA.com").
+// - `sitesBaseDomain`: base de los subdominios de sitios publicados. En dev no se
+//   define y coincide con platformHost; en producción es "PLATAFORMA.com".
+export function parseHost(
+  hostRaw: string,
+  platformHost: string,
+  sitesBaseDomain: string = platformHost
+): HostInfo {
   const host = (hostRaw ?? "").trim().toLowerCase();
   const plat = platformHost.trim().toLowerCase();
+  const base = sitesBaseDomain.trim().toLowerCase();
   if (!host) return { tipo: "desconocido" };
   if (host === plat) return { tipo: "plataforma" };
 
@@ -18,8 +27,11 @@ export function parseHost(hostRaw: string, platformHost: string): HostInfo {
     return { tipo: "plataforma" };
   }
 
-  if (host.endsWith("." + plat)) {
-    const sub = host.slice(0, host.length - plat.length - 1);
+  // La raíz del dominio madre (solo existe como caso distinto en producción).
+  if (host === base) return { tipo: "raiz" };
+
+  if (host.endsWith("." + base)) {
+    const sub = host.slice(0, host.length - base.length - 1);
     if (!sub || sub.includes(".") || !/^[a-z0-9-]+$/.test(sub)) return { tipo: "desconocido" };
     return { tipo: "subdominio", valor: sub };
   }

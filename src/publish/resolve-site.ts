@@ -13,10 +13,10 @@ function pagina404(mensaje: string): PublicResponse {
 
 export async function resolvePublicSite(
   deps: { store: ProjectStore; storage: StorageAdapter },
-  input: { host: string; platformHost: string; pathSegments: string[] }
+  input: { host: string; platformHost: string; sitesBaseDomain?: string; pathSegments: string[] }
 ): Promise<PublicResponse> {
-  const h = parseHost(input.host, input.platformHost);
-  if (h.tipo === "plataforma" || h.tipo === "desconocido") return pagina404("Esta web no está publicada");
+  const h = parseHost(input.host, input.platformHost, input.sitesBaseDomain ?? input.platformHost);
+  if (h.tipo === "plataforma" || h.tipo === "raiz" || h.tipo === "desconocido") return pagina404("Esta web no está publicada");
 
   const site = h.tipo === "subdominio"
     ? await deps.store.getPublishedSiteByHost({ subdominio: h.valor })
