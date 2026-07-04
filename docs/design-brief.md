@@ -93,6 +93,13 @@ Necesita: página simple con marca discreta de la plataforma (es también public
 - Landing de marketing en la raíz del dominio.
 - Editor de blog (incremento 4): lista de posts + editor rich-text.
 - Multiusuario: selector de organización, roles.
+- **Sistema de ayudas**: el usuario objetivo no es técnico — diseñar un patrón de
+  ayudas interactivas (tooltips contextuales, mini-tour de primera vez, textos
+  "¿qué es esto?") que acompañe cada acción sin estorbar.
+- **Caja de herramientas del sitio**: pantalla/menú para utilidades por proyecto,
+  p. ej. «Verificación de Google» (pegar la meta-etiqueta de Search Console),
+  «Analytics» (insertar su snippet en la cabecera), favicon, imagen para redes
+  (og:image). Diseñar el patrón contenedor aunque las herramientas lleguen por fases.
 
 ## 5. Componentes a sistematizar
 
