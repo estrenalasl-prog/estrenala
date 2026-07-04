@@ -173,6 +173,25 @@ export class DrizzleProjectStore implements ProjectStore {
       throw e;
     }
   }
+
+  async dominioLibre(dominio: string): Promise<boolean> {
+    const r = await db.select({ id: projects.id }).from(projects)
+      .where(eq(projects.dominio, dominio)).limit(1);
+    return !r[0];
+  }
+
+  async setDominio(orgId: string, projectId: string, dominio: string | null): Promise<boolean> {
+    try {
+      await db.update(projects).set({ dominio })
+        .where(and(eq(projects.id, projectId), eq(projects.orgId, orgId)));
+      return true;
+    } catch (e) {
+      const code = (e as { code?: string; cause?: { code?: string } })?.code
+        ?? (e as { cause?: { code?: string } })?.cause?.code;
+      if (code === "23505") return false; // unique_violation
+      throw e;
+    }
+  }
 }
 
 export const projectStore = new DrizzleProjectStore();

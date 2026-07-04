@@ -1,4 +1,5 @@
 import { slugify, esSlugValido, formatoSlugValido, esReservado } from "./slug";
+import { normalizarDominio, formatoDominioValido, dominioProhibido } from "./domain";
 import { PublishError } from "./errors";
 import type { DeployTarget } from "./deploy-target";
 import type { ProjectStore } from "@/src/repositories/types";
@@ -65,4 +66,51 @@ export async function cambiarSubdominio(
   const ok = await deps.store.setSubdominio(input.orgId, input.projectId, sub);
   if (!ok) throw new PublishError("Ese subdominio ya está en uso", 409);
   return { subdominio: sub };
+}
+
+export async function conectarDominio(
+  deps: { store: ProjectStore; deploy: DeployTarget },
+  input: { orgId: string; projectId: string; dominio: string; platformHost: string; sitesBaseDomain: string }
+): Promise<{ dominio: string }> {
+  const project = await deps.store.getProject(input.orgId, input.projectId);
+  if (!project) throw new PublishError("Proyecto no encontrado", 404);
+  const dom = normalizarDominio(input.dominio);
+  if (!formatoDominioValido(dom) || dominioProhibido(dom, input.platformHost, input.sitesBaseDomain)) {
+    throw new PublishError("Dominio no válido (ejemplo: miempresa.com)", 400);
+  }
+  if (project.dominio === dom) return { dominio: dom };
+  if (!(await deps.store.dominioLibre(dom))) {
+    throw new PublishError("Ese dominio ya está conectado a otro proyecto", 409);
+  }
+  try {
+    await deps.deploy.connectDomain({ dominio: dom });
+  } catch {
+    throw new PublishError("No se pudo activar el dominio en el servidor. Vuelve a intentarlo en unos minutos.", 502);
+  }
+  const ok = await deps.store.setDominio(input.orgId, input.projectId, dom);
+  if (!ok) {
+    // Carrera: otro proyecto lo reclamó entre la comprobación y el guardado.
+    try { await deps.deploy.disconnectDomain({ dominio: dom }); } catch { /* best-effort */ }
+    throw new PublishError("Ese dominio ya está conectado a otro proyecto", 409);
+  }
+  if (project.dominio && project.dominio !== dom) {
+    // Cambio de dominio: liberar el anterior en el deploy (best-effort).
+    try { await deps.deploy.disconnectDomain({ dominio: project.dominio }); } catch { /* best-effort */ }
+  }
+  return { dominio: dom };
+}
+
+export async function quitarDominio(
+  deps: { store: ProjectStore; deploy: DeployTarget },
+  input: { orgId: string; projectId: string }
+): Promise<void> {
+  const project = await deps.store.getProject(input.orgId, input.projectId);
+  if (!project) throw new PublishError("Proyecto no encontrado", 404);
+  if (!project.dominio) return;
+  await deps.store.setDominio(input.orgId, input.projectId, null);
+  try {
+    await deps.deploy.disconnectDomain({ dominio: project.dominio });
+  } catch (e) {
+    console.error("No se pudo quitar el dominio en el deploy (limpieza manual):", e);
+  }
 }

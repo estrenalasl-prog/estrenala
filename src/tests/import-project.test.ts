@@ -48,6 +48,8 @@ class FakeStore implements ProjectStore {
   async setPublished(): Promise<void> {}
   async subdominioLibre(): Promise<boolean> { return true; }
   async setSubdominio(): Promise<boolean> { return true; }
+  async dominioLibre(): Promise<boolean> { return true; }
+  async setDominio(): Promise<boolean> { return true; }
 }
 
 describe("importProject", () => {

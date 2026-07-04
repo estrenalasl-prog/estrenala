@@ -27,7 +27,7 @@ export const projects = pgTable("projects", {
   orgId: uuid("org_id").notNull().references(() => organizations.id),
   nombre: text("nombre").notNull(),
   subdominio: text("subdominio").unique(),
-  dominio: text("dominio"),
+  dominio: text("dominio").unique(),
   entryPath: text("entry_path").notNull(),
   currentSnapshotId: uuid("current_snapshot_id"),
   publishedSnapshotId: uuid("published_snapshot_id"),

@@ -42,6 +42,8 @@ class FakeStore implements ProjectStore {
     if (!this.setSubdominioDevuelve) return false;
     this.subdominio = s; return true;
   }
+  async dominioLibre(): Promise<boolean> { return true; }
+  async setDominio(): Promise<boolean> { return true; }
 }
 
 class FakeDeploy implements DeployTarget {
@@ -49,6 +51,8 @@ class FakeDeploy implements DeployTarget {
   despublicados: string[] = [];
   async publish(i: { subdominio: string }) { this.publicados.push(i.subdominio); return { ok: true as const }; }
   async unpublish(i: { subdominio: string }) { this.despublicados.push(i.subdominio); }
+  async connectDomain() {}
+  async disconnectDomain() {}
 }
 
 describe("publishSite", () => {

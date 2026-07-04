@@ -79,4 +79,7 @@ export interface ProjectStore {
   subdominioLibre(subdominio: string): Promise<boolean>;
   /** false si el subdominio ya está en uso (violación de unicidad en carrera). */
   setSubdominio(orgId: string, projectId: string, subdominio: string): Promise<boolean>;
+  dominioLibre(dominio: string): Promise<boolean>;
+  /** false si el dominio ya está en uso (violación de unicidad en carrera). null desconecta. */
+  setDominio(orgId: string, projectId: string, dominio: string | null): Promise<boolean>;
 }
