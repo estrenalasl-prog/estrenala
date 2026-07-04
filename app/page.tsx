@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getDevContext } from "@/src/auth/dev-stub";
 import { projectStore } from "@/src/repositories/projects";
 import { ImportDropzone } from "./_components/ImportDropzone";
+import { LogoutButton } from "./LogoutButton";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,10 @@ export default async function Dashboard() {
 
   return (
     <main className="mx-auto max-w-4xl p-8">
-      <h1 className="mb-6 text-3xl font-bold">Wordclicks</h1>
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="text-3xl font-bold">Wordclicks</h1>
+        <LogoutButton />
+      </div>
       <section className="mb-10">
         <ImportDropzone />
       </section>
