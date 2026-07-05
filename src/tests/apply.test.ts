@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { applyEdits, escapeHtmlText, escapeAttr } from "@/src/editor/apply";
+import { walkElementsInOrder } from "@/src/editor/walk";
 
 describe("escapeHtmlText", () => {
   it("escapa &, < y >", () => {
@@ -102,5 +103,46 @@ describe("applyEdits — combinados", () => {
   it("edita el texto de un nodo anidado (b) dejando el resto intacto", () => {
     expect(applyEdits(`<h1>Hola</h1><p>Uno <b>dos</b></p>`, [{ nodeId: 2, kind: "text", value: "DOS" }]))
       .toBe(`<h1>Hola</h1><p>Uno <b>DOS</b></p>`);
+  });
+});
+
+describe("op textNode (texto mixto)", () => {
+  const html = `<p>Hola <strong>mundo</strong> adios &amp; fin</p>`;
+  const idP = () => walkElementsInOrder(html).find((e) => e.tagName === "p")!.id;
+
+  it("reemplaza el nodo de texto por índice, escapando y sin tocar el resto", () => {
+    const out = applyEdits(html, [{ nodeId: idP(), kind: "textNode", index: 1, value: "y <fin>" }]);
+    expect(out).toBe(`<p>Hola <strong>mundo</strong>y &lt;fin&gt;</p>`);
+  });
+  it("índice 0 y 1 en la misma pasada", () => {
+    const out = applyEdits(html, [
+      { nodeId: idP(), kind: "textNode", index: 0, value: "A " },
+      { nodeId: idP(), kind: "textNode", index: 1, value: " B" },
+    ]);
+    expect(out).toBe(`<p>A <strong>mundo</strong> B</p>`);
+  });
+  it("índice inexistente → op ignorada", () => {
+    expect(applyEdits(html, [{ nodeId: idP(), kind: "textNode", index: 7, value: "x" }])).toBe(html);
+  });
+  it("elemento excluido → op ignorada", () => {
+    const conSvg = `<svg><text>a<tspan>b</tspan>c</text></svg>`;
+    const idText = walkElementsInOrder(conSvg).find((e) => e.tagName === "text")!.id;
+    expect(applyEdits(conSvg, [{ nodeId: idText, kind: "textNode", index: 0, value: "x" }])).toBe(conSvg);
+  });
+  it("dedup: la última op del mismo (nodo, índice) gana; índices distintos conviven", () => {
+    const out = applyEdits(html, [
+      { nodeId: idP(), kind: "textNode", index: 0, value: "primera " },
+      { nodeId: idP(), kind: "textNode", index: 0, value: "ultima " },
+    ]);
+    expect(out).toBe(`<p>ultima <strong>mundo</strong> adios &amp; fin</p>`);
+  });
+  it("convive con ops de atributo en el mismo elemento", () => {
+    const conA = `<a href="/x">ver <b>más</b> aquí</a>`;
+    const idA = walkElementsInOrder(conA).find((e) => e.tagName === "a")!.id;
+    const out = applyEdits(conA, [
+      { nodeId: idA, kind: "href", value: "https://nuevo.com" },
+      { nodeId: idA, kind: "textNode", index: 1, value: " allí" },
+    ]);
+    expect(out).toBe(`<a href="https://nuevo.com">ver <b>más</b> allí</a>`);
   });
 });

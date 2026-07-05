@@ -11,6 +11,7 @@ function toPageOp(op: EditOp): PageOp {
     case "href": return { nodeId: op.nodeId, kind: "href", value: op.value };
     case "src": return { nodeId: op.nodeId, kind: "src", value: op.value };
     case "style": return { nodeId: op.nodeId, kind: "style", property: op.property, value: op.value };
+    case "textNode": return { nodeId: op.nodeId, kind: "textNode", index: op.index, value: op.value };
   }
 }
 

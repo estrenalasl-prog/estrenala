@@ -5,14 +5,16 @@ export type EditOp =
   | { page: string; nodeId: number; kind: "text"; value: string }
   | { page: string; nodeId: number; kind: "href"; value: string }
   | { page: string; nodeId: number; kind: "src"; value: string; assetId: string }
-  | { page: string; nodeId: number; kind: "style"; property: "color"; value: string };
+  | { page: string; nodeId: number; kind: "style"; property: "color"; value: string }
+  | { page: string; nodeId: number; kind: "textNode"; index: number; value: string };
 
 // Op por página (sin `page`, sin `assetId`): lo que recibe applyEdits.
 export type PageOp =
   | { nodeId: number; kind: "text"; value: string }
   | { nodeId: number; kind: "href"; value: string }
   | { nodeId: number; kind: "src"; value: string }
-  | { nodeId: number; kind: "style"; property: "color"; value: string };
+  | { nodeId: number; kind: "style"; property: "color"; value: string }
+  | { nodeId: number; kind: "textNode"; index: number; value: string };
 
 export function escapeHtmlText(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -46,8 +48,8 @@ export function applyEdits(html: string, ops: PageOp[]): string {
   // dedup: la última op por (nodeId, kind, property) gana
   const dedup = new Map<string, PageOp>();
   for (const op of ops) {
-    const prop = op.kind === "style" ? op.property : "";
-    dedup.set(`${op.nodeId}#${op.kind}#${prop}`, op);
+    const extra = op.kind === "style" ? op.property : op.kind === "textNode" ? String(op.index) : "";
+    dedup.set(`${op.nodeId}#${op.kind}#${extra}`, op);
   }
   // Un atributo NUEVO se inserta tras el tramo de cualquier atributo que se
   // esté REEMPLAZANDO en el mismo nodo: así los reemplazados conservan su
@@ -84,6 +86,11 @@ export function applyEdits(html: string, ops: PageOp[]): string {
       pushAttrEdit(edits, el, "href", op.value, replacedAttrs);
     } else if (op.kind === "src") {
       pushAttrEdit(edits, el, "src", op.value, replacedAttrs);
+    } else if (op.kind === "textNode") {
+      if (el.textoExcluido) continue;
+      const t = el.textNodes.find((x) => x.index === op.index);
+      if (!t) continue;
+      edits.push({ start: t.start, end: t.end, text: escapeHtmlText(op.value) });
     } else {
       const nuevo = mergeStyleProperty(el.attrs.style ?? "", op.property, op.value);
       pushAttrEdit(edits, el, "style", nuevo, replacedAttrs);

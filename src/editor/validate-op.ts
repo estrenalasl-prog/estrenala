@@ -44,6 +44,8 @@ export function isValidOp(op: EditOp): boolean {
     }
     case "style":
       return op.property === "color" && typeof op.value === "string" && COLOR_RE.test(op.value.trim());
+    case "textNode":
+      return typeof op.value === "string" && Number.isInteger(op.index) && op.index >= 0;
     default:
       return false;
   }

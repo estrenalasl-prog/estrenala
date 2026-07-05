@@ -67,3 +67,14 @@ describe("isValidOp", () => {
     expect(isValidOp({ kind: "otro" } as unknown as Parameters<typeof isValidOp>[0])).toBe(false);
   });
 });
+
+describe("isValidOp: textNode", () => {
+  it("acepta value string e index entero ≥0", () => {
+    expect(isValidOp({ page: "i.html", nodeId: 1, kind: "textNode", index: 0, value: "x" } as never)).toBe(true);
+  });
+  it("rechaza index negativo, no entero o value no string", () => {
+    expect(isValidOp({ page: "i.html", nodeId: 1, kind: "textNode", index: -1, value: "x" } as never)).toBe(false);
+    expect(isValidOp({ page: "i.html", nodeId: 1, kind: "textNode", index: 1.5, value: "x" } as never)).toBe(false);
+    expect(isValidOp({ page: "i.html", nodeId: 1, kind: "textNode", index: 0, value: 3 } as never)).toBe(false);
+  });
+});
