@@ -62,3 +62,40 @@ describe("walkElementsInOrder", () => {
     expect(src.slice(a.startTagStart, a.startTagStart + 1 + a.tagName.length)).toBe("<a");
   });
 });
+
+describe("walk v2: nodos de texto significativos", () => {
+  it("elemento mixto: índices 0-based solo de los significativos, con rangos fuente", () => {
+    const html = `<p>Hola <strong>mundo</strong> adios</p>`;
+    const p = walkElementsInOrder(html).find((e) => e.tagName === "p")!;
+    expect(p.textNodes).toHaveLength(2);
+    expect(p.textNodes[0]).toMatchObject({ index: 0, raw: "Hola " });
+    expect(p.textNodes[1]).toMatchObject({ index: 1, raw: " adios" });
+    expect(html.slice(p.textNodes[1].start, p.textNodes[1].end)).toBe(" adios");
+  });
+  it("texto solo-blanco no cuenta ni consume índice", () => {
+    const html = `<div>\n  <span>a</span> visible <span>b</span>\n</div>`;
+    const div = walkElementsInOrder(html).find((e) => e.tagName === "div")!;
+    expect(div.textNodes).toHaveLength(1);
+    expect(div.textNodes[0]).toMatchObject({ index: 0, raw: " visible " });
+  });
+  it("raw conserva las entidades del fuente", () => {
+    const html = `<p><b>x</b>a &amp; b</p>`;
+    const p = walkElementsInOrder(html).find((e) => e.tagName === "p")!;
+    expect(p.textNodes[0].raw).toBe("a &amp; b");
+  });
+  it("textoExcluido: dentro de svg y en head, y en el propio elemento excluido", () => {
+    const html = `<html><head><title>t</title></head><body><svg><text>hola</text></svg><p>ok</p></body></html>`;
+    const els = walkElementsInOrder(html);
+    expect(els.find((e) => e.tagName === "text")!.textoExcluido).toBe(true);
+    expect(els.find((e) => e.tagName === "title")!.textoExcluido).toBe(true);
+    expect(els.find((e) => e.tagName === "head")!.textoExcluido).toBe(true);
+    expect(els.find((e) => e.tagName === "p")!.textoExcluido).toBe(false);
+  });
+  it("endTagEnd: fin del tag de cierre; null en void elements", () => {
+    const html = `<p>x</p><img src="a.png">`;
+    const els = walkElementsInOrder(html);
+    const p = els.find((e) => e.tagName === "p")!;
+    expect(html.slice(p.endTagStart!, p.endTagEnd!)).toBe("</p>");
+    expect(els.find((e) => e.tagName === "img")!.endTagEnd).toBeNull();
+  });
+});
