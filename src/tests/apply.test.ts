@@ -145,4 +145,18 @@ describe("op textNode (texto mixto)", () => {
     ]);
     expect(out).toBe(`<a href="https://nuevo.com">ver <b>más</b> allí</a>`);
   });
+  it("text clásica + textNode sobre el mismo nodo hoja: gana textNode, sin corrupción", () => {
+    const conB = `<p>Uno <b>dos</b></p>`;
+    const idB = walkElementsInOrder(conB).find((e) => e.tagName === "b")!.id;
+    const out = applyEdits(conB, [
+      { nodeId: idB, kind: "text", value: "LONGREPLACEMENT" },
+      { nodeId: idB, kind: "textNode", index: 0, value: "Y" },
+    ]);
+    expect(out).toBe(`<p>Uno <b>Y</b></p>`);
+  });
+  it("la op text clásica respeta los subárboles excluidos", () => {
+    const conSvg = `<svg><text><tspan>x</tspan></text></svg>`;
+    const idT = walkElementsInOrder(conSvg).find((e) => e.tagName === "tspan")!.id;
+    expect(applyEdits(conSvg, [{ nodeId: idT, kind: "text", value: "y" }])).toBe(conSvg);
+  });
 });

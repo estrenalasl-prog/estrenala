@@ -51,6 +51,12 @@ export function applyEdits(html: string, ops: PageOp[]): string {
     const extra = op.kind === "style" ? op.property : op.kind === "textNode" ? String(op.index) : "";
     dedup.set(`${op.nodeId}#${op.kind}#${extra}`, op);
   }
+  // Exclusión mutua text/textNode por nodo: en un nodo hoja, el rango de su único
+  // nodo de texto coincide con el rango de contenido de la op "text" clásica — si
+  // ambas llegaran en el mismo lote, sus edits solaparían y corromperían el HTML.
+  // Gana la más específica (textNode).
+  const nodosConTextNode = new Set<number>();
+  for (const op of dedup.values()) if (op.kind === "textNode") nodosConTextNode.add(op.nodeId);
   // Un atributo NUEVO se inserta tras el tramo de cualquier atributo que se
   // esté REEMPLAZANDO en el mismo nodo: así los reemplazados conservan su
   // posición original y los nuevos quedan después (orden determinista). El
@@ -79,6 +85,8 @@ export function applyEdits(html: string, ops: PageOp[]): string {
     if (!el) continue;
     const replacedAttrs = replacedAttrsPerNode.get(op.nodeId) ?? new Set();
     if (op.kind === "text") {
+      if (el.textoExcluido) continue;
+      if (nodosConTextNode.has(op.nodeId)) continue;
       if (el.hasElementChildren) continue;
       if (el.endTagStart == null) continue;
       edits.push({ start: el.startTagEnd, end: el.endTagStart, text: escapeHtmlText(op.value) });
