@@ -60,12 +60,11 @@ export function walkElementsInOrder(html: string): WalkedElement[] {
         if (!/\S/.test(c.value ?? "")) continue;
         const tl = c.sourceCodeLocation;
         if (!tl) continue; // texto sintetizado sin posición en el fuente: no direccionable
-        textNodes.push({
-          index: idx++,
-          start: tl.startOffset,
-          end: tl.endOffset,
-          raw: html.slice(tl.startOffset, tl.endOffset),
-        });
+        const raw = html.slice(tl.startOffset, tl.endOffset);
+        // parse5 fusiona fragmentos separados por marcado real (foster parenting,
+        // texto tras </body>): el rango fuente incluiría tags. No direccionable.
+        if (/<[a-zA-Z/!?]/.test(raw)) continue;
+        textNodes.push({ index: idx++, start: tl.startOffset, end: tl.endOffset, raw });
       }
       out.push({
         id: nextId++,

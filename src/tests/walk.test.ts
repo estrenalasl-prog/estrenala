@@ -98,4 +98,20 @@ describe("walk v2: nodos de texto significativos", () => {
     expect(html.slice(p.endTagStart!, p.endTagEnd!)).toBe("</p>");
     expect(els.find((e) => e.tagName === "img")!.endTagEnd).toBeNull();
   });
+  it("texto fusionado por parse5 (tras </body>) NO es direccionable", () => {
+    const html = `<html><body>hola</body></html>\n`;
+    const body = walkElementsInOrder(html).find((e) => e.tagName === "body")!;
+    expect(body.textNodes).toHaveLength(0);
+  });
+  it("foster parenting: el texto fusionado con tags de tabla NO es direccionable", () => {
+    const html = `<div><table>A<tr><td>1</td></tr>B</table></div>`;
+    const div = walkElementsInOrder(html).find((e) => e.tagName === "div")!;
+    expect(div.textNodes).toHaveLength(0);
+  });
+  it("un '<' literal seguido de espacio sigue siendo texto direccionable", () => {
+    const html = `<p><b>x</b>2 < 3</p>`;
+    const p = walkElementsInOrder(html).find((e) => e.tagName === "p")!;
+    expect(p.textNodes).toHaveLength(1);
+    expect(p.textNodes[0].raw).toBe("2 < 3");
+  });
 });
