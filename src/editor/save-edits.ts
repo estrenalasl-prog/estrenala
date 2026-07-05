@@ -1,7 +1,7 @@
-import { snapshotPrefix } from "@/src/storage/keys";
 import { applyEdits, type EditOp, type PageOp } from "./apply";
 import { isValidOp } from "./validate-op";
 import { EditorError } from "./errors";
+import { crearSnapshotEditado } from "./snapshot-copy";
 import type { StorageAdapter } from "@/src/storage/types";
 import type { ProjectStore } from "@/src/repositories/types";
 
@@ -49,41 +49,15 @@ export async function saveEdits(
   }
   if (porPagina.size === 0) throw new EditorError("Ninguna edición válida", 400);
 
-  const snapshotId = crypto.randomUUID();
-  const newPrefix = snapshotPrefix(input.projectId, snapshotId);
-  const written: string[] = [];
-
-  // 1) Copiar el árbol, aplicando los edits a las páginas html.
-  const keys = await deps.storage.list(current.storagePrefix);
-  for (const key of keys) {
-    const rel = key.slice(current.storagePrefix.length);
-    const file = await deps.storage.get(key);
-    if (!file) continue;
-    let body = file.body;
-    const ops = porPagina.get(rel);
-    if (ops && /\.html?$/i.test(rel)) {
-      body = Buffer.from(applyEdits(body.toString("utf-8"), ops), "utf-8");
-    }
-    await deps.storage.put(newPrefix + rel, body);
-    written.push(newPrefix + rel);
-  }
-
-  // 2) Copiar los assets usados a wc-uploads/ → la web queda auto-contenida.
-  for (const [path, asset] of assetCopias) {
-    await deps.storage.put(newPrefix + path, asset.body, asset.contentType);
-    written.push(newPrefix + path);
-  }
-
-  // 3) Crear el snapshot con limpieza compensatoria del storage si falla.
-  try {
-    await deps.store.createSnapshot({
-      snapshotId, projectId: input.projectId, parentId: current.id,
-      tipo: "edit", storagePrefix: newPrefix, operacionesJson: input.ops,
-    });
-  } catch (e) {
-    for (const k of written) { try { await deps.storage.delete(k); } catch { /* best-effort */ } }
-    throw e;
-  }
-  await deps.store.setCurrentSnapshot(input.orgId, input.projectId, snapshotId);
-  return { snapshotId };
+  return crearSnapshotEditado(deps, {
+    orgId: input.orgId,
+    projectId: input.projectId,
+    currentSnapshot: { id: current.id, storagePrefix: current.storagePrefix },
+    transformar: (rel, html) => {
+      const ops = porPagina.get(rel);
+      return ops ? applyEdits(html, ops) : null;
+    },
+    extras: assetCopias,
+    operacionesJson: input.ops,
+  });
 }
