@@ -114,6 +114,21 @@
       pop.appendChild(etiqueta("Texto")); pop.appendChild(txt); pop.appendChild(okT);
     }
 
+    if (esTextoMixto(el) && el.closest && el.closest("button")) {
+      // El caret de contenteditable no funciona dentro de <button>: el texto suelto
+      // de un botón mixto (icono + texto) se edita desde el popover, como los botones hoja.
+      var txtM = inputTexto(el.textContent, "Texto del botón");
+      var okM = botonOk();
+      var aplicarM = function () {
+        el.textContent = txtM.value;
+        var tnM = (el.getAttribute("data-wc-tn") || "").split(":");
+        emitir({ page: PAGE, nodeId: Number(tnM[0]), kind: "textNode", index: Number(tnM[1]), value: txtM.value });
+      };
+      okM.addEventListener("click", aplicarM);
+      txtM.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); aplicarM(); } });
+      pop.appendChild(etiqueta("Texto")); pop.appendChild(txtM); pop.appendChild(okM);
+    }
+
     if (enlace) {
       var inp = inputTexto(enlace.getAttribute("href") || "", "https://…");
       var ok = botonOk();
@@ -215,7 +230,8 @@
     var objetivoClick = resolverEditable(el);
     if (!objetivoClick) return;
     mostrar(objetivoClick); // el click también fija el popover (por si el hover se escapó)
-    if ((esTextoHoja(objetivoClick) || esTextoMixto(objetivoClick)) && !esBoton(objetivoClick) && objetivoClick !== editando) {
+    var mixtoEnBoton = esTextoMixto(objetivoClick) && objetivoClick.closest && !!objetivoClick.closest("button");
+    if ((esTextoHoja(objetivoClick) || esTextoMixto(objetivoClick)) && !esBoton(objetivoClick) && !mixtoEnBoton && objetivoClick !== editando) {
       iniciarEdicion(objetivoClick);
     }
   });
