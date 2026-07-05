@@ -377,9 +377,12 @@ En `src/editor/apply.ts`:
 ```
 
 (Los rangos de texto viven entre tags: no solapan con los tramos de atributos ni con
-otros textos → el orden descendente actual sigue siendo válido. La op `text` clásica
-sobre un padre mixto sigue haciendo `continue` por `hasElementChildren`, así que nunca
-coexiste con `textNode` en el mismo rango.)
+otros textos → el orden descendente actual sigue siendo válido. OJO — enmienda de la
+revisión: en un nodo HOJA el rango de su único nodo de texto coincide con el rango de
+contenido de la op `text` clásica; para evitar solapamiento, `applyEdits` aplica
+exclusión mutua por nodo: si un `nodeId` tiene alguna op `textNode` en el lote, sus
+ops `text` clásicas se ignoran (gana la más específica). Además la op `text` clásica
+respeta `textoExcluido`, igual que `textNode`.)
 
 En `src/editor/validate-op.ts`, caso nuevo en el switch:
 
