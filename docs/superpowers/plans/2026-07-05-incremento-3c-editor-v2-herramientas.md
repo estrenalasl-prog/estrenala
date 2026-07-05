@@ -16,7 +16,7 @@
 - Código, comentarios y UI en español, estilo del código circundante.
 - **El HTML guardado nunca contiene marcadores** (`data-wc-id`, `wc-t`, `data-wc-tn`): annotate es solo-preview; apply trabaja sobre el HTML limpio.
 - Serving público byte-idéntico intacto; publicar = puntero; snapshots inmutables.
-- Regla única compartida annotate/apply: nodo de texto **significativo** = hijo directo de tipo texto con `/\S/`; índice 0-based entre los significativos del mismo padre en orden documental; subárboles excluidos: `head`, `script`, `style`, `textarea`, `svg`, `math` (el propio elemento excluido también cuenta como excluido).
+- Regla única compartida annotate/apply: nodo de texto **significativo** = hijo directo de tipo texto con `/\S/` **y cuyo rango fuente no contiene marcado** (`/<[a-zA-Z/!?]/` sobre el slice crudo — parse5 fusiona fragmentos separados por tags reales en foster parenting y texto tras `</body>`, y su rango incluiría esos tags: tales nodos NO son direccionables y no consumen índice); índice 0-based entre los significativos del mismo padre en orden documental; subárboles excluidos: `head`, `script`, `style`, `textarea`, `svg`, `math` (el propio elemento excluido también cuenta como excluido).
 - Mensajes de error byte-exactos:
   - `Código de verificación no válido (pega la etiqueta de Google o solo el código)` (400)
   - `ID de Analytics no válido (ejemplo: G-ABC1DE23FG)` (400)
