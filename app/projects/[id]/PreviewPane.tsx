@@ -6,12 +6,13 @@ type EditOp =
   | { page: string; nodeId: number; kind: "text"; value: string }
   | { page: string; nodeId: number; kind: "href"; value: string }
   | { page: string; nodeId: number; kind: "src"; value: string; assetId: string }
-  | { page: string; nodeId: number; kind: "style"; property: "color"; value: string };
+  | { page: string; nodeId: number; kind: "style"; property: "color"; value: string }
+  | { page: string; nodeId: number; kind: "textNode"; index: number; value: string };
 type SnapshotInfo = { id: string; tipo: string; parentId: string | null; createdAt: string; esActual: boolean };
 
 function opKey(op: EditOp): string {
-  const prop = op.kind === "style" ? op.property : "";
-  return `${op.page}#${op.nodeId}#${op.kind}#${prop}`;
+  const extra = op.kind === "style" ? op.property : op.kind === "textNode" ? String(op.index) : "";
+  return `${op.page}#${op.nodeId}#${op.kind}#${extra}`;
 }
 
 export function PreviewPane({

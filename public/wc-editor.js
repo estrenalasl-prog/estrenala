@@ -14,6 +14,9 @@
   function esImagen(el) { return tieneId(el) && el.tagName.toLowerCase() === "img"; }
   function esEnlace(el) { return tieneId(el) && el.tagName.toLowerCase() === "a"; }
   function esBoton(el) { return tieneId(el) && el.tagName.toLowerCase() === "button"; }
+  function esTextoMixto(el) {
+    return !!(el && el.nodeType === 1 && el.tagName.toLowerCase() === "wc-t" && el.hasAttribute("data-wc-tn"));
+  }
 
   // Objetivo editable de un evento: el elemento mismo (hoja de texto, imagen o <a>),
   // o si no, el <a> ancestro más cercano con data-wc-id. Las webs reales (hechas con
@@ -21,6 +24,7 @@
   // no el enlace — sin esta resolución, iconos y botones-enlace quedan muertos.
   function resolverEditable(el) {
     if (!el || el.nodeType !== 1) return null;
+    if (esTextoMixto(el)) return el;
     if (esTextoHoja(el) || esImagen(el) || esEnlace(el)) return el;
     if (!el.closest) return null;
     var a = el.closest("a[data-wc-id]");
@@ -149,7 +153,7 @@
   }
 
   // ---------- marcado visual ----------
-  function marcar(el) { el.style.outline = "2px dashed #6366f1"; el.style.outlineOffset = "2px"; if (esTextoHoja(el)) el.style.cursor = "text"; }
+  function marcar(el) { el.style.outline = "2px dashed #6366f1"; el.style.outlineOffset = "2px"; if (esTextoHoja(el) || esTextoMixto(el)) el.style.cursor = "text"; }
   function desmarcar(el) { if (el === editando) return; el.style.outline = ""; el.style.outlineOffset = ""; el.style.cursor = ""; }
 
   // ---------- edición de texto in-situ ----------
@@ -164,7 +168,12 @@
     var el = editando; el.removeAttribute("contenteditable");
     var valor = el.textContent; editando = null; desmarcar(el);
     if (guardar && valor !== valorPrevio) {
-      emitir({ page: PAGE, nodeId: idDe(el), kind: "text", value: valor });
+      if (esTextoMixto(el)) {
+        var tn = (el.getAttribute("data-wc-tn") || "").split(":");
+        emitir({ page: PAGE, nodeId: Number(tn[0]), kind: "textNode", index: Number(tn[1]), value: valor });
+      } else {
+        emitir({ page: PAGE, nodeId: idDe(el), kind: "text", value: valor });
+      }
     } else if (!guardar) { el.textContent = valorPrevio; }
   }
 
@@ -206,7 +215,7 @@
     var objetivoClick = resolverEditable(el);
     if (!objetivoClick) return;
     mostrar(objetivoClick); // el click también fija el popover (por si el hover se escapó)
-    if (esTextoHoja(objetivoClick) && !esBoton(objetivoClick) && objetivoClick !== editando) {
+    if ((esTextoHoja(objetivoClick) || esTextoMixto(objetivoClick)) && !esBoton(objetivoClick) && objetivoClick !== editando) {
       iniciarEdicion(objetivoClick);
     }
   });
