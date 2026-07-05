@@ -36,7 +36,7 @@ const RUTA_RE = new RegExp(
 
 export function normalizarVerificacion(input: string): string | null {
   let s = input.trim();
-  const meta = s.match(/content\s*=\s*["']([^"']+)["']/i);
+  const meta = s.match(/(?<![-\w])content\s*=\s*["']([^"']+)["']/i);
   if (meta) s = meta[1].trim();
   return TOKEN_RE.test(s) ? s : null;
 }
@@ -108,25 +108,44 @@ function aplicarEdits(html: string, edits: { start: number; end: number; text: s
 
 export function aplicarHerramienta(html: string, h: Herramienta): string {
   const els = walkElementsInOrder(html);
-  const edits = els.filter((e) => esObjetivo(e, h.tipo)).map((e) => ({ ...rangoDe(e), text: "" }));
   const at = puntoDeInsercion(els);
+  // Solo la región de cabecera (antes del punto de inserción): una etiqueta
+  // parecida dentro del <body> jamás se toca.
+  const edits = els
+    .filter((e) => e.startTagStart < at && esObjetivo(e, h.tipo))
+    .map((e) => ({ ...rangoDe(e), text: "" }));
   edits.push({ start: at, end: at, text: snippetDe(h) });
   return aplicarEdits(html, edits);
 }
 
 export function quitarHerramienta(html: string, tipo: TipoHerramienta): string {
   const els = walkElementsInOrder(html);
-  const edits = els.filter((e) => esObjetivo(e, tipo)).map((e) => ({ ...rangoDe(e), text: "" }));
+  let limite: number;
+  try {
+    limite = puntoDeInsercion(els);
+  } catch {
+    return html; // sin cabecera localizable no hay nada que quitar
+  }
+  const edits = els
+    .filter((e) => e.startTagStart < limite && esObjetivo(e, tipo))
+    .map((e) => ({ ...rangoDe(e), text: "" }));
   if (edits.length === 0) return html;
   return aplicarEdits(html, edits);
 }
 
 export function estadoHerramientas(html: string): EstadoHerramientas {
   const els = walkElementsInOrder(html);
-  const ver = els.find((e) => esObjetivo(e, "google-verification"));
-  const ana = els.find((e) => esObjetivo(e, "analytics") && !!e.attrs["src"]);
-  const fav = els.find((e) => esObjetivo(e, "favicon"));
-  const og = els.find((e) => esObjetivo(e, "og-image"));
+  let limite: number;
+  try {
+    limite = puntoDeInsercion(els);
+  } catch {
+    return { googleVerification: null, analytics: null, favicon: null, ogImage: null };
+  }
+  const enCabecera = els.filter((e) => e.startTagStart < limite);
+  const ver = enCabecera.find((e) => esObjetivo(e, "google-verification"));
+  const ana = enCabecera.find((e) => esObjetivo(e, "analytics") && !!e.attrs["src"]);
+  const fav = enCabecera.find((e) => esObjetivo(e, "favicon"));
+  const og = enCabecera.find((e) => esObjetivo(e, "og-image"));
   const medicion = ana?.attrs["src"]?.match(/[?&]id=(G-[A-Z0-9]+)/i)?.[1] ?? null;
   return {
     googleVerification: ver?.attrs["content"] ?? null,

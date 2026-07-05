@@ -91,4 +91,17 @@ describe("quitarHerramienta y estadoHerramientas", () => {
     expect(estadoHerramientas(sinAna).analytics).toBeNull();
     expect(quitarHerramienta(BASE, "favicon")).toBe(BASE); // sin objetivo → intacto
   });
+  it("no toca etiquetas parecidas dentro del <body>", () => {
+    const conBody = `<!doctype html><html><head><title>t</title></head>` +
+      `<body><link rel="icon" href="/decorativo.ico"><meta property="og:image" content="/en-body.png"><p>x</p></body></html>`;
+    const out = aplicarHerramienta(conBody, { tipo: "favicon", ruta: RUTA });
+    expect(out).toContain(`/decorativo.ico`);
+    expect(quitarHerramienta(conBody, "og-image")).toBe(conBody);
+    expect(estadoHerramientas(conBody).ogImage).toBeNull();
+  });
+  it("normalizarVerificacion no se confunde con atributos tipo data-content", () => {
+    expect(normalizarVerificacion(
+      `<meta data-content="deadbeefdeadbeef1234" name="google-site-verification" content="realtoken1234567890">`
+    )).toBe("realtoken1234567890");
+  });
 });
