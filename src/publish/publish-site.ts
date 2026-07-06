@@ -4,7 +4,7 @@ import { PublishError } from "./errors";
 import type { DeployTarget } from "./deploy-target";
 import type { ProjectStore } from "@/src/repositories/types";
 
-async function generarSubdominio(store: ProjectStore, nombre: string): Promise<string> {
+export async function generarSubdominio(store: ProjectStore, nombre: string): Promise<string> {
   const base = slugify(nombre);
   for (let i = 1; i <= 20; i++) {
     const sufijo = i === 1 ? "" : `-${i}`;
