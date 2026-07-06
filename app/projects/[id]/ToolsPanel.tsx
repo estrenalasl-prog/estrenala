@@ -15,6 +15,26 @@ type Herramienta =
   | { tipo: "favicon"; ruta: string }
   | { tipo: "og-image"; ruta: string };
 
+function Tarjeta({ titulo, ayuda, children }: { titulo: string; ayuda: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-lg border bg-white p-3">
+      <p className="text-sm font-medium">{titulo}</p>
+      <p className="mb-2 text-xs text-gray-500">{ayuda}</p>
+      {children}
+    </div>
+  );
+}
+
+function BotonQuitar({ tipo, ocupado, onQuitar }: {
+  tipo: Herramienta["tipo"]; ocupado: boolean; onQuitar: (tipo: Herramienta["tipo"]) => void;
+}) {
+  return (
+    <button onClick={() => onQuitar(tipo)} disabled={ocupado} className="text-xs text-gray-500 underline">
+      quitar
+    </button>
+  );
+}
+
 export function ToolsPanel({ projectId }: { projectId: string }) {
   const router = useRouter();
   const [abierto, setAbierto] = useState(false);
@@ -25,8 +45,12 @@ export function ToolsPanel({ projectId }: { projectId: string }) {
   const [error, setError] = useState<string | null>(null);
 
   async function cargar() {
-    const res = await fetch(`/api/projects/${projectId}/tools`);
-    if (res.ok) setEstado((await res.json()) as Estado);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/tools`);
+      if (res.ok) setEstado((await res.json()) as Estado);
+    } catch {
+      /* silencioso: se reintenta al reabrir */
+    }
   }
   useEffect(() => { if (abierto && !estado) void cargar(); }, [abierto]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -40,6 +64,9 @@ export function ToolsPanel({ projectId }: { projectId: string }) {
       const d = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) { setError(d.error ?? "Error"); return; }
       await cargar(); router.refresh();
+      setVerificacion(""); setMedicion("");
+    } catch {
+      setError("Error de conexión");
     } finally { setOcupado(false); }
   }
 
@@ -53,6 +80,8 @@ export function ToolsPanel({ projectId }: { projectId: string }) {
       const d = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) { setError(d.error ?? "Error"); return; }
       await cargar(); router.refresh();
+    } catch {
+      setError("Error de conexión");
     } finally { setOcupado(false); }
   }
 
@@ -65,25 +94,9 @@ export function ToolsPanel({ projectId }: { projectId: string }) {
       const d = (await res.json().catch(() => ({}))) as { error?: string; assetId?: string; ext?: string };
       if (!res.ok || !d.assetId || !d.ext) { setError(d.error ?? "Error al subir la imagen"); return; }
       await aplicar({ tipo, ruta: `/wc-uploads/${d.assetId}.${d.ext}` } as Herramienta);
+    } catch {
+      setError("Error de conexión");
     } finally { setOcupado(false); }
-  }
-
-  function Tarjeta({ titulo, ayuda, children }: { titulo: string; ayuda: string; children: React.ReactNode }) {
-    return (
-      <div className="rounded-lg border bg-white p-3">
-        <p className="text-sm font-medium">{titulo}</p>
-        <p className="mb-2 text-xs text-gray-500">{ayuda}</p>
-        {children}
-      </div>
-    );
-  }
-
-  function BotonQuitar({ tipo }: { tipo: Herramienta["tipo"] }) {
-    return (
-      <button onClick={() => void quitar(tipo)} disabled={ocupado} className="text-xs text-gray-500 underline">
-        quitar
-      </button>
-    );
   }
 
   return (
@@ -98,7 +111,7 @@ export function ToolsPanel({ projectId }: { projectId: string }) {
             {estado?.googleVerification ? (
               <p className="flex items-center gap-2 text-xs text-emerald-700">
                 Activa: <code className="rounded bg-gray-100 px-1">{estado.googleVerification.slice(0, 18)}…</code>
-                <BotonQuitar tipo="google-verification" />
+                <BotonQuitar tipo="google-verification" ocupado={ocupado} onQuitar={(t) => void quitar(t)} />
               </p>
             ) : (
               <span className="flex items-center gap-1">
@@ -115,7 +128,7 @@ export function ToolsPanel({ projectId }: { projectId: string }) {
             {estado?.analytics ? (
               <p className="flex items-center gap-2 text-xs text-emerald-700">
                 Activo: <code className="rounded bg-gray-100 px-1">{estado.analytics}</code>
-                <BotonQuitar tipo="analytics" />
+                <BotonQuitar tipo="analytics" ocupado={ocupado} onQuitar={(t) => void quitar(t)} />
               </p>
             ) : (
               <span className="flex items-center gap-1">
@@ -133,7 +146,7 @@ export function ToolsPanel({ projectId }: { projectId: string }) {
               {estado?.favicon && <img src={`/api/projects/${projectId}/preview${estado.favicon}`} alt="" className="h-5 w-5 rounded" />}
               <input type="file" accept="image/*" disabled={ocupado} className="text-xs"
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) void subirYAplicar("favicon", f); e.target.value = ""; }} />
-              {estado?.favicon && <BotonQuitar tipo="favicon" />}
+              {estado?.favicon && <BotonQuitar tipo="favicon" ocupado={ocupado} onQuitar={(t) => void quitar(t)} />}
             </span>
           </Tarjeta>
 
@@ -143,7 +156,7 @@ export function ToolsPanel({ projectId }: { projectId: string }) {
               {estado?.ogImage && <img src={`/api/projects/${projectId}/preview${estado.ogImage}`} alt="" className="h-8 w-14 rounded object-cover" />}
               <input type="file" accept="image/*" disabled={ocupado} className="text-xs"
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) void subirYAplicar("og-image", f); e.target.value = ""; }} />
-              {estado?.ogImage && <BotonQuitar tipo="og-image" />}
+              {estado?.ogImage && <BotonQuitar tipo="og-image" ocupado={ocupado} onQuitar={(t) => void quitar(t)} />}
             </span>
           </Tarjeta>
         </div>
