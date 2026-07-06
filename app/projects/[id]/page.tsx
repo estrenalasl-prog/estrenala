@@ -6,6 +6,7 @@ import { projectStore } from "@/src/repositories/projects";
 import { listPages } from "@/src/projects/entry";
 import { PublishBar } from "./PublishBar";
 import { PreviewPane } from "./PreviewPane";
+import { ToolsPanel } from "./ToolsPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +33,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
         sitesBaseDomain={sitesBaseDomain}
         dnsTargetIp={dnsTargetIp}
       />
+      <ToolsPanel projectId={id} />
       <PreviewPane projectId={id} entryPath={project.entryPath} pages={pages} />
     </main>
   );
