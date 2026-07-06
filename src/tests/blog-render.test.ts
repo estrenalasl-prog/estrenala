@@ -42,3 +42,16 @@ describe("itemsIndice", () => {
     expect(i.imagen).toBe("/blog/img/ab.png");
   });
 });
+
+describe("escape en contexto de atributo", () => {
+  it("un título con comillas no rompe og:title", () => {
+    const tpl = '<head><meta property="og:title" content="{{titulo}}"></head><body><h1>{{titulo}}</h1>{{contenido}}{{meta_descripcion}}{{imagen}}{{fecha}}{{canonical}}{{json_ld}}</body>';
+    const h = renderPost(tpl, { titulo: 'Guía "rápida" de IA', slug: "guia", metaDescripcion: "m", md: "hola", imagenExt: "png" }, "2026-07-06", "https://a.b");
+    expect(h).toContain('content="Guía &quot;rápida&quot; de IA"');
+    expect(h).not.toContain('content="Guía "rápida" de IA"');
+  });
+  it("itemsIndice escapa comillas en el título (alt del ítem)", () => {
+    const [i] = itemsIndice([{ titulo: 'Foto "bonita"', slug: "f", metaDescripcion: "m", fecha: "2026-07-06", imagenExt: "png" }]);
+    expect(i.titulo).toBe("Foto &quot;bonita&quot;");
+  });
+});

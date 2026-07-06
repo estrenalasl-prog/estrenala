@@ -1,7 +1,7 @@
 import { mdAHtml } from "./markdown";
 import { renderTemplate } from "./template";
 import type { PostIndice } from "./blog-index";
-import { escapeHtmlText, escapeAttr } from "@/src/editor/apply";
+import { escapeAttr } from "@/src/editor/apply";
 
 export type DatosPost = { titulo: string; slug: string; metaDescripcion: string; md: string; imagenExt: string };
 
@@ -29,12 +29,15 @@ export function renderPost(tplPost: string, post: DatosPost, fecha: string, base
     image: `${base}${imagen}`,
     inLanguage: "es",
   }).replace(/<\//g, "<\\/");
+  // Escape con escapeAttr (no escapeHtmlText) porque los huecos {{titulo}}, {{meta_descripcion}}, {{fecha}}
+  // aparecen tanto en contextos de texto como en atributos (ej: og:title, og:description, alt);
+  // escapeAttr protege ambos contextos escapando &, ", <.
   return renderTemplate(tplPost, {
-    titulo: escapeHtmlText(post.titulo),
+    titulo: escapeAttr(post.titulo),
     contenido: mdAHtml(post.md),
     meta_descripcion: escapeAttr(post.metaDescripcion),
     imagen: imagenSrc ?? imagen,
-    fecha: escapeHtmlText(fecha),
+    fecha: escapeAttr(fecha),
     canonical,
     json_ld: `<script type="application/ld+json">${jsonLd}</script>`,
   });
@@ -44,10 +47,10 @@ export function itemsIndice(
   posts: { titulo: string; slug: string; metaDescripcion: string; fecha: string; imagenExt: string }[]
 ): PostIndice[] {
   return posts.map((p) => ({
-    titulo: escapeHtmlText(p.titulo),
+    titulo: escapeAttr(p.titulo),
     slug: p.slug,
-    metaDescripcion: escapeHtmlText(p.metaDescripcion),
-    fecha: escapeHtmlText(p.fecha),
+    metaDescripcion: escapeAttr(p.metaDescripcion),
+    fecha: escapeAttr(p.fecha),
     imagen: `/blog/img/${p.slug}.${p.imagenExt}`,
   }));
 }
