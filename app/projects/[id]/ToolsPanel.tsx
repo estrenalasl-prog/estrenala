@@ -37,7 +37,7 @@ function BotonQuitar({ tipo, ocupado, onQuitar }: {
 
 // El <input type="file"> pelado no se lee como acción; un <label> con pinta de botón
 // que envuelve el input oculto abre el selector igual y sí parece pulsable.
-function BotonSubir({ texto, ocupado, onFile }: { texto: string; ocupado: boolean; onFile: (f: File) => void }) {
+export function BotonSubir({ texto, ocupado, onFile }: { texto: string; ocupado: boolean; onFile: (f: File) => void }) {
   return (
     <label className={"cursor-pointer rounded bg-indigo-600 px-2 py-1 text-xs text-white" + (ocupado ? " pointer-events-none opacity-50" : "")}>
       {texto}
