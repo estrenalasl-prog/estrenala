@@ -92,6 +92,17 @@ describe("aplicarHerramientaAlProyecto", () => {
       herramienta: { tipo: "favicon", ruta: "/wc-uploads/99999999-9999-4999-8999-999999999999.png" },
     })).rejects.toMatchObject({ message: "Imagen no válida", status: 400 });
   });
+  it("si una página no tiene cabecera editable, falla 400 y no deja archivos huérfanos", async () => {
+    const f = fakes();
+    f.archivos.set("p/s1/rota.html", { body: Buffer.from(`<p>solo</p>`), contentType: "text/html" });
+    await expect(aplicarHerramientaAlProyecto(deps(f), {
+      orgId: "o1", projectId: "p1",
+      herramienta: { tipo: "google-verification", codigo: "Abc123_-Abc123_-XYZ" },
+    })).rejects.toMatchObject({ message: "Esta página no tiene cabecera editable", status: 400 });
+    expect(f.actual().id).toBe("s1");
+    const huerfanos = [...f.archivos.keys()].filter((k) => !k.startsWith("p/s1/") && !k.startsWith("assets/"));
+    expect(huerfanos).toEqual([]);
+  });
 });
 
 describe("quitar y estado", () => {

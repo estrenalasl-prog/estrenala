@@ -21,23 +21,33 @@ export async function crearSnapshotEditado(
   const snapshotId = crypto.randomUUID();
   const newPrefix = snapshotPrefix(input.projectId, snapshotId);
   const written: string[] = [];
+  const limpiar = async () => {
+    for (const k of written) { try { await deps.storage.delete(k); } catch { /* best-effort */ } }
+  };
 
-  const keys = await deps.storage.list(input.currentSnapshot.storagePrefix);
-  for (const key of keys) {
-    const rel = key.slice(input.currentSnapshot.storagePrefix.length);
-    const file = await deps.storage.get(key);
-    if (!file) continue;
-    let body = file.body;
-    if (/\.html?$/i.test(rel)) {
-      const nuevo = input.transformar(rel, body.toString("utf-8"));
-      if (nuevo !== null) body = Buffer.from(nuevo, "utf-8");
+  try {
+    const keys = await deps.storage.list(input.currentSnapshot.storagePrefix);
+    for (const key of keys) {
+      const rel = key.slice(input.currentSnapshot.storagePrefix.length);
+      const file = await deps.storage.get(key);
+      if (!file) continue;
+      let body = file.body;
+      if (/\.html?$/i.test(rel)) {
+        const nuevo = input.transformar(rel, body.toString("utf-8"));
+        if (nuevo !== null) body = Buffer.from(nuevo, "utf-8");
+      }
+      await deps.storage.put(newPrefix + rel, body);
+      written.push(newPrefix + rel);
     }
-    await deps.storage.put(newPrefix + rel, body);
-    written.push(newPrefix + rel);
-  }
-  for (const [path, asset] of input.extras ?? new Map<string, { body: Buffer; contentType: string }>()) {
-    await deps.storage.put(newPrefix + path, asset.body, asset.contentType);
-    written.push(newPrefix + path);
+    for (const [path, asset] of input.extras ?? new Map<string, { body: Buffer; contentType: string }>()) {
+      await deps.storage.put(newPrefix + path, asset.body, asset.contentType);
+      written.push(newPrefix + path);
+    }
+  } catch (e) {
+    // transformar puede lanzar (p. ej. página sin cabecera editable): sin esta
+    // limpieza, lo ya copiado quedaría huérfano en el storage.
+    await limpiar();
+    throw e;
   }
 
   try {
@@ -46,7 +56,7 @@ export async function crearSnapshotEditado(
       tipo: "edit", storagePrefix: newPrefix, operacionesJson: input.operacionesJson,
     });
   } catch (e) {
-    for (const k of written) { try { await deps.storage.delete(k); } catch { /* best-effort */ } }
+    await limpiar();
     throw e;
   }
   await deps.store.setCurrentSnapshot(input.orgId, input.projectId, snapshotId);
