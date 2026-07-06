@@ -35,6 +35,18 @@ function BotonQuitar({ tipo, ocupado, onQuitar }: {
   );
 }
 
+// El <input type="file"> pelado no se lee como acción; un <label> con pinta de botón
+// que envuelve el input oculto abre el selector igual y sí parece pulsable.
+function BotonSubir({ texto, ocupado, onFile }: { texto: string; ocupado: boolean; onFile: (f: File) => void }) {
+  return (
+    <label className={"cursor-pointer rounded bg-indigo-600 px-2 py-1 text-xs text-white" + (ocupado ? " pointer-events-none opacity-50" : "")}>
+      {texto}
+      <input type="file" accept="image/*" disabled={ocupado} className="hidden"
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = ""; }} />
+    </label>
+  );
+}
+
 export function ToolsPanel({ projectId }: { projectId: string }) {
   const router = useRouter();
   const [abierto, setAbierto] = useState(false);
@@ -144,8 +156,8 @@ export function ToolsPanel({ projectId }: { projectId: string }) {
             ayuda="El icono que sale en la pestaña del navegador. Sube una imagen cuadrada (png recomendado).">
             <span className="flex items-center gap-2">
               {estado?.favicon && <img src={`/api/projects/${projectId}/preview${estado.favicon}`} alt="" className="h-5 w-5 rounded" />}
-              <input type="file" accept="image/*" disabled={ocupado} className="text-xs"
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) void subirYAplicar("favicon", f); e.target.value = ""; }} />
+              <BotonSubir texto={estado?.favicon ? "Cambiar imagen" : "Subir imagen"} ocupado={ocupado}
+                onFile={(f) => void subirYAplicar("favicon", f)} />
               {estado?.favicon && <BotonQuitar tipo="favicon" ocupado={ocupado} onQuitar={(t) => void quitar(t)} />}
             </span>
           </Tarjeta>
@@ -154,8 +166,8 @@ export function ToolsPanel({ projectId }: { projectId: string }) {
             ayuda="La imagen que aparece al enviar tu web por WhatsApp o redes sociales (og:image).">
             <span className="flex items-center gap-2">
               {estado?.ogImage && <img src={`/api/projects/${projectId}/preview${estado.ogImage}`} alt="" className="h-8 w-14 rounded object-cover" />}
-              <input type="file" accept="image/*" disabled={ocupado} className="text-xs"
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) void subirYAplicar("og-image", f); e.target.value = ""; }} />
+              <BotonSubir texto={estado?.ogImage ? "Cambiar imagen" : "Subir imagen"} ocupado={ocupado}
+                onFile={(f) => void subirYAplicar("og-image", f)} />
               {estado?.ogImage && <BotonQuitar tipo="og-image" ocupado={ocupado} onQuitar={(t) => void quitar(t)} />}
             </span>
           </Tarjeta>
