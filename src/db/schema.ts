@@ -52,3 +52,26 @@ export const assets = pgTable("assets", {
   bytes: integer("bytes").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const blogTemplates = pgTable("blog_templates", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  projectId: uuid("project_id").notNull().unique().references(() => projects.id),
+  tplPost: text("tpl_post").notNull(),
+  tplIndex: text("tpl_index").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const posts = pgTable("posts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  projectId: uuid("project_id").notNull().references(() => projects.id),
+  titulo: text("titulo").notNull(),
+  slug: text("slug").notNull(),
+  metaDescripcion: text("meta_descripcion").notNull(),
+  md: text("md").notNull(),
+  imagenAssetId: uuid("imagen_asset_id").notNull(),
+  imagenExt: text("imagen_ext").notNull(),
+  fecha: text("fecha").notNull(), // YYYY-MM-DD, fijada al crear
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [unique().on(t.projectId, t.slug)]);
