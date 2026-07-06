@@ -249,6 +249,11 @@
   // en terminarEdicion mantiene el caso Enter->focusout como no-op.
   document.addEventListener("focusout", function (e) {
     if (dentroDePop(e.relatedTarget)) return;
+    // El mousedown enfoca el ancestro enfocable más cercano (p.ej. el <a> de un
+    // botón-enlace icono+texto); al iniciar la edición, focus() del elemento dispara
+    // un focusout de ese ancestro CON DESTINO el propio elemento en edición. Eso es
+    // una entrada, no una salida: cerrarla aquí mataba la edición al instante.
+    if (editando && e.relatedTarget && editando.contains(e.relatedTarget)) return;
     terminarEdicion(true);
   }, true);
 
