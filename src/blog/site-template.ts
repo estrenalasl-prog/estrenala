@@ -1,5 +1,5 @@
 import { EditorError } from "@/src/editor/errors";
-import { pedirJson, PlantillasSchema } from "@/src/ia/claude";
+import { pedirJson, PlantillasSchema, OpenRouterError } from "@/src/ia/claude";
 import { huecosSinRellenar } from "./template";
 import type { StorageAdapter } from "@/src/storage/types";
 import type { ProjectStore } from "@/src/repositories/types";
@@ -114,7 +114,12 @@ ${css.slice(0, 30000)}`;
   let r: { plantilla_post: string; plantilla_index: string };
   try {
     r = await pedirJson(prompt, PlantillasSchema, 16000);
-  } catch {
+  } catch (e) {
+    // Sin saldo en OpenRouter (402): mensaje accionable en vez del genérico, para
+    // no confundir un problema de crédito con un fallo del sistema.
+    if (e instanceof OpenRouterError && e.status === 402) {
+      throw new EditorError("Tu cuenta de OpenRouter no tiene saldo. Añade crédito en openrouter.ai/settings/credits e inténtalo de nuevo.", 402);
+    }
     throw new EditorError("No se pudo generar la plantilla del blog, vuelve a intentarlo", 502);
   }
   if (validarPlantillas(r.plantilla_post, r.plantilla_index).length) {

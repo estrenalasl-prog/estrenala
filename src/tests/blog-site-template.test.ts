@@ -4,10 +4,17 @@ import { pedirJson } from "@/src/ia/claude";
 import type { ProjectStore, ProjectRow, SnapshotRow } from "@/src/repositories/types";
 import type { StorageAdapter } from "@/src/storage/types";
 
-vi.mock("@/src/ia/claude", () => ({
-  pedirJson: vi.fn(),
-  PlantillasSchema: {},
-}));
+vi.mock("@/src/ia/claude", () => {
+  class OpenRouterError extends Error {
+    status: number;
+    constructor(status: number, message: string) {
+      super(message);
+      this.status = status;
+      this.name = "OpenRouterError";
+    }
+  }
+  return { pedirJson: vi.fn(), PlantillasSchema: {}, OpenRouterError };
+});
 
 type Mock = ReturnType<typeof vi.fn>;
 const pedirJsonMock = pedirJson as unknown as Mock;
@@ -194,6 +201,20 @@ describe("generarPlantillas", () => {
     ).rejects.toMatchObject({
       message: "No se pudo generar la plantilla del blog, vuelve a intentarlo",
       status: 502,
+    });
+  });
+
+  it("sin saldo en OpenRouter (402) → mensaje claro accionable con status 402", async () => {
+    const { OpenRouterError } = await import("@/src/ia/claude");
+    const store = makeStore(projectRow(), snapshotRow());
+    const { storage } = makeStorage({ "p/s1/index.html": "<html><body>x</body></html>" });
+    pedirJsonMock.mockRejectedValue(new OpenRouterError(402, "OpenRouter HTTP 402: Insufficient credits"));
+
+    await expect(
+      generarPlantillas({ store, storage }, { orgId: "o1", projectId: "p1" })
+    ).rejects.toMatchObject({
+      message: "Tu cuenta de OpenRouter no tiene saldo. Añade crédito en openrouter.ai/settings/credits e inténtalo de nuevo.",
+      status: 402,
     });
   });
 

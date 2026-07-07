@@ -6,6 +6,15 @@ export const MODELO = process.env.OPENROUTER_MODEL ?? "anthropic/claude-sonnet-4
 
 const BASE_URL = "https://openrouter.ai/api/v1";
 
+// Error de la API de OpenRouter que conserva el código HTTP para que las capas
+// superiores puedan distinguir casos (p. ej. 402 = sin saldo) del genérico.
+export class OpenRouterError extends Error {
+  constructor(public status: number, message: string) {
+    super(message);
+    this.name = "OpenRouterError";
+  }
+}
+
 function clave(): string {
   const k = process.env.OPENROUTER_API_KEY;
   if (!k) throw new Error("Falta OPENROUTER_API_KEY en .env.local");
@@ -41,10 +50,12 @@ async function completar(body: Record<string, unknown>): Promise<string> {
   });
   if (!resp.ok) {
     const txt = await resp.text().catch(() => "");
-    throw new Error(`OpenRouter HTTP ${resp.status}: ${txt.slice(0, 500)}`);
+    throw new OpenRouterError(resp.status, `OpenRouter HTTP ${resp.status}: ${txt.slice(0, 500)}`);
   }
   const data = await resp.json();
-  if (data?.error?.message) throw new Error(`OpenRouter: ${data.error.message}`);
+  if (data?.error?.message) {
+    throw new OpenRouterError(Number(data.error.code) || 502, `OpenRouter: ${data.error.message}`);
+  }
   return data?.choices?.[0]?.message?.content ?? "";
 }
 
