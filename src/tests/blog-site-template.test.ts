@@ -137,6 +137,34 @@ describe("generarPlantillas", () => {
     expect(r).toEqual({ tplPost: PLANTILLA_POST_VALIDA, tplIndex: PLANTILLA_INDEX_VALIDA });
   });
 
+  it("enlaza el CSS con ruta absoluta desde la raíz en vez de incrustarlo (no inline)", async () => {
+    // El blog vive en el mismo sitio → la plantilla enlaza /assets/styles.css,
+    // no lo copia dentro. Esto evita respuestas gigantes que truncan el JSON.
+    const project = projectRow({ entryPath: "pages/index.html" });
+    const snapshot = snapshotRow();
+    const html =
+      '<html><head><link rel="stylesheet" href="../assets/styles.css"><link rel="stylesheet" href="../pages.css"></head><body>X</body></html>';
+    const { storage } = makeStorage({
+      "p/s1/pages/index.html": html,
+      "p/s1/assets/styles.css": "body{color:red}",
+      "p/s1/pages.css": ".x{}",
+    });
+    const store = makeStore(project, snapshot);
+    let capturedPrompt = "";
+    pedirJsonMock.mockImplementation(async (prompt: string) => {
+      capturedPrompt = prompt;
+      return { plantilla_post: PLANTILLA_POST_VALIDA, plantilla_index: PLANTILLA_INDEX_VALIDA };
+    });
+
+    await generarPlantillas({ store, storage }, { orgId: "o1", projectId: "p1" });
+
+    // Enlaza ambas hojas locales con ruta absoluta desde la raíz del sitio.
+    expect(capturedPrompt).toContain('<link rel="stylesheet" href="/assets/styles.css">');
+    expect(capturedPrompt).toContain('<link rel="stylesheet" href="/pages.css">');
+    // No pide incrustar el CSS inline.
+    expect(capturedPrompt.toLowerCase()).not.toContain("incrusta el css necesario inline");
+  });
+
   it("css absoluto (https://) se ignora", async () => {
     const project = projectRow({ entryPath: "index.html" });
     const snapshot = snapshotRow();

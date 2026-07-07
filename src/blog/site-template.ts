@@ -27,8 +27,25 @@ export function validarPlantillas(tplPost: string, tplIndex: string): string[] {
   return errores;
 }
 
-// Lee la portada (y su primer CSS local) del snapshot actual y pide a Claude las
-// dos plantillas. No persiste nada: el usuario revisa y guarda con PUT.
+// Normaliza un href de hoja de estilo a ruta ABSOLUTA desde la raíz del sitio,
+// resolviéndolo respecto al directorio de la portada y colapsando "." y "..".
+function aRootAbsoluto(entryPath: string, href: string): string {
+  const base = href.startsWith("/")
+    ? href.slice(1)
+    : (entryPath.includes("/") ? entryPath.slice(0, entryPath.lastIndexOf("/") + 1) : "") + href;
+  const partes: string[] = [];
+  for (const seg of base.split("/")) {
+    if (seg === "..") partes.pop();
+    else if (seg && seg !== ".") partes.push(seg);
+  }
+  return "/" + partes.join("/");
+}
+
+// Lee la portada del snapshot actual y pide a Claude las dos plantillas. El blog
+// se sirve DENTRO del mismo sitio, así que las plantillas ENLAZAN sus hojas de
+// estilo (rutas absolutas desde la raíz) en vez de incrustarlas: la salida es
+// pequeña, rápida y barata, y evita que el JSON se trunque. No persiste nada:
+// el usuario revisa y guarda con PUT.
 export async function generarPlantillas(
   deps: { store: ProjectStore; storage: StorageAdapter },
   input: { orgId: string; projectId: string }
@@ -42,22 +59,33 @@ export async function generarPlantillas(
   if (!entrada) throw new EditorError("El proyecto no tiene página de entrada", 400);
   const indexHtml = entrada.body.toString("utf-8");
 
+  // Hojas de estilo LOCALES de la portada, en ruta absoluta desde la raíz (las de
+  // CDN externo se ignoran). El contenido de la primera se adjunta como referencia
+  // de clases, pero NO se incrusta.
+  const hojas: string[] = [];
   let css = "";
-  const linkCss = indexHtml.match(/<link[^>]+href=["']([^"']+\.css)["']/i);
-  if (linkCss && !/^https?:\/\//.test(linkCss[1])) {
-    const dir = project.entryPath.includes("/") ? project.entryPath.slice(0, project.entryPath.lastIndexOf("/") + 1) : "";
-    const partes: string[] = [];
-    for (const seg of (dir + linkCss[1].replace(/^\//, "")).split("/")) {
-      if (seg === "..") partes.pop(); else if (seg && seg !== ".") partes.push(seg);
+  for (const m of indexHtml.matchAll(/<link[^>]+href=["']([^"']+\.css)["']/gi)) {
+    if (/^https?:\/\//i.test(m[1])) continue;
+    const abs = aRootAbsoluto(project.entryPath, m[1]);
+    if (hojas.includes(abs)) continue;
+    hojas.push(abs);
+    if (!css) {
+      const archivo = await deps.storage.get(current.storagePrefix + abs.slice(1));
+      if (archivo) css = archivo.body.toString("utf-8");
     }
-    const archivo = await deps.storage.get(current.storagePrefix + partes.join("/"));
-    if (archivo) css = archivo.body.toString("utf-8");
   }
+  const enlaces = hojas.map((h) => `<link rel="stylesheet" href="${h}">`).join("\n");
 
   const prompt = `Eres un desarrollador frontend senior. Aquí tienes la portada de un sitio web y su CSS.
 Genera DOS plantillas HTML completas para la sección de blog de este sitio, manteniendo su header, footer,
-colores, tipografías y estética. Las plantillas deben ser AUTOCONTENIDAS: incluye el CSS necesario inline
-en una etiqueta <style> dentro del <head> (no dependas de archivos externos del sitio).
+colores, tipografías y estética.
+
+MUY IMPORTANTE sobre el CSS: NO lo incrustes. El blog se sirve dentro del MISMO sitio, así que ENLAZA sus
+hojas de estilo. En el <head> de CADA plantilla incluye EXACTAMENTE estas etiquetas, con la ruta tal cual
+(absoluta desde la raíz):
+${enlaces || "(el sitio no tiene hojas de estilo locales; usa estilos mínimos propios)"}
+Copia la estructura del header y el footer de la portada y reutiliza sus clases; el CSS de abajo es SOLO
+referencia para saber qué clases existen, no lo pegues en la plantilla.
 
 1. plantilla_post — página de un artículo. Debe usar EXACTAMENTE estos placeholders donde corresponda:
    {{titulo}} (título del artículo, en el <title> y en el hero/cabecera del artículo),

@@ -100,10 +100,17 @@ Destino `src/blog/`:
   Env: `OPENROUTER_API_KEY` (obligatoria para generar; error byte-exacto «Falta OPENROUTER_API_KEY
   en .env.local»), `OPENROUTER_MODEL` (default `anthropic/claude-sonnet-4.6`). `X-Title:
   "Wordclicks"`. La clave vive SOLO en el servidor (.env.local / env de Dokploy).
-- `src/blog/site-template.ts`: port de `generarPlantillas` — lee del **snapshot actual** la página
-  de entrada (`entryPath`) y, si esta referencia un CSS local (primer `<link href="*.css">` no
-  absoluto, ruta resuelta relativa al entryPath), también ese CSS; mismo prompt (recortes a 30k
-  chars), pidiendo `plantilla_post` y `plantilla_index` autocontenidas con el look&feel del sitio.
+- `src/blog/site-template.ts`: `generarPlantillas` lee del **snapshot actual** la página de entrada
+  (`entryPath`), extrae TODAS sus hojas de estilo LOCALES (las de CDN externo se ignoran) y las
+  normaliza a ruta ABSOLUTA desde la raíz del sitio; adjunta el contenido de la primera como
+  referencia de clases. El prompt (recortes a 30k chars) pide `plantilla_post` y `plantilla_index`
+  con el look&feel del sitio que **ENLAZAN** esas hojas (`<link rel="stylesheet" href="/…">`) en vez
+  de incrustarlas. Decisión (2026-07-07, tras validación): el blog se sirve dentro del mismo sitio,
+  así que enlazar el CSS —en lugar de la incrustación inline del Creador de Blog, pensada para un
+  repo separado— produce una salida ~10× menor. Incrustar los ~40KB de CSS de una web real ×2
+  reventaba el tope de 16k tokens de salida y truncaba el JSON (502), además de costar ~$0.60 por
+  intento; enlazar lo baja a céntimos y segundos, y el preview ya resuelve las rutas absolutas por su
+  reescritura + `<base>`. El blog queda visualmente sincronizado con el sitio (comportamiento deseado).
 - **Validación de plantillas** (tanto generadas como editadas a mano, al guardar):
   - Artículo: debe contener `{{titulo}}`, `{{meta_descripcion}}` y `{{contenido}}` →
     «La plantilla de artículo debe contener los huecos {{titulo}}, {{meta_descripcion}} y {{contenido}}».
