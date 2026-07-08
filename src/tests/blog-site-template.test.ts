@@ -121,12 +121,12 @@ describe("generarPlantillas", () => {
     ).rejects.toMatchObject({ message: "Falta OPENROUTER_API_KEY en .env.local", status: 500 });
   });
 
-  it("lee entryPath del snapshot y adjunta el CSS local referenciado (link relativo resuelto)", async () => {
+  it("adjunta el HTML de la portada y resuelve el link del CSS a ruta absoluta desde la raíz", async () => {
     const project = projectRow({ entryPath: "pages/index.html" });
     const snapshot = snapshotRow();
     const html =
       '<html><head><link rel="stylesheet" href="../assets/styles.css"></head><body>UNIQUE_MARKER_HTML</body></html>';
-    const { storage } = makeStorage({
+    const { storage, calls } = makeStorage({
       "p/s1/pages/index.html": html,
       "p/s1/assets/styles.css": "body{background:#123456}",
     });
@@ -140,21 +140,24 @@ describe("generarPlantillas", () => {
     const r = await generarPlantillas({ store, storage }, { orgId: "o1", projectId: "p1" });
 
     expect(capturedPrompt).toContain("UNIQUE_MARKER_HTML");
-    expect(capturedPrompt).toContain("body{background:#123456}");
+    // El link "../assets/styles.css" desde pages/index.html → raíz "/assets/styles.css".
+    expect(capturedPrompt).toContain('<link rel="stylesheet" href="/assets/styles.css">');
+    // NO se envía el contenido del CSS (salida pequeña y sin tentación de incrustarlo).
+    expect(capturedPrompt).not.toContain("body{background:#123456}");
+    // No se lee el archivo de CSS: solo la portada.
+    expect(calls).toEqual(["p/s1/pages/index.html"]);
     expect(r).toEqual({ tplPost: PLANTILLA_POST_VALIDA, tplIndex: PLANTILLA_INDEX_VALIDA });
   });
 
-  it("enlaza el CSS con ruta absoluta desde la raíz en vez de incrustarlo (no inline)", async () => {
-    // El blog vive en el mismo sitio → la plantilla enlaza /assets/styles.css,
-    // no lo copia dentro. Esto evita respuestas gigantes que truncan el JSON.
+  it("enlaza TODAS las hojas locales (raíz-absolutas) y prohíbe incrustar CSS", async () => {
+    // El blog vive en el mismo sitio → la plantilla enlaza las hojas, no las copia.
+    // Esto evita respuestas gigantes (truncado + coste).
     const project = projectRow({ entryPath: "pages/index.html" });
     const snapshot = snapshotRow();
     const html =
       '<html><head><link rel="stylesheet" href="../assets/styles.css"><link rel="stylesheet" href="../pages.css"></head><body>X</body></html>';
     const { storage } = makeStorage({
       "p/s1/pages/index.html": html,
-      "p/s1/assets/styles.css": "body{color:red}",
-      "p/s1/pages.css": ".x{}",
     });
     const store = makeStore(project, snapshot);
     let capturedPrompt = "";
@@ -168,11 +171,11 @@ describe("generarPlantillas", () => {
     // Enlaza ambas hojas locales con ruta absoluta desde la raíz del sitio.
     expect(capturedPrompt).toContain('<link rel="stylesheet" href="/assets/styles.css">');
     expect(capturedPrompt).toContain('<link rel="stylesheet" href="/pages.css">');
-    // No pide incrustar el CSS inline.
-    expect(capturedPrompt.toLowerCase()).not.toContain("incrusta el css necesario inline");
+    // Instrucción explícita de NO incrustar CSS.
+    expect(capturedPrompt).toContain("NO escribas ninguna etiqueta <style>");
   });
 
-  it("css absoluto (https://) se ignora", async () => {
+  it("css absoluto (https://) se ignora: no se enlaza el CDN externo", async () => {
     const project = projectRow({ entryPath: "index.html" });
     const snapshot = snapshotRow();
     const html =
@@ -187,7 +190,11 @@ describe("generarPlantillas", () => {
 
     await generarPlantillas({ store, storage }, { orgId: "o1", projectId: "p1" });
 
-    expect(capturedPrompt.trimEnd().endsWith("=== CSS del sitio ===")).toBe(true);
+    // La hoja de CDN externa no se enlaza: al no haber hojas locales, el bloque de
+    // enlaces lleva el aviso de fallback (la URL del CDN sí aparece, pero solo dentro
+    // del HTML de la portada que se adjunta como referencia, no como <link> generado).
+    expect(capturedPrompt).toContain("el sitio no tiene hojas de estilo locales");
+    // Solo se lee la portada (nunca ficheros CSS).
     expect(calls).toEqual(["p/s1/index.html"]);
   });
 

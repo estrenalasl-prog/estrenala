@@ -60,43 +60,39 @@ export async function generarPlantillas(
   const indexHtml = entrada.body.toString("utf-8");
 
   // Hojas de estilo LOCALES de la portada, en ruta absoluta desde la raíz (las de
-  // CDN externo se ignoran). El contenido de la primera se adjunta como referencia
-  // de clases, pero NO se incrusta.
+  // CDN externo se ignoran). La plantilla las ENLAZA; NO se envía ni se incrusta el
+  // CSS: el modelo saca las clases del propio HTML de la portada. Enviar el CSS (o
+  // dejar que lo incruste) disparaba la salida a >12k tokens y ~$0.25 por generación;
+  // así baja a ~4-5k tokens y ~$0.10, sin <style> en el resultado.
   const hojas: string[] = [];
-  let css = "";
   for (const m of indexHtml.matchAll(/<link[^>]+href=["']([^"']+\.css)["']/gi)) {
     if (/^https?:\/\//i.test(m[1])) continue;
     const abs = aRootAbsoluto(project.entryPath, m[1]);
-    if (hojas.includes(abs)) continue;
-    hojas.push(abs);
-    if (!css) {
-      const archivo = await deps.storage.get(current.storagePrefix + abs.slice(1));
-      if (archivo) css = archivo.body.toString("utf-8");
-    }
+    if (!hojas.includes(abs)) hojas.push(abs);
   }
-  const enlaces = hojas.map((h) => `<link rel="stylesheet" href="${h}">`).join("\n");
+  const enlaces = hojas.map((h) => `<link rel="stylesheet" href="${h}">`).join("\n")
+    || "(el sitio no tiene hojas de estilo locales; usa estilos mínimos propios en la plantilla)";
 
-  const prompt = `Eres un desarrollador frontend senior. Aquí tienes la portada de un sitio web y su CSS.
-Genera DOS plantillas HTML completas para la sección de blog de este sitio, manteniendo su header, footer,
-colores, tipografías y estética.
+  const prompt = `Eres un desarrollador frontend senior. Aquí tienes la portada (HTML) de un sitio web.
+Genera DOS plantillas HTML para su sección de blog, con el MISMO header y footer que la portada.
 
-MUY IMPORTANTE sobre el CSS: NO lo incrustes. El blog se sirve dentro del MISMO sitio, así que ENLAZA sus
-hojas de estilo. En el <head> de CADA plantilla incluye EXACTAMENTE estas etiquetas, con la ruta tal cual
-(absoluta desde la raíz):
-${enlaces || "(el sitio no tiene hojas de estilo locales; usa estilos mínimos propios)"}
-Copia la estructura del header y el footer de la portada y reutiliza sus clases; el CSS de abajo es SOLO
-referencia para saber qué clases existen, no lo pegues en la plantilla.
+REGLAS ESTRICTAS SOBRE EL CSS:
+- NO escribas ninguna etiqueta <style> ni CSS: ni una sola línea. La plantilla es SOLO estructura HTML.
+- En el <head> de CADA plantilla enlaza las hojas de estilo del sitio, con la ruta tal cual (absoluta desde la raíz):
+${enlaces}
+- Copia el header y el footer directamente del HTML de abajo (mismas etiquetas y mismos class=), sin reescribir estilos.
+- Para el cuerpo usa HTML semántico simple reutilizando las clases que veas en ese HTML.
 
 1. plantilla_post — página de un artículo. Debe usar EXACTAMENTE estos placeholders donde corresponda:
-   {{titulo}} (título del artículo, en el <title> y en el hero/cabecera del artículo),
+   {{titulo}} (en el <title> y en la cabecera del artículo),
    {{meta_descripcion}} (en <meta name="description"> y en Open Graph og:description),
-   {{contenido}} (el cuerpo del artículo, ya en HTML, dentro de un <article> con buena tipografía para lectura),
+   {{contenido}} (el cuerpo del artículo, ya en HTML, dentro de un <article>),
    {{imagen}} (URL de la imagen de portada, en un <img> y en og:image),
    {{fecha}} (fecha de publicación),
    {{canonical}} (en <link rel="canonical"> y og:url),
    {{json_ld}} (justo antes de </head>; es un <script> completo que se inyecta tal cual).
-   Incluye también las meta Open Graph básicas (og:title, og:description, og:image, og:url) y lang="es".
-   Incluye un enlace "← Volver al blog" hacia /blog/.
+   Incluye también las meta Open Graph básicas (og:title, og:description, og:image, og:url), lang="es"
+   y un enlace "← Volver al blog" hacia /blog/.
 
 2. plantilla_index — página índice del blog (lista de artículos). El bloque que se repite por artículo debe ir
    delimitado EXACTAMENTE por los marcadores <!--POST--> y <!--/POST-->, y dentro puede usar los placeholders
@@ -106,10 +102,7 @@ referencia para saber qué clases existen, no lo pegues en la plantilla.
 No uses ningún otro placeholder {{...}} distinto de los listados.
 
 === index.html del sitio ===
-${indexHtml.slice(0, 30000)}
-
-=== CSS del sitio ===
-${css.slice(0, 30000)}`;
+${indexHtml.slice(0, 30000)}`;
 
   let r: { plantilla_post: string; plantilla_index: string };
   try {
