@@ -413,6 +413,23 @@ describe("previewBlog", () => {
     expect(r.html).toContain(IMAGEN_EJEMPLO);
   });
 
+  it("reescribe la ruta absoluta del CSS enlazado para que el iframe la resuelva", async () => {
+    // La plantilla enlaza /styles.css; el preview debe reescribirla a la ruta de
+    // preview e inyectar <base> (mismo mecanismo que el preview normal del sitio),
+    // porque el iframe del editor no resuelve /styles.css contra el snapshot.
+    const f = fakes({ tienePlantilla: false });
+    const tplConCss =
+      '<html><head><link rel="stylesheet" href="/styles.css"><title>{{titulo}}</title>{{json_ld}}' +
+      '<meta name="description" content="{{meta_descripcion}}"><link rel="canonical" href="{{canonical}}">' +
+      '</head><body><img src="{{imagen}}"><p>{{fecha}}</p><article>{{contenido}}</article></body></html>';
+    const r = await previewBlog(deps(f), { orgId: ORG, projectId: PROJECT_ID, tplPost: tplConCss });
+    expect(r.html).toContain(`href="/api/projects/${PROJECT_ID}/preview/styles.css"`);
+    expect(r.html).toContain(`<base href="/api/projects/${PROJECT_ID}/preview/">`);
+    // La plantilla GUARDADA (no el preview) conserva la ruta absoluta original:
+    // el preview no debe dejar la ruta cruda /styles.css sin reescribir.
+    expect(r.html).not.toContain('href="/styles.css"');
+  });
+
   it("sin plantilla guardada ni override → 400 MSG_SIN_PLANTILLA", async () => {
     const f = fakes({ tienePlantilla: false });
     await expect(previewBlog(deps(f), { orgId: ORG, projectId: PROJECT_ID })).rejects.toMatchObject({

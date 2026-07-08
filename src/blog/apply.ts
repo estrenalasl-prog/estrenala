@@ -5,6 +5,7 @@ import { renderIndex } from "./blog-index";
 import { actualizarSitemap, quitarDelSitemap } from "./sitemap";
 import { validarPrePublicacion } from "./validate";
 import { validarPlantillas, MSG_SIN_PLANTILLA } from "./site-template";
+import { rewriteHtml } from "@/src/preview/rewrite";
 import { generarSubdominio } from "@/src/publish/publish-site";
 import type { StorageAdapter } from "@/src/storage/types";
 import type { ProjectStore, ProjectRow, SnapshotRow } from "@/src/repositories/types";
@@ -207,6 +208,12 @@ export async function previewBlog(deps: Deps, input: {
   const guardada = await deps.blog.getBlogTemplate(input.orgId, input.projectId);
   const cual = input.cual ?? "post";
   const base = basePublica(project, sitesBaseDomain()) ?? "https://ejemplo.local";
+  // Las plantillas ENLAZAN el CSS del sitio con rutas absolutas (/styles.css). El
+  // iframe del editor no las resuelve solo, así que aplicamos la misma reescritura
+  // que el preview normal del sitio (root-absolutas → ruta de preview + <base>) para
+  // que la vista previa se vea con el diseño real. Solo afecta al preview efímero;
+  // los archivos guardados conservan las rutas absolutas (correctas al publicar).
+  const baseHref = `/api/projects/${input.projectId}/preview/`;
   if (cual === "index") {
     const tplIndex = input.tplIndex ?? guardada?.tplIndex;
     if (!tplIndex) throw new EditorError(MSG_SIN_PLANTILLA, 400);
@@ -217,7 +224,7 @@ export async function previewBlog(deps: Deps, input: {
     } catch (e) {
       throw new EditorError(e instanceof Error ? e.message : "Plantilla no válida", 400);
     }
-    return { html };
+    return { html: rewriteHtml(html, baseHref) };
   }
   const tplPost = input.tplPost ?? guardada?.tplPost;
   if (!tplPost) throw new EditorError(MSG_SIN_PLANTILLA, 400);
@@ -228,5 +235,5 @@ export async function previewBlog(deps: Deps, input: {
     md: input.md?.trim() ? input.md : DATOS_EJEMPLO.md,
     imagenExt: "png",
   };
-  return { html: renderPost(tplPost, datos, hoy(), base, input.imagenUrl ?? IMAGEN_EJEMPLO) };
+  return { html: rewriteHtml(renderPost(tplPost, datos, hoy(), base, input.imagenUrl ?? IMAGEN_EJEMPLO), baseHref) };
 }
