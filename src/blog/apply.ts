@@ -208,11 +208,13 @@ export async function previewBlog(deps: Deps, input: {
   const guardada = await deps.blog.getBlogTemplate(input.orgId, input.projectId);
   const cual = input.cual ?? "post";
   const base = basePublica(project, sitesBaseDomain()) ?? "https://ejemplo.local";
-  // Las plantillas ENLAZAN el CSS del sitio con rutas absolutas (/styles.css). El
-  // iframe del editor no las resuelve solo, así que aplicamos la misma reescritura
-  // que el preview normal del sitio (root-absolutas → ruta de preview + <base>) para
-  // que la vista previa se vea con el diseño real. Solo afecta al preview efímero;
-  // los archivos guardados conservan las rutas absolutas (correctas al publicar).
+  // Las plantillas ENLAZAN el CSS y los assets del sitio con rutas absolutas
+  // (/styles.css, /assets/logo.png). El iframe del editor no las resuelve solo, así
+  // que reescribimos la PLANTILLA (root-absolutas → ruta de preview + <base>) igual
+  // que el preview normal del sitio. Clave: se reescribe la plantilla ANTES de
+  // rellenar los huecos, para que la URL de la imagen de portada (ya absoluta y
+  // servible, /api/projects/.../assets/...) NO se reescriba y se rompa. Solo afecta
+  // al preview efímero; los archivos guardados conservan las rutas (correctas al publicar).
   const baseHref = `/api/projects/${input.projectId}/preview/`;
   if (cual === "index") {
     const tplIndex = input.tplIndex ?? guardada?.tplIndex;
@@ -220,11 +222,11 @@ export async function previewBlog(deps: Deps, input: {
     const item = { ...DATOS_EJEMPLO, fecha: hoy() };
     let html: string;
     try {
-      html = renderIndex(tplIndex, [{ titulo: item.titulo, slug: item.slug, metaDescripcion: item.metaDescripcion, fecha: item.fecha, imagen: IMAGEN_EJEMPLO }]);
+      html = renderIndex(rewriteHtml(tplIndex, baseHref), [{ titulo: item.titulo, slug: item.slug, metaDescripcion: item.metaDescripcion, fecha: item.fecha, imagen: IMAGEN_EJEMPLO }]);
     } catch (e) {
       throw new EditorError(e instanceof Error ? e.message : "Plantilla no válida", 400);
     }
-    return { html: rewriteHtml(html, baseHref) };
+    return { html };
   }
   const tplPost = input.tplPost ?? guardada?.tplPost;
   if (!tplPost) throw new EditorError(MSG_SIN_PLANTILLA, 400);
@@ -235,5 +237,5 @@ export async function previewBlog(deps: Deps, input: {
     md: input.md?.trim() ? input.md : DATOS_EJEMPLO.md,
     imagenExt: "png",
   };
-  return { html: rewriteHtml(renderPost(tplPost, datos, hoy(), base, input.imagenUrl ?? IMAGEN_EJEMPLO), baseHref) };
+  return { html: renderPost(rewriteHtml(tplPost, baseHref), datos, hoy(), base, input.imagenUrl ?? IMAGEN_EJEMPLO) };
 }

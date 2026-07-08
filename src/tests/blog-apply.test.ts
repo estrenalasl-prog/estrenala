@@ -430,6 +430,24 @@ describe("previewBlog", () => {
     expect(r.html).not.toContain('href="/styles.css"');
   });
 
+  it("NO reescribe la URL de la imagen de portada (ya es una ruta de asset servible)", async () => {
+    // La imagen viene como /api/projects/<id>/assets/<id>.<ext> (ya absoluta y
+    // exenta del candado). La reescritura del preview NO debe tocarla: si se rehace
+    // la vista previa muestra la imagen rota. Regresión del fix del CSS.
+    const f = fakes({ tienePlantilla: false });
+    const imagenUrl = `/api/projects/${PROJECT_ID}/assets/abc123.png`;
+    const tplConCss =
+      '<html><head><link rel="stylesheet" href="/styles.css"><title>{{titulo}}</title>{{json_ld}}' +
+      '<meta name="description" content="{{meta_descripcion}}"><link rel="canonical" href="{{canonical}}">' +
+      '</head><body><img src="{{imagen}}"><p>{{fecha}}</p><article>{{contenido}}</article></body></html>';
+    const r = await previewBlog(deps(f), { orgId: ORG, projectId: PROJECT_ID, tplPost: tplConCss, imagenUrl });
+    // La imagen queda con su ruta intacta, no "/preview/api/projects/...".
+    expect(r.html).toContain(`src="${imagenUrl}"`);
+    expect(r.html).not.toContain(`/preview/api/projects/`);
+    // Y el CSS sí sigue reescrito.
+    expect(r.html).toContain(`href="/api/projects/${PROJECT_ID}/preview/styles.css"`);
+  });
+
   it("sin plantilla guardada ni override → 400 MSG_SIN_PLANTILLA", async () => {
     const f = fakes({ tienePlantilla: false });
     await expect(previewBlog(deps(f), { orgId: ORG, projectId: PROJECT_ID })).rejects.toMatchObject({
