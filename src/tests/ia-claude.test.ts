@@ -1,5 +1,21 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { limpiarJson, pedirJson, PlantillasSchema } from "@/src/ia/claude";
+import {
+  limpiarJson, pedirJson, pedirTexto, pedirConBusquedaWeb,
+  PlantillasSchema, AnalisisSchema, MetadatosSchema,
+} from "@/src/ia/claude";
+
+describe("schemas", () => {
+  it("AnalisisSchema acepta un análisis válido", () => {
+    expect(AnalisisSchema.parse({
+      keyword_principal: "agentes ia",
+      keywords_secundarias: ["asistentes virtuales", "automatización"],
+      intencion_busqueda: "informativa",
+    }).keyword_principal).toBe("agentes ia");
+  });
+  it("MetadatosSchema rechaza campos ausentes", () => {
+    expect(() => MetadatosSchema.parse({ titulo: "x" })).toThrow();
+  });
+});
 
 describe("limpiarJson", () => {
   it("extrae el JSON de un bloque ```json … ```", () => {
@@ -78,5 +94,87 @@ describe("pedirJson", () => {
 
     await expect(pedirJson("p", PlantillasSchema)).rejects.toThrow();
     expect(mockFetch).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("pedirTexto", () => {
+  let mockFetch: ReturnType<typeof vi.fn>;
+
+  const respuesta = (contenido: string) => ({
+    ok: true,
+    json: async () => ({
+      choices: [{ message: { content: contenido } }],
+    }),
+  });
+
+  beforeEach(() => {
+    mockFetch = vi.fn();
+    vi.stubGlobal("fetch", mockFetch);
+    vi.stubEnv("OPENROUTER_API_KEY", "test-key");
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+
+  it("devuelve el contenido y no envía response_format ni plugins", async () => {
+    mockFetch.mockResolvedValueOnce(respuesta("texto generado"));
+
+    const resultado = await pedirTexto("p");
+
+    expect(resultado).toBe("texto generado");
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.response_format).toBeUndefined();
+    expect(body.plugins).toBeUndefined();
+    expect(body.max_tokens).toBe(8000);
+    expect(body.messages).toEqual([{ role: "user", content: "p" }]);
+  });
+
+  it("respeta maxTokens explícito", async () => {
+    mockFetch.mockResolvedValueOnce(respuesta("x"));
+    await pedirTexto("p", 3000);
+    expect(JSON.parse(mockFetch.mock.calls[0][1].body).max_tokens).toBe(3000);
+  });
+});
+
+describe("pedirConBusquedaWeb", () => {
+  let mockFetch: ReturnType<typeof vi.fn>;
+
+  const respuesta = (contenido: string) => ({
+    ok: true,
+    json: async () => ({
+      choices: [{ message: { content: contenido } }],
+    }),
+  });
+
+  beforeEach(() => {
+    mockFetch = vi.fn();
+    vi.stubGlobal("fetch", mockFetch);
+    vi.stubEnv("OPENROUTER_API_KEY", "test-key");
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+
+  it("envía el plugin web con max_results 6 por defecto", async () => {
+    mockFetch.mockResolvedValueOnce(respuesta("investigación"));
+
+    const resultado = await pedirConBusquedaWeb("p");
+
+    expect(resultado).toBe("investigación");
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.plugins).toEqual([{ id: "web", max_results: 6 }]);
+    expect(body.max_tokens).toBe(8000);
+  });
+
+  it("respeta maxBusquedas explícito", async () => {
+    mockFetch.mockResolvedValueOnce(respuesta("x"));
+    await pedirConBusquedaWeb("p", 4000, 3);
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.plugins).toEqual([{ id: "web", max_results: 3 }]);
+    expect(body.max_tokens).toBe(4000);
   });
 });

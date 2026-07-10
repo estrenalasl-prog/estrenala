@@ -38,6 +38,20 @@ export const PlantillasSchema = z.object({
   plantilla_index: z.string(),
 });
 
+export const AnalisisSchema = z.object({
+  keyword_principal: z.string(),
+  keywords_secundarias: z.array(z.string()),
+  intencion_busqueda: z.string(),
+});
+export type Analisis = z.infer<typeof AnalisisSchema>;
+
+export const MetadatosSchema = z.object({
+  titulo: z.string(),
+  slug: z.string(),
+  meta_descripcion: z.string(),
+});
+export type Metadatos = z.infer<typeof MetadatosSchema>;
+
 // ---------- Helpers internos ----------
 
 type Mensaje = { role: "system" | "user" | "assistant"; content: string };
@@ -66,6 +80,26 @@ export function limpiarJson(texto: string): string {
 }
 
 // ---------- API pública ----------
+
+export async function pedirTexto(prompt: string, maxTokens = 8000): Promise<string> {
+  const messages: Mensaje[] = [{ role: "user", content: prompt }];
+  return completar({ max_tokens: maxTokens, messages });
+}
+
+// Investigación con búsqueda web. OpenRouter añade resultados de búsqueda
+// vía el plugin "web" (Exa) al contexto del modelo.
+export async function pedirConBusquedaWeb(
+  prompt: string,
+  maxTokens = 8000,
+  maxBusquedas = 6
+): Promise<string> {
+  const messages: Mensaje[] = [{ role: "user", content: prompt }];
+  return completar({
+    max_tokens: maxTokens,
+    messages,
+    plugins: [{ id: "web", max_results: maxBusquedas }],
+  });
+}
 
 // JSON validado con zod; un reintento automático si la respuesta no valida.
 export async function pedirJson<S extends z.ZodType>(
