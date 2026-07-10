@@ -3,11 +3,19 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { slugify } from "@/src/blog/slug";
 import { BotonSubir } from "./ToolsPanel";
+import { ArticleAiWorkspace, type DraftDetalle } from "./ArticleAiWorkspace";
 
 type EstadoBlog = { tienePlantilla: boolean; posts: { id: string; titulo: string; slug: string; fecha: string }[] };
-type Vista = "lista" | "plantillas" | "editor";
+type BorradorItem = { id: string; keyword: string; estado: string; titulo: string | null; createdAt: string };
+type Vista = "lista" | "plantillas" | "editor" | "ia";
 
 const AVISO = "Las páginas del blog se generan desde aquí; si las tocas con el editor visual, la próxima regeneración del blog deshará esos cambios.";
+
+function estadoLegible(estado: string): string {
+  if (estado === "revision") return "✅ para revisar";
+  if (estado === "error") return "⚠ error";
+  return "⏳ en marcha";
+}
 
 function IframePreview({ html }: { html: string }) {
   return <iframe srcDoc={html} sandbox="" className="h-96 w-full rounded border bg-white" title="vista previa" />;
@@ -34,11 +42,25 @@ export function BlogPanel({ projectId }: { projectId: string }) {
   const [imagenAssetId, setImagenAssetId] = useState("");
   const [imagenUrl, setImagenUrl] = useState("");
   const [previewArt, setPreviewArt] = useState<string | null>(null);
+  // redacción con IA (4b)
+  const [nicho, setNicho] = useState("");
+  const [nichoMsg, setNichoMsg] = useState<string | null>(null);
+  const [borradores, setBorradores] = useState<BorradorItem[]>([]);
+  const [mostrarKw, setMostrarKw] = useState(false);
+  const [kw, setKw] = useState("");
+  const [draftId, setDraftId] = useState<string | null>(null);
+  const [draftOrigenId, setDraftOrigenId] = useState<string | null>(null);
 
   async function cargar() {
     try {
-      const res = await fetch(`/api/projects/${projectId}/blog`);
-      if (res.ok) setEstado((await res.json()) as EstadoBlog);
+      const [rEstado, rSettings, rDrafts] = await Promise.all([
+        fetch(`/api/projects/${projectId}/blog`),
+        fetch(`/api/projects/${projectId}/blog/settings`),
+        fetch(`/api/projects/${projectId}/blog/drafts`),
+      ]);
+      if (rEstado.ok) setEstado((await rEstado.json()) as EstadoBlog);
+      if (rSettings.ok) setNicho(((await rSettings.json()) as { nicho?: string }).nicho ?? "");
+      if (rDrafts.ok) setBorradores((await rDrafts.json()) as BorradorItem[]);
     } catch { /* silencioso: se reintenta al reabrir */ }
   }
   useEffect(() => { if (abierto && !estado) void cargar(); }, [abierto]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -114,12 +136,58 @@ export function BlogPanel({ projectId }: { projectId: string }) {
     const d = postId
       ? await llamar(`/api/projects/${projectId}/blog/posts/${postId}`, { method: "PUT", headers: { "content-type": "application/json" }, body })
       : await llamar(`/api/projects/${projectId}/blog/posts`, { method: "POST", headers: { "content-type": "application/json" }, body });
-    if (d) { setVista("lista"); setEstado(null); await cargar(); router.refresh(); }
+    if (d) {
+      if (draftOrigenId) {
+        // El artículo ya está guardado: el borrador IA sobra. Si el DELETE
+        // falla, el borrador queda visible en la lista y se puede borrar a mano.
+        try { await fetch(`/api/projects/${projectId}/blog/drafts/${draftOrigenId}`, { method: "DELETE" }); } catch { /* silencioso */ }
+        setDraftOrigenId(null);
+      }
+      setVista("lista"); setEstado(null); await cargar(); router.refresh();
+    }
   }
   async function borrarArticulo(id: string, tituloPost: string) {
     if (!confirm(`¿Borrar el artículo "${tituloPost}"? Esta acción no se puede deshacer.`)) return;
     const d = await llamar(`/api/projects/${projectId}/blog/posts/${id}`, { method: "DELETE" });
     if (d) { setEstado(null); await cargar(); router.refresh(); }
+  }
+
+  // --- redacción con IA (4b) ---
+  async function guardarNicho() {
+    setNichoMsg(null);
+    const d = await llamar(`/api/projects/${projectId}/blog/settings`, {
+      method: "PUT", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ nicho }),
+    });
+    if (d) setNichoMsg("Guardado");
+  }
+  async function crearBorrador() {
+    const d = await llamar(`/api/projects/${projectId}/blog/drafts`, {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ keyword: kw }),
+    });
+    if (d && d.draftId) {
+      setKw(""); setMostrarKw(false);
+      setDraftId(d.draftId as string); setVista("ia");
+      void cargar();
+    }
+  }
+  async function borrarBorrador(id: string, keyword: string) {
+    if (!confirm(`¿Borrar el borrador "${keyword}"? Esta acción no se puede deshacer.`)) return;
+    const d = await llamar(`/api/projects/${projectId}/blog/drafts/${id}`, { method: "DELETE" });
+    if (d) await cargar();
+  }
+  // Borrador en revision → editor 4a pre-rellenado; la portada la sube el usuario.
+  function usarBorrador(det: DraftDetalle) {
+    setPostId(null);
+    setTitulo(det.draft.titulo ?? "");
+    setSlug(det.draft.slug ?? "");
+    setSlugTocado(true);
+    setMeta(det.draft.metaDescripcion ?? "");
+    setMd(det.draft.articuloMd ?? "");
+    setImagenAssetId(""); setImagenUrl(""); setPreviewArt(null);
+    setDraftOrigenId(det.draft.id);
+    setVista("editor");
   }
 
   return (
@@ -142,6 +210,47 @@ export function BlogPanel({ projectId }: { projectId: string }) {
                 </div>
               ) : (
                 <div>
+                  <div className="mb-2 rounded-lg border bg-white p-3">
+                    <p className="text-sm font-medium">Escribir con IA</p>
+                    <label className="mt-1 block text-xs text-gray-500">De qué va tu blog (la IA lo usa para enfocar los artículos)</label>
+                    <div className="mt-1 flex items-start gap-2">
+                      <textarea value={nicho} rows={2}
+                        placeholder="p. ej.: Automatización e IA para pymes: agentes, herramientas y casos prácticos"
+                        onChange={(e) => { setNicho(e.target.value); setNichoMsg(null); }}
+                        className="w-full rounded border p-2 text-xs" />
+                      <button onClick={() => void guardarNicho()} disabled={ocupado}
+                        className="rounded border px-2 py-1 text-xs disabled:opacity-50">Guardar</button>
+                    </div>
+                    {nichoMsg && <p className="mt-1 text-xs text-green-700">{nichoMsg}</p>}
+                    {!mostrarKw ? (
+                      <button onClick={() => setMostrarKw(true)} disabled={ocupado}
+                        className="mt-2 rounded bg-indigo-600 px-3 py-1 text-sm text-white disabled:opacity-50">Escribir artículo con IA</button>
+                    ) : (
+                      <div className="mt-2 flex items-center gap-2">
+                        <input value={kw} placeholder="Keyword o tema del artículo"
+                          onChange={(e) => setKw(e.target.value)} className="w-full rounded border px-2 py-1 text-sm" />
+                        <button onClick={() => void crearBorrador()} disabled={ocupado}
+                          className="shrink-0 rounded bg-indigo-600 px-3 py-1 text-sm text-white disabled:opacity-50">Crear borrador</button>
+                        <button onClick={() => { setMostrarKw(false); setKw(""); }}
+                          className="shrink-0 rounded border px-2 py-1 text-xs">Cancelar</button>
+                      </div>
+                    )}
+                    {borradores.length > 0 && (
+                      <ul className="mt-2 space-y-1">
+                        {borradores.map((b) => (
+                          <li key={b.id} className="flex items-center justify-between rounded border bg-gray-50 px-2 py-1 text-sm">
+                            <span>{b.titulo ?? b.keyword} <span className="text-xs text-gray-400">· {estadoLegible(b.estado)}</span></span>
+                            <span className="flex gap-2">
+                              <button onClick={() => { setDraftId(b.id); setVista("ia"); }} disabled={ocupado}
+                                className="rounded border px-2 py-0.5 text-xs">Abrir</button>
+                              <button onClick={() => void borrarBorrador(b.id, b.keyword)} disabled={ocupado}
+                                className="text-xs text-gray-500 underline">borrar</button>
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
                   <div className="mb-2 flex items-center gap-2">
                     <button onClick={nuevoArticulo} className="rounded bg-indigo-600 px-3 py-1 text-sm text-white">Nuevo artículo</button>
                     <button onClick={() => void abrirPlantillas()} className="text-xs text-gray-500 underline">Editar plantillas</button>
@@ -161,6 +270,15 @@ export function BlogPanel({ projectId }: { projectId: string }) {
                 </div>
               )}
             </div>
+          )}
+
+          {vista === "ia" && draftId && (
+            <ArticleAiWorkspace
+              projectId={projectId}
+              draftId={draftId}
+              onUsar={usarBorrador}
+              onSalir={() => { setVista("lista"); void cargar(); }}
+            />
           )}
 
           {vista === "plantillas" && (
