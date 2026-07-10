@@ -47,7 +47,7 @@ export type DraftPatch = Partial<Pick<DraftRow,
   "analisisJson" | "planMd" | "investigacionMd" | "articuloMd" | "linksHechos" |
   "titulo" | "slug" | "metaDescripcion" | "estado" | "errorMsg">>;
 
-export type BlogSettings = { nicho: string; idioma: string };
+export type BlogSettings = { nicho: string; idioma: string; modelo: string };
 
 export interface BlogStore {
   getBlogTemplate(orgId: string, projectId: string): Promise<{ tplPost: string; tplIndex: string } | null>;
@@ -180,16 +180,16 @@ export class DrizzleBlogStore implements BlogStore {
     const r = await db.select().from(blogSettings)
       .where(eq(blogSettings.projectId, projectId)).limit(1);
     if (!r[0]) return null;
-    return { nicho: r[0].nicho, idioma: r[0].idioma };
+    return { nicho: r[0].nicho, idioma: r[0].idioma, modelo: r[0].modelo };
   }
 
   async setBlogSettings(orgId: string, projectId: string, s: BlogSettings): Promise<void> {
     if (!(await proyectoDeOrg(orgId, projectId))) return;
     await db.insert(blogSettings)
-      .values({ projectId, nicho: s.nicho, idioma: s.idioma })
+      .values({ projectId, nicho: s.nicho, idioma: s.idioma, modelo: s.modelo })
       .onConflictDoUpdate({
         target: blogSettings.projectId,
-        set: { nicho: s.nicho, idioma: s.idioma, updatedAt: new Date() },
+        set: { nicho: s.nicho, idioma: s.idioma, modelo: s.modelo, updatedAt: new Date() },
       });
   }
 

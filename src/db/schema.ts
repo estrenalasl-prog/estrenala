@@ -67,6 +67,7 @@ export const blogSettings = pgTable("blog_settings", {
   projectId: uuid("project_id").notNull().unique().references(() => projects.id),
   nicho: text("nicho").notNull().default(""),
   idioma: text("idioma").notNull().default("es"),
+  modelo: text("modelo").notNull().default(""), // '' = modelo por defecto de la plataforma
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

@@ -1,0 +1,1 @@
+ALTER TABLE blog_settings ADD COLUMN IF NOT EXISTS modelo text NOT NULL DEFAULT '';
