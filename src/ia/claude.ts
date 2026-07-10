@@ -81,9 +81,11 @@ export function limpiarJson(texto: string): string {
 
 // ---------- API pública ----------
 
-export async function pedirTexto(prompt: string, maxTokens = 8000): Promise<string> {
+// `modelo` (opcional en las tres funciones) sobreescribe OPENROUTER_MODEL
+// para esa llamada: es la elección por proyecto del 4b2.
+export async function pedirTexto(prompt: string, maxTokens = 8000, modelo?: string): Promise<string> {
   const messages: Mensaje[] = [{ role: "user", content: prompt }];
-  return completar({ max_tokens: maxTokens, messages });
+  return completar({ max_tokens: maxTokens, messages, ...(modelo ? { model: modelo } : {}) });
 }
 
 // Investigación con búsqueda web. OpenRouter añade resultados de búsqueda
@@ -91,13 +93,15 @@ export async function pedirTexto(prompt: string, maxTokens = 8000): Promise<stri
 export async function pedirConBusquedaWeb(
   prompt: string,
   maxTokens = 8000,
-  maxBusquedas = 6
+  maxBusquedas = 6,
+  modelo?: string
 ): Promise<string> {
   const messages: Mensaje[] = [{ role: "user", content: prompt }];
   return completar({
     max_tokens: maxTokens,
     messages,
     plugins: [{ id: "web", max_results: maxBusquedas }],
+    ...(modelo ? { model: modelo } : {}),
   });
 }
 
@@ -105,7 +109,8 @@ export async function pedirConBusquedaWeb(
 export async function pedirJson<S extends z.ZodType>(
   prompt: string,
   schema: S,
-  maxTokens = 4000
+  maxTokens = 4000,
+  modelo?: string
 ): Promise<z.infer<S>> {
   const { $schema: _omit, ...esquema } = z.toJSONSchema(schema) as Record<string, unknown>;
   const messages: Mensaje[] = [{ role: "user", content: prompt }];
@@ -117,6 +122,7 @@ export async function pedirJson<S extends z.ZodType>(
         type: "json_schema",
         json_schema: { name: "salida", strict: false, schema: esquema },
       },
+      ...(modelo ? { model: modelo } : {}),
     });
     return schema.parse(JSON.parse(limpiarJson(texto)));
   };

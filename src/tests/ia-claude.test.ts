@@ -178,3 +178,53 @@ describe("pedirConBusquedaWeb", () => {
     expect(body.max_tokens).toBe(4000);
   });
 });
+
+describe("modelo opcional (4b2)", () => {
+  let mockFetch: ReturnType<typeof vi.fn>;
+
+  const respuesta = (contenido: string) => ({
+    ok: true,
+    json: async () => ({
+      choices: [{ message: { content: contenido } }],
+    }),
+  });
+
+  beforeEach(() => {
+    mockFetch = vi.fn();
+    vi.stubGlobal("fetch", mockFetch);
+    vi.stubEnv("OPENROUTER_API_KEY", "test-key");
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+
+  const modeloEnviado = () => JSON.parse(mockFetch.mock.calls[0][1].body).model as string;
+
+  it("pedirTexto con modelo explícito lo manda en el body", async () => {
+    mockFetch.mockResolvedValueOnce(respuesta("x"));
+    await pedirTexto("p", 8000, "x/y");
+    expect(modeloEnviado()).toBe("x/y");
+  });
+
+  it("pedirTexto sin modelo usa el default de la plataforma", async () => {
+    mockFetch.mockResolvedValueOnce(respuesta("x"));
+    await pedirTexto("p");
+    expect(modeloEnviado()).not.toBe("x/y");
+    expect(typeof modeloEnviado()).toBe("string");
+    expect(modeloEnviado().length).toBeGreaterThan(0);
+  });
+
+  it("pedirConBusquedaWeb con modelo explícito lo manda en el body", async () => {
+    mockFetch.mockResolvedValueOnce(respuesta("x"));
+    await pedirConBusquedaWeb("p", 4000, 3, "x/y");
+    expect(modeloEnviado()).toBe("x/y");
+  });
+
+  it("pedirJson con modelo explícito lo manda en el body", async () => {
+    mockFetch.mockResolvedValueOnce(respuesta('{"plantilla_post":"a","plantilla_index":"b"}'));
+    await pedirJson("p", PlantillasSchema, 4000, "x/y");
+    expect(modeloEnviado()).toBe("x/y");
+  });
+});
