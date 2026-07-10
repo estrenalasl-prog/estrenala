@@ -20,7 +20,7 @@ const EXT_POR_CONTENT_TYPE: Record<string, string> = {
 const XML = "application/xml";
 const HTML = "text/html; charset=utf-8";
 
-function sitesBaseDomain(): string {
+export function sitesBaseDomain(): string {
   return process.env.SITES_BASE_DOMAIN ?? process.env.PLATFORM_HOST ?? "localhost:3000";
 }
 function hoy(): string { return new Date().toISOString().slice(0, 10); }
