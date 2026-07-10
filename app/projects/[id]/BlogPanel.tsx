@@ -17,6 +17,23 @@ function estadoLegible(estado: string): string {
   return "⏳ en marcha";
 }
 
+// Modelos curados del selector (4b2); "" = default de la plataforma. Cualquier
+// otro slug de openrouter.ai/models entra por la opción «Otro…».
+const MODELOS: { valor: string; nombre: string }[] = [
+  { valor: "", nombre: "Por defecto de la plataforma (Claude Sonnet 4.6)" },
+  { valor: "anthropic/claude-sonnet-4.6", nombre: "Claude Sonnet 4.6 — calidad máxima" },
+  { valor: "anthropic/claude-haiku-4.5", nombre: "Claude Haiku 4.5 — rápido y económico" },
+  { valor: "openai/gpt-5-mini", nombre: "GPT-5 Mini — económico" },
+  { valor: "google/gemini-2.5-flash", nombre: "Gemini 2.5 Flash — muy económico" },
+  { valor: "deepseek/deepseek-chat", nombre: "DeepSeek — muy económico" },
+];
+
+function nombreModelo(modelo: string): string {
+  const curado = MODELOS.find((m) => m.valor === modelo);
+  if (curado) return curado.nombre;
+  return modelo; // slug libre
+}
+
 function IframePreview({ html }: { html: string }) {
   return <iframe srcDoc={html} sandbox="" className="h-96 w-full rounded border bg-white" title="vista previa" />;
 }
@@ -50,6 +67,10 @@ export function BlogPanel({ projectId }: { projectId: string }) {
   const [kw, setKw] = useState("");
   const [draftId, setDraftId] = useState<string | null>(null);
   const [draftOrigenId, setDraftOrigenId] = useState<string | null>(null);
+  // selector de modelo (4b2): sel = valor curado | "otro"; custom = slug libre
+  const [modeloSel, setModeloSel] = useState("");
+  const [modeloCustom, setModeloCustom] = useState("");
+  const [modeloGuardado, setModeloGuardado] = useState("");
 
   async function cargar() {
     try {
@@ -59,7 +80,14 @@ export function BlogPanel({ projectId }: { projectId: string }) {
         fetch(`/api/projects/${projectId}/blog/drafts`),
       ]);
       if (rEstado.ok) setEstado((await rEstado.json()) as EstadoBlog);
-      if (rSettings.ok) setNicho(((await rSettings.json()) as { nicho?: string }).nicho ?? "");
+      if (rSettings.ok) {
+        const s = (await rSettings.json()) as { nicho?: string; modelo?: string };
+        setNicho(s.nicho ?? "");
+        const m = s.modelo ?? "";
+        setModeloGuardado(m);
+        if (MODELOS.some((x) => x.valor === m)) { setModeloSel(m); setModeloCustom(""); }
+        else { setModeloSel("otro"); setModeloCustom(m); }
+      }
       if (rDrafts.ok) setBorradores((await rDrafts.json()) as BorradorItem[]);
     } catch { /* silencioso: se reintenta al reabrir */ }
   }
@@ -153,13 +181,15 @@ export function BlogPanel({ projectId }: { projectId: string }) {
   }
 
   // --- redacción con IA (4b) ---
-  async function guardarNicho() {
+  const modeloEfectivo = () => (modeloSel === "otro" ? modeloCustom.trim() : modeloSel);
+  async function guardarConfig() {
     setNichoMsg(null);
+    const modelo = modeloEfectivo();
     const d = await llamar(`/api/projects/${projectId}/blog/settings`, {
       method: "PUT", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ nicho }),
+      body: JSON.stringify({ nicho, modelo }),
     });
-    if (d) setNichoMsg("Guardado");
+    if (d) { setNichoMsg("Guardado"); setModeloGuardado(modelo); }
   }
   async function crearBorrador() {
     const d = await llamar(`/api/projects/${projectId}/blog/drafts`, {
@@ -213,15 +243,31 @@ export function BlogPanel({ projectId }: { projectId: string }) {
                   <div className="mb-2 rounded-lg border bg-white p-3">
                     <p className="text-sm font-medium">Escribir con IA</p>
                     <label className="mt-1 block text-xs text-gray-500">De qué va tu blog (la IA lo usa para enfocar los artículos)</label>
-                    <div className="mt-1 flex items-start gap-2">
-                      <textarea value={nicho} rows={2}
-                        placeholder="p. ej.: Automatización e IA para pymes: agentes, herramientas y casos prácticos"
-                        onChange={(e) => { setNicho(e.target.value); setNichoMsg(null); }}
-                        className="w-full rounded border p-2 text-xs" />
-                      <button onClick={() => void guardarNicho()} disabled={ocupado}
-                        className="rounded border px-2 py-1 text-xs disabled:opacity-50">Guardar</button>
+                    <textarea value={nicho} rows={2}
+                      placeholder="p. ej.: Automatización e IA para pymes: agentes, herramientas y casos prácticos"
+                      onChange={(e) => { setNicho(e.target.value); setNichoMsg(null); }}
+                      className="mt-1 w-full rounded border p-2 text-xs" />
+                    <label className="mt-1 block text-xs text-gray-500">Modelo de IA para redactar</label>
+                    <div className="mt-1 flex items-center gap-2">
+                      <select value={modeloSel}
+                        onChange={(e) => { setModeloSel(e.target.value); setNichoMsg(null); }}
+                        className="rounded border px-2 py-1 text-xs">
+                        {MODELOS.map((m) => <option key={m.valor} value={m.valor}>{m.nombre}</option>)}
+                        <option value="otro">Otro…</option>
+                      </select>
+                      {modeloSel === "otro" && (
+                        <input value={modeloCustom}
+                          placeholder="identificador de openrouter.ai/models, p. ej. deepseek/deepseek-chat:free"
+                          onChange={(e) => { setModeloCustom(e.target.value); setNichoMsg(null); }}
+                          className="w-full rounded border px-2 py-1 text-xs" />
+                      )}
                     </div>
-                    {nichoMsg && <p className="mt-1 text-xs text-green-700">{nichoMsg}</p>}
+                    <div className="mt-2 flex items-center gap-2">
+                      <button onClick={() => void guardarConfig()} disabled={ocupado}
+                        className="rounded border px-2 py-1 text-xs disabled:opacity-50">Guardar configuración</button>
+                      {nichoMsg && <span className="text-xs text-green-700">{nichoMsg}</span>}
+                    </div>
+                    <p className="mt-1 text-xs text-gray-400">Los modelos económicos gastan menos crédito (los «:free» nada); si uno da error al generar, prueba otro.</p>
                     {!mostrarKw ? (
                       <button onClick={() => setMostrarKw(true)} disabled={ocupado}
                         className="mt-2 rounded bg-indigo-600 px-3 py-1 text-sm text-white disabled:opacity-50">Escribir artículo con IA</button>
@@ -276,6 +322,7 @@ export function BlogPanel({ projectId }: { projectId: string }) {
             <ArticleAiWorkspace
               projectId={projectId}
               draftId={draftId}
+              modelo={nombreModelo(modeloGuardado)}
               onUsar={usarBorrador}
               onSalir={() => { setVista("lista"); void cargar(); }}
             />

@@ -43,9 +43,10 @@ function artefactoDe(d: DraftDetalle["draft"], etapa: string): string | null {
   }
 }
 
-export function ArticleAiWorkspace({ projectId, draftId, onUsar, onSalir }: {
+export function ArticleAiWorkspace({ projectId, draftId, modelo, onUsar, onSalir }: {
   projectId: string;
   draftId: string;
+  modelo: string; // nombre legible del modelo con el que se generará (info pre-gasto)
   onUsar: (det: DraftDetalle) => void;
   onSalir: () => void;
 }) {
@@ -122,6 +123,7 @@ export function ArticleAiWorkspace({ projectId, draftId, onUsar, onSalir }: {
         <p className="text-sm font-medium">Artículo con IA: <span className="font-normal">{d.keyword}</span></p>
         <button onClick={onSalir} className="rounded border px-2 py-1 text-xs">← Volver</button>
       </div>
+      <p className="text-xs text-gray-500">Modelo: {modelo} <span className="text-gray-400">(se cambia en «Escribir con IA» de la lista)</span></p>
 
       {d.estado === "revision" && (
         <div className="rounded border border-green-300 bg-green-50 p-2">
