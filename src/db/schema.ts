@@ -62,6 +62,33 @@ export const blogTemplates = pgTable("blog_templates", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const blogSettings = pgTable("blog_settings", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  projectId: uuid("project_id").notNull().unique().references(() => projects.id),
+  nicho: text("nicho").notNull().default(""),
+  idioma: text("idioma").notNull().default("es"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const articleDrafts = pgTable("article_drafts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  projectId: uuid("project_id").notNull().references(() => projects.id),
+  keyword: text("keyword").notNull(),
+  analisisJson: text("analisis_json"),
+  planMd: text("plan_md"),
+  investigacionMd: text("investigacion_md"),
+  articuloMd: text("articulo_md"),
+  linksHechos: integer("links_hechos").notNull().default(0),
+  titulo: text("titulo"),
+  slug: text("slug"),
+  metaDescripcion: text("meta_descripcion"),
+  estado: text("estado").notNull().default("pipeline"), // pipeline | revision | error
+  errorMsg: text("error_msg"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const posts = pgTable("posts", {
   id: uuid("id").primaryKey().defaultRandom(),
   projectId: uuid("project_id").notNull().references(() => projects.id),

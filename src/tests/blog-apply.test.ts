@@ -151,6 +151,22 @@ function fakes(opts: { project?: Partial<ProjectRow>; tienePlantilla?: boolean }
     async deletePost(_o, _p, id) {
       posts.delete(id);
     },
+    // Borradores/settings del 4b: apply.ts no los usa; stubs mínimos.
+    async getBlogSettings() {
+      return null;
+    },
+    async setBlogSettings() {},
+    async createDraft() {
+      return { draftId: "draft-1" };
+    },
+    async getDraft() {
+      return null;
+    },
+    async listDrafts() {
+      return [];
+    },
+    async updateDraft() {},
+    async deleteDraft() {},
   };
 
   return { store, storage, blog, archivos, puts, createSnapshotCalls };
