@@ -19,5 +19,5 @@ ${draft.articuloMd}
 ARTÍCULOS PUBLICADOS:
 ${lista}
 ${instruccion ? `\nInstrucción adicional del editor: ${instruccion}` : ""}`;
-  return { articuloMd: await pedirTexto(prompt, 16000), linksHechos: 1 };
+  return { articuloMd: await pedirTexto(prompt, 16000, ctx.modelo || undefined), linksHechos: 1 };
 };

@@ -11,6 +11,6 @@ Define, para un artículo de blog sobre esa keyword:
 2. keywords_secundarias: de 5 a 10 términos relacionados que ayuden a posicionar (sinónimos, long-tail, conceptos cercanos).
 3. intencion_busqueda: qué quiere aprender o lograr quien busca esto, en una frase.
 ${instruccion ? `\nInstrucción adicional del editor: ${instruccion}` : ""}`;
-  const analisis = await pedirJson(prompt, AnalisisSchema, 2000);
+  const analisis = await pedirJson(prompt, AnalisisSchema, 2000, ctx.modelo || undefined);
   return { analisisJson: JSON.stringify(analisis) };
 };

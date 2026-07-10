@@ -15,5 +15,5 @@ Devuelve un informe en Markdown con:
 - CADA dato con su fuente en formato: (Fuente: URL completa).
 - Nada de relleno: solo hallazgos útiles para el artículo.
 ${instruccion ? `\nInstrucción adicional del editor: ${instruccion}` : ""}`;
-  return { investigacionMd: await pedirConBusquedaWeb(prompt, 8000) };
+  return { investigacionMd: await pedirConBusquedaWeb(prompt, 8000, 6, ctx.modelo || undefined) };
 };

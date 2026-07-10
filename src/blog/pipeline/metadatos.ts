@@ -13,7 +13,7 @@ Devuelve:
 - slug: 4-5 palabras máximo, incluyendo la keyword principal.
 - meta_descripcion: 150-160 caracteres, con la keyword principal de forma natural, que describa el valor del artículo e invite al clic (verbo de acción o pregunta). Debe reflejar fielmente el contenido.
 ${instruccion ? `\nInstrucción adicional del editor: ${instruccion}` : ""}`;
-  const meta = await pedirJson(prompt, MetadatosSchema, 1500);
+  const meta = await pedirJson(prompt, MetadatosSchema, 1500, ctx.modelo || undefined);
 
   const existentes = (await deps.blog.listPosts(deps.orgId, deps.projectId)).map((p) => p.slug);
   const slug = slugUnico(slugify(meta.slug), existentes);

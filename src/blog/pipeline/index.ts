@@ -56,6 +56,7 @@ export async function ejecutarEtapa(
     nicho: settings?.nicho ?? "",
     idioma: settings?.idioma ?? "es",
     base: basePublica(project, sitesBaseDomain()) ?? "",
+    modelo: settings?.modelo ?? "",
   };
 
   const idx = ETAPAS.indexOf(etapa);

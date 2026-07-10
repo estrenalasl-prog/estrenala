@@ -6,7 +6,8 @@ export type Etapa = (typeof ETAPAS)[number];
 
 // Contexto del blog para los prompts (equivale al `sitio` del Creador de Blog):
 // base = URL pública del proyecto (para los enlaces internos), "" si aún no tiene.
-export type Contexto = { nombre: string; nicho: string; idioma: string; base: string };
+// modelo = slug de OpenRouter elegido por proyecto, "" = default de la plataforma.
+export type Contexto = { nombre: string; nicho: string; idioma: string; base: string; modelo: string };
 
 export type DepsPipeline = { store: ProjectStore; blog: BlogStore; orgId: string; projectId: string };
 
