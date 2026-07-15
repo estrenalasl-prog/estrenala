@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { parseTrendingNow, parseRelatedQueries, buscarTendencias } from "@/src/blog/radar/serpapi";
+import { parseTrendingNow, parseRelatedQueries, buscarTendencias, probarConexionSerpApi } from "@/src/blog/radar/serpapi";
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 
 describe("parseTrendingNow", () => {
   it("mapea query, volumen y crecimiento", () => {
@@ -45,5 +45,35 @@ describe("buscarTendencias", () => {
     const url = new URL(fetchMock.mock.calls[0][0]);
     expect(url.searchParams.get("engine")).toBe("google_trends_trending_now");
     expect(url.searchParams.get("geo")).toBe("ES");
+  });
+});
+
+describe("probarConexionSerpApi", () => {
+  it("devuelve las búsquedas restantes con clave válida", async () => {
+    vi.stubEnv("SERPAPI_KEY", "clave-test");
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ total_searches_left: 87 }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(probarConexionSerpApi()).resolves.toContain("87");
+    expect(String(fetchMock.mock.calls[0][0])).toContain("account.json");
+  });
+
+  it("propaga el error de la API (clave inválida)", async () => {
+    vi.stubEnv("SERPAPI_KEY", "clave-mala");
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ error: "Invalid API key" }),
+    }));
+    await expect(probarConexionSerpApi()).rejects.toThrow(/Invalid API key/);
+  });
+
+  it("sin clave → mensaje de Configuración sin llamar a la red", async () => {
+    vi.stubEnv("SERPAPI_KEY", "");
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(probarConexionSerpApi()).rejects.toThrow("Falta la clave de SerpAPI: añádela en Configuración");
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

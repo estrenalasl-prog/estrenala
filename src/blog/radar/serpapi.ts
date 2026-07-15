@@ -1,3 +1,5 @@
+import { claveSerpApi } from "@/src/config/claves";
+
 export type CandidatoKeyword = {
   keyword: string;
   fuente: "trends" | "related";
@@ -16,12 +18,24 @@ type JsonSerpApi = Record<string, unknown> & {
 async function llamadaSerpApi(params: Record<string, string>): Promise<JsonSerpApi> {
   const url = new URL(BASE);
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
-  url.searchParams.set("api_key", process.env.SERPAPI_KEY ?? "");
+  url.searchParams.set("api_key", await claveSerpApi());
   const res = await fetch(url.toString());
   if (!res.ok) throw new Error(`SerpAPI ${res.status}: ${await res.text()}`);
   const json = (await res.json()) as JsonSerpApi;
   if (json.error) throw new Error(`SerpAPI: ${json.error}`);
   return json;
+}
+
+// Valida la clave de SerpAPI sin gastar créditos (endpoint account.json).
+export async function probarConexionSerpApi(): Promise<string> {
+  const key = await claveSerpApi();
+  if (!key) throw new Error("Falta la clave de SerpAPI: añádela en Configuración");
+  const res = await fetch(`https://serpapi.com/account.json?api_key=${encodeURIComponent(key)}`);
+  if (!res.ok) throw new Error(`SerpAPI ${res.status}: ${await res.text()}`);
+  const j = (await res.json()) as Record<string, unknown>;
+  if (j.error) throw new Error(`SerpAPI: ${j.error}`);
+  const restantes = j.total_searches_left ?? j.plan_searches_left;
+  return `Clave válida (quedan ${restantes ?? "?"} búsquedas este mes)`;
 }
 
 const num = (v: unknown): number | null => (typeof v === "number" ? v : null);

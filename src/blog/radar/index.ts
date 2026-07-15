@@ -2,6 +2,7 @@ import { EditorError } from "@/src/editor/errors";
 import { pedirJson, RelevanciaSchema } from "@/src/ia/claude";
 import { basePublica } from "@/src/blog/render";
 import { sitesBaseDomain } from "@/src/blog/apply";
+import { claveSerpApi } from "@/src/config/claves";
 import { buscarTendencias, buscarRelacionadas, type CandidatoKeyword } from "./serpapi";
 import type { ProjectStore } from "@/src/repositories/types";
 import type { BlogStore } from "@/src/repositories/blog";
@@ -27,7 +28,7 @@ export async function actualizarRadar(
   if (!project) throw new EditorError("Proyecto no encontrado", 404);
   const settings = await deps.blog.getBlogSettings(deps.orgId, deps.projectId);
   if (!settings?.nicho.trim()) throw new EditorError("Configura primero de qué va tu blog (campo Nicho)", 400);
-  if (!process.env.SERPAPI_KEY) throw new EditorError("Falta SERPAPI_KEY en .env.local", 500);
+  if (!(await claveSerpApi())) throw new EditorError("Falta la clave de SerpAPI: añádela en Configuración", 500);
 
   const fechaHoy = hoy();
   if (!forzar && (await deps.blog.hayTrendsCache(deps.orgId, deps.projectId, fechaHoy))) {

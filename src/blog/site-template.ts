@@ -1,4 +1,5 @@
 import { EditorError } from "@/src/editor/errors";
+import { claveOpenRouter } from "@/src/config/claves";
 import { pedirJson, PlantillasSchema, OpenRouterError } from "@/src/ia/claude";
 import { huecosSinRellenar } from "./template";
 import type { StorageAdapter } from "@/src/storage/types";
@@ -50,7 +51,7 @@ export async function generarPlantillas(
   deps: { store: ProjectStore; storage: StorageAdapter },
   input: { orgId: string; projectId: string }
 ): Promise<{ tplPost: string; tplIndex: string }> {
-  if (!process.env.OPENROUTER_API_KEY) throw new EditorError("Falta OPENROUTER_API_KEY en .env.local", 500);
+  if (!(await claveOpenRouter())) throw new EditorError("Falta la clave de OpenRouter: añádela en Configuración", 500);
   const project = await deps.store.getProject(input.orgId, input.projectId);
   if (!project) throw new EditorError("Proyecto no encontrado", 404);
   const current = await deps.store.getCurrentSnapshot(input.orgId, input.projectId);

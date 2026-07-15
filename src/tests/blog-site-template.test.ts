@@ -112,13 +112,13 @@ describe("generarPlantillas", () => {
     vi.unstubAllEnvs();
   });
 
-  it("sin OPENROUTER_API_KEY → EditorError 500 «Falta OPENROUTER_API_KEY en .env.local»", async () => {
+  it("sin clave de OpenRouter (ni UI ni .env) → EditorError 500 con el mensaje de Configuración", async () => {
     vi.stubEnv("OPENROUTER_API_KEY", "");
     const store = makeStore(projectRow(), snapshotRow());
     const { storage } = makeStorage({ "p/s1/index.html": "<html><body>x</body></html>" });
     await expect(
       generarPlantillas({ store, storage }, { orgId: "o1", projectId: "p1" })
-    ).rejects.toMatchObject({ message: "Falta OPENROUTER_API_KEY en .env.local", status: 500 });
+    ).rejects.toMatchObject({ message: "Falta la clave de OpenRouter: añádela en Configuración", status: 500 });
   });
 
   it("adjunta el HTML de la portada y resuelve el link del CSS a ruta absoluta desde la raíz", async () => {

@@ -132,13 +132,13 @@ describe("actualizarRadar", () => {
     expect(vi.mocked(buscarTendencias)).not.toHaveBeenCalled();
   });
 
-  it("sin SERPAPI_KEY → 500 byte-exacto y no gasta nada", async () => {
+  it("sin clave de SerpAPI (ni UI ni .env) → 500 byte-exacto y no gasta nada", async () => {
     vi.stubEnv("SERPAPI_KEY", "");
     const f = fakes();
     const err = await actualizarRadar(f.deps).catch((e) => e);
     expect(err).toBeInstanceOf(EditorError);
     expect((err as EditorError).status).toBe(500);
-    expect((err as Error).message).toBe("Falta SERPAPI_KEY en .env.local");
+    expect((err as Error).message).toBe("Falta la clave de SerpAPI: añádela en Configuración");
     expect(vi.mocked(buscarTendencias)).not.toHaveBeenCalled();
   });
 

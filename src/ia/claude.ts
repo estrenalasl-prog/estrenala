@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { claveOpenRouter } from "@/src/config/claves";
 
 // El modelo se sirve vía OpenRouter (API compatible con OpenAI). El slug por
 // defecto es el Sonnet más capaz; se puede cambiar con OPENROUTER_MODEL.
@@ -15,15 +16,15 @@ export class OpenRouterError extends Error {
   }
 }
 
-function clave(): string {
-  const k = process.env.OPENROUTER_API_KEY;
-  if (!k) throw new Error("Falta OPENROUTER_API_KEY en .env.local");
+async function clave(): Promise<string> {
+  const k = await claveOpenRouter();
+  if (!k) throw new Error("Falta la clave de OpenRouter: añádela en Configuración");
   return k;
 }
 
-function cabeceras(): Record<string, string> {
+async function cabeceras(): Promise<Record<string, string>> {
   return {
-    Authorization: `Bearer ${clave()}`,
+    Authorization: `Bearer ${await clave()}`,
     "Content-Type": "application/json",
     // Atribución opcional para el panel de OpenRouter.
     "HTTP-Referer": "http://localhost:3000",
@@ -63,7 +64,7 @@ type Mensaje = { role: "system" | "user" | "assistant"; content: string };
 async function completar(body: Record<string, unknown>): Promise<string> {
   const resp = await fetch(`${BASE_URL}/chat/completions`, {
     method: "POST",
-    headers: cabeceras(),
+    headers: await cabeceras(),
     body: JSON.stringify({ model: MODELO, ...body }),
   });
   if (!resp.ok) {
@@ -149,7 +150,7 @@ export async function pedirJson<S extends z.ZodType>(
 
 // Valida la clave de OpenRouter sin gastar tokens (endpoint /key).
 export async function probarConexionModelo(): Promise<string> {
-  const resp = await fetch(`${BASE_URL}/key`, { headers: cabeceras() });
+  const resp = await fetch(`${BASE_URL}/key`, { headers: await cabeceras() });
   if (!resp.ok) throw new Error(`OpenRouter HTTP ${resp.status}`);
   const j = await resp.json();
   const d = j?.data ?? {};
