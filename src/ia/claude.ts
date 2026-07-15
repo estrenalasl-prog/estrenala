@@ -52,6 +52,10 @@ export const MetadatosSchema = z.object({
 });
 export type Metadatos = z.infer<typeof MetadatosSchema>;
 
+export const RelevanciaSchema = z.object({
+  puntuaciones: z.array(z.object({ keyword: z.string(), relevancia: z.number() })),
+});
+
 // ---------- Helpers internos ----------
 
 type Mensaje = { role: "system" | "user" | "assistant"; content: string };

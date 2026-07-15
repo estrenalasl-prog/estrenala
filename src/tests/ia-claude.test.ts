@@ -1,8 +1,17 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   limpiarJson, limpiarMd, pedirJson, pedirTexto, pedirConBusquedaWeb,
-  PlantillasSchema, AnalisisSchema, MetadatosSchema,
+  PlantillasSchema, AnalisisSchema, MetadatosSchema, RelevanciaSchema,
 } from "@/src/ia/claude";
+
+describe("RelevanciaSchema", () => {
+  it("acepta puntuaciones válidas", () => {
+    expect(RelevanciaSchema.parse({ puntuaciones: [{ keyword: "x", relevancia: 80 }] }).puntuaciones).toHaveLength(1);
+  });
+  it("rechaza una relevancia no numérica", () => {
+    expect(() => RelevanciaSchema.parse({ puntuaciones: [{ keyword: "x", relevancia: "alta" }] })).toThrow();
+  });
+});
 
 describe("limpiarMd", () => {
   it("quita la envoltura ```markdown de todo el texto", () => {
