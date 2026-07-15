@@ -14,7 +14,10 @@ export default async function Dashboard() {
     <main className="mx-auto max-w-4xl p-8">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-3xl font-bold">Wordclicks</h1>
-        <LogoutButton />
+        <div className="flex items-center gap-3">
+          <Link href="/settings" className="text-sm text-gray-500 hover:underline">⚙ Configuración</Link>
+          <LogoutButton />
+        </div>
       </div>
       <section className="mb-10">
         <ImportDropzone />
