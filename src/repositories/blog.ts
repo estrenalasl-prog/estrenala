@@ -1,6 +1,6 @@
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/src/db/client";
-import { articleDrafts, blogSettings, blogTemplates, posts, projects } from "@/src/db/schema";
+import { articleDrafts, blogKeywords, blogSettings, blogTemplates, posts, projects, trendsCache } from "@/src/db/schema";
 
 export type PostRow = {
   id: string;
@@ -47,7 +47,21 @@ export type DraftPatch = Partial<Pick<DraftRow,
   "analisisJson" | "planMd" | "investigacionMd" | "articuloMd" | "linksHechos" |
   "titulo" | "slug" | "metaDescripcion" | "estado" | "errorMsg">>;
 
-export type BlogSettings = { nicho: string; idioma: string; modelo: string };
+export type BlogSettings = { nicho: string; idioma: string; modelo: string; keywordsSemilla: string };
+
+export type KeywordRow = {
+  id: string;
+  projectId: string;
+  keyword: string;
+  fuente: string; // trends | related
+  crecimientoPct: number | null;
+  volumenAprox: number | null;
+  relevancia: number;
+  estado: string; // nueva | usada | descartada
+  discoveredAt: string;
+};
+
+export type KeywordNueva = Pick<KeywordRow, "keyword" | "fuente" | "crecimientoPct" | "volumenAprox" | "relevancia">;
 
 export interface BlogStore {
   getBlogTemplate(orgId: string, projectId: string): Promise<{ tplPost: string; tplIndex: string } | null>;
@@ -64,6 +78,11 @@ export interface BlogStore {
   listDrafts(orgId: string, projectId: string): Promise<DraftRow[]>; // createdAt desc
   updateDraft(orgId: string, projectId: string, draftId: string, patch: DraftPatch): Promise<void>;
   deleteDraft(orgId: string, projectId: string, draftId: string): Promise<void>;
+  listKeywords(orgId: string, projectId: string): Promise<KeywordRow[]>; // relevancia desc, discoveredAt desc
+  insertKeywords(orgId: string, projectId: string, items: KeywordNueva[]): Promise<void>; // ignora duplicados (project, keyword)
+  setKeywordEstado(orgId: string, projectId: string, keywordId: string, estado: string): Promise<boolean>; // false si no existe
+  hayTrendsCache(orgId: string, projectId: string, fecha: string): Promise<boolean>;
+  marcarTrendsCache(orgId: string, projectId: string, fecha: string, payload: string): Promise<void>;
 }
 
 async function proyectoDeOrg(orgId: string, projectId: string): Promise<boolean> {
@@ -180,16 +199,16 @@ export class DrizzleBlogStore implements BlogStore {
     const r = await db.select().from(blogSettings)
       .where(eq(blogSettings.projectId, projectId)).limit(1);
     if (!r[0]) return null;
-    return { nicho: r[0].nicho, idioma: r[0].idioma, modelo: r[0].modelo };
+    return { nicho: r[0].nicho, idioma: r[0].idioma, modelo: r[0].modelo, keywordsSemilla: r[0].keywordsSemilla };
   }
 
   async setBlogSettings(orgId: string, projectId: string, s: BlogSettings): Promise<void> {
     if (!(await proyectoDeOrg(orgId, projectId))) return;
     await db.insert(blogSettings)
-      .values({ projectId, nicho: s.nicho, idioma: s.idioma, modelo: s.modelo })
+      .values({ projectId, nicho: s.nicho, idioma: s.idioma, modelo: s.modelo, keywordsSemilla: s.keywordsSemilla })
       .onConflictDoUpdate({
         target: blogSettings.projectId,
-        set: { nicho: s.nicho, idioma: s.idioma, modelo: s.modelo, updatedAt: new Date() },
+        set: { nicho: s.nicho, idioma: s.idioma, modelo: s.modelo, keywordsSemilla: s.keywordsSemilla, updatedAt: new Date() },
       });
   }
 
@@ -223,6 +242,51 @@ export class DrizzleBlogStore implements BlogStore {
   async deleteDraft(orgId: string, projectId: string, draftId: string): Promise<void> {
     if (!(await proyectoDeOrg(orgId, projectId))) return;
     await db.delete(articleDrafts).where(and(eq(articleDrafts.id, draftId), eq(articleDrafts.projectId, projectId)));
+  }
+
+  async listKeywords(orgId: string, projectId: string): Promise<KeywordRow[]> {
+    if (!(await proyectoDeOrg(orgId, projectId))) return [];
+    const rows = await db.select().from(blogKeywords)
+      .where(eq(blogKeywords.projectId, projectId))
+      .orderBy(desc(blogKeywords.relevancia), desc(blogKeywords.discoveredAt));
+    return rows.map((r) => ({
+      id: r.id,
+      projectId: r.projectId,
+      keyword: r.keyword,
+      fuente: r.fuente,
+      crecimientoPct: r.crecimientoPct,
+      volumenAprox: r.volumenAprox,
+      relevancia: r.relevancia,
+      estado: r.estado,
+      discoveredAt: r.discoveredAt.toISOString(),
+    }));
+  }
+
+  async insertKeywords(orgId: string, projectId: string, items: KeywordNueva[]): Promise<void> {
+    if (!(await proyectoDeOrg(orgId, projectId)) || items.length === 0) return;
+    await db.insert(blogKeywords)
+      .values(items.map((i) => ({ projectId, ...i })))
+      .onConflictDoNothing();
+  }
+
+  async setKeywordEstado(orgId: string, projectId: string, keywordId: string, estado: string): Promise<boolean> {
+    if (!(await proyectoDeOrg(orgId, projectId))) return false;
+    const r = await db.update(blogKeywords).set({ estado })
+      .where(and(eq(blogKeywords.id, keywordId), eq(blogKeywords.projectId, projectId)))
+      .returning({ id: blogKeywords.id });
+    return r.length > 0;
+  }
+
+  async hayTrendsCache(orgId: string, projectId: string, fecha: string): Promise<boolean> {
+    if (!(await proyectoDeOrg(orgId, projectId))) return false;
+    const r = await db.select({ id: trendsCache.id }).from(trendsCache)
+      .where(and(eq(trendsCache.projectId, projectId), eq(trendsCache.fecha, fecha))).limit(1);
+    return r.length > 0;
+  }
+
+  async marcarTrendsCache(orgId: string, projectId: string, fecha: string, payload: string): Promise<void> {
+    if (!(await proyectoDeOrg(orgId, projectId))) return;
+    await db.insert(trendsCache).values({ projectId, fecha, payload }).onConflictDoNothing();
   }
 }
 

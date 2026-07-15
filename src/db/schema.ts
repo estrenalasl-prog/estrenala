@@ -68,6 +68,7 @@ export const blogSettings = pgTable("blog_settings", {
   nicho: text("nicho").notNull().default(""),
   idioma: text("idioma").notNull().default("es"),
   modelo: text("modelo").notNull().default(""), // '' = modelo por defecto de la plataforma
+  keywordsSemilla: text("keywords_semilla").notNull().default(""), // separadas por comas (radar 4c)
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -89,6 +90,25 @@ export const articleDrafts = pgTable("article_drafts", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const blogKeywords = pgTable("blog_keywords", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  projectId: uuid("project_id").notNull().references(() => projects.id),
+  keyword: text("keyword").notNull(),
+  fuente: text("fuente").notNull(), // trends | related
+  crecimientoPct: integer("crecimiento_pct"),
+  volumenAprox: integer("volumen_aprox"),
+  relevancia: integer("relevancia").notNull().default(0),
+  estado: text("estado").notNull().default("nueva"), // nueva | usada | descartada
+  discoveredAt: timestamp("discovered_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [unique().on(t.projectId, t.keyword)]);
+
+export const trendsCache = pgTable("trends_cache", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  projectId: uuid("project_id").notNull().references(() => projects.id),
+  fecha: text("fecha").notNull(), // YYYY-MM-DD
+  payload: text("payload").notNull(),
+}, (t) => [unique().on(t.projectId, t.fecha)]);
 
 export const posts = pgTable("posts", {
   id: uuid("id").primaryKey().defaultRandom(),

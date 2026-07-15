@@ -167,6 +167,18 @@ function fakes(opts: { project?: Partial<ProjectRow>; tienePlantilla?: boolean }
     },
     async updateDraft() {},
     async deleteDraft() {},
+    // Radar del 4c: apply.ts tampoco lo usa; stubs mínimos.
+    async listKeywords() {
+      return [];
+    },
+    async insertKeywords() {},
+    async setKeywordEstado() {
+      return false;
+    },
+    async hayTrendsCache() {
+      return false;
+    },
+    async marcarTrendsCache() {},
   };
 
   return { store, storage, blog, archivos, puts, createSnapshotCalls };
