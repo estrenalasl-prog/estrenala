@@ -22,6 +22,15 @@ export const memberships = pgTable("memberships", {
   rol: text("rol").notNull().default("owner"),
 }, (t) => [unique().on(t.orgId, t.userId)]);
 
+export const orgSettings = pgTable("org_settings", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  orgId: uuid("org_id").notNull().unique().references(() => organizations.id),
+  openrouterKey: text("openrouter_key").notNull().default(""), // '' = usar la del .env.local
+  serpapiKey: text("serpapi_key").notNull().default(""),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const projects = pgTable("projects", {
   id: uuid("id").primaryKey().defaultRandom(),
   orgId: uuid("org_id").notNull().references(() => organizations.id),
