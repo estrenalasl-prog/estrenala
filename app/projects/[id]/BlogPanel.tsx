@@ -7,6 +7,10 @@ import { ArticleAiWorkspace, type DraftDetalle } from "./ArticleAiWorkspace";
 
 type EstadoBlog = { tienePlantilla: boolean; posts: { id: string; titulo: string; slug: string; fecha: string }[] };
 type BorradorItem = { id: string; keyword: string; estado: string; titulo: string | null; createdAt: string };
+type TemaItem = {
+  id: string; keyword: string; fuente: string; crecimientoPct: number | null;
+  volumenAprox: number | null; relevancia: number; estado: string; discoveredAt: string;
+};
 type Vista = "lista" | "plantillas" | "editor" | "ia";
 
 const AVISO = "Las páginas del blog se generan desde aquí; si las tocas con el editor visual, la próxima regeneración del blog deshará esos cambios.";
@@ -32,6 +36,13 @@ function nombreModelo(modelo: string): string {
   const curado = MODELOS.find((m) => m.valor === modelo);
   if (curado) return curado.nombre;
   return modelo; // slug libre
+}
+
+function BadgeRelevancia({ relevancia }: { relevancia: number }) {
+  const color = relevancia >= 70 ? "bg-green-100 text-green-800"
+    : relevancia >= 40 ? "bg-amber-100 text-amber-800"
+    : "bg-gray-100 text-gray-600";
+  return <span className={`rounded px-1.5 py-0.5 text-xs ${color}`} title="Relevancia para tu nicho (0-100)">{relevancia}</span>;
 }
 
 function IframePreview({ html }: { html: string }) {
@@ -71,24 +82,31 @@ export function BlogPanel({ projectId }: { projectId: string }) {
   const [modeloSel, setModeloSel] = useState("");
   const [modeloCustom, setModeloCustom] = useState("");
   const [modeloGuardado, setModeloGuardado] = useState("");
+  // radar de temas (4c)
+  const [semillas, setSemillas] = useState("");
+  const [temas, setTemas] = useState<TemaItem[]>([]);
+  const [radarMsg, setRadarMsg] = useState<string | null>(null);
 
   async function cargar() {
     try {
-      const [rEstado, rSettings, rDrafts] = await Promise.all([
+      const [rEstado, rSettings, rDrafts, rTemas] = await Promise.all([
         fetch(`/api/projects/${projectId}/blog`),
         fetch(`/api/projects/${projectId}/blog/settings`),
         fetch(`/api/projects/${projectId}/blog/drafts`),
+        fetch(`/api/projects/${projectId}/blog/keywords`),
       ]);
       if (rEstado.ok) setEstado((await rEstado.json()) as EstadoBlog);
       if (rSettings.ok) {
-        const s = (await rSettings.json()) as { nicho?: string; modelo?: string };
+        const s = (await rSettings.json()) as { nicho?: string; modelo?: string; keywordsSemilla?: string };
         setNicho(s.nicho ?? "");
+        setSemillas(s.keywordsSemilla ?? "");
         const m = s.modelo ?? "";
         setModeloGuardado(m);
         if (MODELOS.some((x) => x.valor === m)) { setModeloSel(m); setModeloCustom(""); }
         else { setModeloSel("otro"); setModeloCustom(m); }
       }
       if (rDrafts.ok) setBorradores((await rDrafts.json()) as BorradorItem[]);
+      if (rTemas.ok) setTemas((await rTemas.json()) as TemaItem[]);
     } catch { /* silencioso: se reintenta al reabrir */ }
   }
   useEffect(() => { if (abierto && !estado) void cargar(); }, [abierto]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -187,7 +205,7 @@ export function BlogPanel({ projectId }: { projectId: string }) {
     const modelo = modeloEfectivo();
     const d = await llamar(`/api/projects/${projectId}/blog/settings`, {
       method: "PUT", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ nicho, modelo }),
+      body: JSON.stringify({ nicho, modelo, keywordsSemilla: semillas }),
     });
     if (d) { setNichoMsg("Guardado"); setModeloGuardado(modelo); }
   }
@@ -207,6 +225,42 @@ export function BlogPanel({ projectId }: { projectId: string }) {
     const d = await llamar(`/api/projects/${projectId}/blog/drafts/${id}`, { method: "DELETE" });
     if (d) await cargar();
   }
+  // --- radar de temas (4c) ---
+  async function buscarTemas(forzar: boolean) {
+    setRadarMsg(null);
+    const d = await llamar(`/api/projects/${projectId}/blog/keywords/radar`, {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ forzar }),
+    });
+    if (!d) return;
+    if (d.actualizado === false) setRadarMsg("El radar ya se actualizó hoy.");
+    else setRadarMsg(`Radar actualizado: ${d.candidatos as number} temas analizados.`);
+    await cargar();
+  }
+  async function escribirDesdeTema(t: TemaItem) {
+    const d = await llamar(`/api/projects/${projectId}/blog/drafts`, {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ keyword: t.keyword }),
+    });
+    if (!d || !d.draftId) return;
+    // Marcarla usada es best-effort: si falla, seguirá en la lista.
+    try {
+      await fetch(`/api/projects/${projectId}/blog/keywords/${t.id}`, {
+        method: "PUT", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ estado: "usada" }),
+      });
+    } catch { /* silencioso */ }
+    setDraftId(d.draftId as string); setVista("ia");
+    void cargar();
+  }
+  async function descartarTema(t: TemaItem) {
+    const d = await llamar(`/api/projects/${projectId}/blog/keywords/${t.id}`, {
+      method: "PUT", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ estado: "descartada" }),
+    });
+    if (d) await cargar();
+  }
+
   // Borrador en revision → editor 4a pre-rellenado; la portada la sube el usuario.
   function usarBorrador(det: DraftDetalle) {
     setPostId(null);
@@ -247,6 +301,11 @@ export function BlogPanel({ projectId }: { projectId: string }) {
                       placeholder="p. ej.: Automatización e IA para pymes: agentes, herramientas y casos prácticos"
                       onChange={(e) => { setNicho(e.target.value); setNichoMsg(null); }}
                       className="mt-1 w-full rounded border p-2 text-xs" />
+                    <label className="mt-1 block text-xs text-gray-500">Keywords semilla (separadas por comas; ayudan al radar a buscar temas de tu nicho)</label>
+                    <input value={semillas}
+                      placeholder="p. ej.: agentes ia, automatización pymes, chatbots"
+                      onChange={(e) => { setSemillas(e.target.value); setNichoMsg(null); }}
+                      className="mt-1 w-full rounded border px-2 py-1 text-xs" />
                     <label className="mt-1 block text-xs text-gray-500">Modelo de IA para redactar</label>
                     <div className="mt-1 flex items-center gap-2">
                       <select value={modeloSel}
@@ -296,6 +355,42 @@ export function BlogPanel({ projectId }: { projectId: string }) {
                         ))}
                       </ul>
                     )}
+
+                    <div className="mt-3 border-t pt-2">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium">Temas en tendencia</p>
+                        <button onClick={() => void buscarTemas(false)} disabled={ocupado}
+                          className="rounded border px-2 py-0.5 text-xs disabled:opacity-50">🔍 Buscar temas de hoy</button>
+                        {radarMsg?.startsWith("El radar ya") && (
+                          <button onClick={() => void buscarTemas(true)} disabled={ocupado}
+                            className="text-xs text-gray-500 underline">Forzar</button>
+                        )}
+                      </div>
+                      <p className="mt-0.5 text-xs text-gray-400">Busca lo que sube hoy en Google (España), lo cruza con tu nicho y te propone temas. Gasta hasta 4 créditos de SerpAPI + 1 llamada de IA; una vez al día.</p>
+                      {radarMsg && <p className="mt-1 text-xs text-gray-600">{radarMsg}</p>}
+                      {temas.filter((t) => t.estado === "nueva").length > 0 && (
+                        <ul className="mt-2 space-y-1">
+                          {temas.filter((t) => t.estado === "nueva").map((t) => (
+                            <li key={t.id} className="flex items-center justify-between rounded border bg-gray-50 px-2 py-1 text-sm">
+                              <span className="flex items-center gap-2">
+                                <BadgeRelevancia relevancia={t.relevancia} />
+                                {t.keyword}
+                                <span className="text-xs text-gray-400">
+                                  {t.crecimientoPct != null ? `+${t.crecimientoPct}% ` : ""}
+                                  {t.fuente === "trends" ? "· tendencia de hoy" : "· relacionada con tus semillas"}
+                                </span>
+                              </span>
+                              <span className="flex shrink-0 gap-2">
+                                <button onClick={() => void escribirDesdeTema(t)} disabled={ocupado}
+                                  className="rounded bg-indigo-600 px-2 py-0.5 text-xs text-white disabled:opacity-50">Escribir artículo</button>
+                                <button onClick={() => void descartarTema(t)} disabled={ocupado}
+                                  className="text-xs text-gray-500 underline">descartar</button>
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
                   </div>
                   <div className="mb-2 flex items-center gap-2">
                     <button onClick={nuevoArticulo} className="rounded bg-indigo-600 px-3 py-1 text-sm text-white">Nuevo artículo</button>
