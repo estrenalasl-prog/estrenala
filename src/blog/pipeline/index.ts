@@ -57,6 +57,7 @@ export async function ejecutarEtapa(
     idioma: settings?.idioma ?? "es",
     base: basePublica(project, sitesBaseDomain()) ?? "",
     modelo: settings?.modelo ?? "",
+    hoy: new Date().toISOString().slice(0, 10),
   };
 
   const idx = ETAPAS.indexOf(etapa);

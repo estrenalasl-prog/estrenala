@@ -4,7 +4,8 @@ import type { FnEtapa } from "./tipos";
 export const etapaInvestigacion: FnEtapa = async (draft, ctx, _deps, instruccion) => {
   const analisis = JSON.parse(draft.analisisJson!) as Analisis;
   const prompt = `Eres un investigador experto que ayuda a un equipo de contenidos a enriquecer artículos de blog.
-Busca en la web información ACTUAL y de fuentes fiables para un artículo sobre "${analisis.keyword_principal}"
+Fecha actual: ${ctx.hoy}. Busca en la web información ACTUAL (prioriza los últimos 12-24 meses) y de fuentes
+fiables para un artículo sobre "${analisis.keyword_principal}"
 (nicho del blog: ${ctx.nicho}; intención de búsqueda: ${analisis.intencion_busqueda}).
 
 Plan del artículo (busca datos que apoyen estas secciones):

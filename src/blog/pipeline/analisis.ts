@@ -2,7 +2,7 @@ import { pedirJson, AnalisisSchema } from "@/src/ia/claude";
 import type { FnEtapa } from "./tipos";
 
 export const etapaAnalisis: FnEtapa = async (draft, ctx, _deps, instruccion) => {
-  const prompt = `Eres un analista SEO experto en contenido estratégico.
+  const prompt = `Eres un analista SEO experto en contenido estratégico. Fecha actual: ${ctx.hoy}.
 Sitio: ${ctx.nombre}${ctx.base ? ` (${ctx.base})` : ""}. Nicho: ${ctx.nicho}. Idioma del blog: ${ctx.idioma}.
 Keyword elegida: "${draft.keyword}"
 

@@ -5,6 +5,7 @@ export const etapaPlan: FnEtapa = async (draft, ctx, deps, instruccion) => {
   const analisis = JSON.parse(draft.analisisJson!) as Analisis;
   const previos = await deps.blog.listPosts(deps.orgId, deps.projectId);
   const prompt = `Eres parte de un equipo que crea artículos de blog de nivel mundial. Tu rol: estratega de contenidos.
+Fecha actual: ${ctx.hoy} (plantea el artículo desde el presente, no desde años pasados).
 Prepara el PLAN de un artículo en ${ctx.idioma} para ${ctx.nombre} (nicho: ${ctx.nicho}).
 
 Keyword principal: ${analisis.keyword_principal}

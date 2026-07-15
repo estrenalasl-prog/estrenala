@@ -124,6 +124,20 @@ describe("ejecutarEtapa", () => {
     expect(prompt).toContain("Quantiva");
   });
 
+  it("los prompts llevan la fecha actual (el artículo no debe vivir en el pasado)", async () => {
+    const hoy = new Date().toISOString().slice(0, 10);
+    const d = draftBase();
+    d.analisisJson = JSON.stringify({ keyword_principal: "k", keywords_secundarias: [], intencion_busqueda: "i" });
+    d.planMd = "p"; d.investigacionMd = "i";
+    const f = fakes({ draft: d });
+
+    await ejecutarEtapa(f.deps, DRAFT_ID, "investigacion");
+    expect(vi.mocked(pedirConBusquedaWeb).mock.calls[0][0] as string).toContain(hoy);
+
+    await ejecutarEtapa(f.deps, DRAFT_ID, "redaccion");
+    expect(vi.mocked(pedirTexto).mock.calls[0][0] as string).toContain(hoy);
+  });
+
   it("borrador inexistente → EditorError 404 «Borrador no encontrado»", async () => {
     const f = fakes({ draft: null });
     await expect(ejecutarEtapa(f.deps, DRAFT_ID, "analisis")).rejects.toThrow(EditorError);

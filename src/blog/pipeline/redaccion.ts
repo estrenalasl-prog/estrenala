@@ -4,6 +4,8 @@ import type { FnEtapa } from "./tipos";
 export const etapaRedaccion: FnEtapa = async (draft, ctx, _deps, instruccion) => {
   const analisis = JSON.parse(draft.analisisJson!) as Analisis;
   const prompt = `Eres el mejor redactor de un equipo que crea artículos de blog de nivel mundial.
+Fecha actual: ${ctx.hoy}. Escribe desde el presente: no hables de años pasados como si fueran «ahora»
+ni digas «en ${new Date().getFullYear() - 3}» refiriéndote a la actualidad; usa los datos más recientes de la investigación.
 Escribe el artículo COMPLETO en ${ctx.idioma} perfecto, en Markdown, para el blog de ${ctx.nombre} (nicho: ${ctx.nicho}).
 
 PLAN (síguelo sección a sección):
