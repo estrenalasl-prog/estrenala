@@ -185,6 +185,16 @@ describe("ejecutarEtapa", () => {
     expect(f.draft().planMd).toBe("texto generado");
   });
 
+  it("redaccion desenvuelve la respuesta si el modelo la devuelve dentro de ```markdown", async () => {
+    const d = draftBase();
+    d.analisisJson = JSON.stringify({ keyword_principal: "k", keywords_secundarias: [], intencion_busqueda: "i" });
+    d.planMd = "p"; d.investigacionMd = "i";
+    const f = fakes({ draft: d });
+    vi.mocked(pedirTexto).mockResolvedValue("```markdown\n# Título\n\nPárrafo.\n```");
+    await ejecutarEtapa(f.deps, DRAFT_ID, "redaccion");
+    expect(f.draft().articuloMd).toBe("# Título\n\nPárrafo.");
+  });
+
   it("investigacion usa la búsqueda web y guarda investigacionMd", async () => {
     const d = draftBase();
     d.analisisJson = JSON.stringify({ keyword_principal: "k", keywords_secundarias: [], intencion_busqueda: "i" });

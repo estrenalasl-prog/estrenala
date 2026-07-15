@@ -79,6 +79,15 @@ export function limpiarJson(texto: string): string {
   return (m ? m[1] : texto).trim();
 }
 
+// Los modelos (sobre todo los económicos) a veces envuelven TODO el markdown en
+// un bloque ```markdown … ```; si se guardara así, marked renderizaría el
+// artículo entero como un único <pre> monoespaciado. Solo se quita la envoltura
+// EXTERIOR (los bloques de código internos se conservan).
+export function limpiarMd(texto: string): string {
+  const m = texto.trim().match(/^```[\w-]*[ \t]*\r?\n([\s\S]*?)\r?\n?```$/);
+  return m ? m[1].trim() : texto;
+}
+
 // ---------- API pública ----------
 
 // `modelo` (opcional en las tres funciones) sobreescribe OPENROUTER_MODEL

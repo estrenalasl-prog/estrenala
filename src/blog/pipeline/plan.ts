@@ -1,4 +1,4 @@
-import { pedirTexto, type Analisis } from "@/src/ia/claude";
+import { limpiarMd, pedirTexto, type Analisis } from "@/src/ia/claude";
 import type { FnEtapa } from "./tipos";
 
 export const etapaPlan: FnEtapa = async (draft, ctx, deps, instruccion) => {
@@ -21,5 +21,5 @@ El plan debe:
 - Terminar con una conclusión y una sección de preguntas frecuentes (FAQ).
 NO escribas el artículo: solo el plan.
 ${instruccion ? `\nInstrucción adicional del editor: ${instruccion}` : ""}`;
-  return { planMd: await pedirTexto(prompt, 3000, ctx.modelo || undefined) };
+  return { planMd: limpiarMd(await pedirTexto(prompt, 3000, ctx.modelo || undefined)) };
 };

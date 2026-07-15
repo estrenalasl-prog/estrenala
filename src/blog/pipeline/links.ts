@@ -1,4 +1,4 @@
-import { pedirTexto } from "@/src/ia/claude";
+import { limpiarMd, pedirTexto } from "@/src/ia/claude";
 import type { FnEtapa } from "./tipos";
 
 export const etapaLinks: FnEtapa = async (draft, ctx, deps, instruccion) => {
@@ -19,5 +19,5 @@ ${draft.articuloMd}
 ARTÍCULOS PUBLICADOS:
 ${lista}
 ${instruccion ? `\nInstrucción adicional del editor: ${instruccion}` : ""}`;
-  return { articuloMd: await pedirTexto(prompt, 16000, ctx.modelo || undefined), linksHechos: 1 };
+  return { articuloMd: limpiarMd(await pedirTexto(prompt, 16000, ctx.modelo || undefined)), linksHechos: 1 };
 };

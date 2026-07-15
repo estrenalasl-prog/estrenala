@@ -1,8 +1,32 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
-  limpiarJson, pedirJson, pedirTexto, pedirConBusquedaWeb,
+  limpiarJson, limpiarMd, pedirJson, pedirTexto, pedirConBusquedaWeb,
   PlantillasSchema, AnalisisSchema, MetadatosSchema,
 } from "@/src/ia/claude";
+
+describe("limpiarMd", () => {
+  it("quita la envoltura ```markdown de todo el texto", () => {
+    expect(limpiarMd("```markdown\n# Hola\n\nTexto\n```")).toBe("# Hola\n\nTexto");
+  });
+  it("quita la envoltura ``` sin etiqueta", () => {
+    expect(limpiarMd("```\n# Hola\n```")).toBe("# Hola");
+  });
+  it("conserva los bloques de código INTERNOS al quitar la envoltura", () => {
+    expect(limpiarMd("```markdown\n# T\n\n```js\ncode\n```\n\nfin\n```"))
+      .toBe("# T\n\n```js\ncode\n```\n\nfin");
+  });
+  it("no toca un texto sin envoltura", () => {
+    expect(limpiarMd("# Hola\n\nTexto normal")).toBe("# Hola\n\nTexto normal");
+  });
+  it("no toca un texto con fences internos que no lo envuelven", () => {
+    const t = "Intro\n\n```js\ncode\n```\n\nfin";
+    expect(limpiarMd(t)).toBe(t);
+  });
+  it("no toca un texto que abre fence pero no lo cierra al final", () => {
+    const t = "```markdown\n# Hola sin cierre";
+    expect(limpiarMd(t)).toBe(t);
+  });
+});
 
 describe("schemas", () => {
   it("AnalisisSchema acepta un análisis válido", () => {

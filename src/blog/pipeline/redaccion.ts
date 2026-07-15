@@ -1,4 +1,4 @@
-import { pedirTexto, type Analisis } from "@/src/ia/claude";
+import { limpiarMd, pedirTexto, type Analisis } from "@/src/ia/claude";
 import type { FnEtapa } from "./tipos";
 
 export const etapaRedaccion: FnEtapa = async (draft, ctx, _deps, instruccion) => {
@@ -26,5 +26,5 @@ Requisitos:
 - Termina con una sección de Conclusión y una sección FAQ (4-6 preguntas con respuestas breves).
 - Devuelve SOLO el Markdown del artículo, sin comentarios.
 ${instruccion ? `\nInstrucción adicional del editor: ${instruccion}` : ""}`;
-  return { articuloMd: await pedirTexto(prompt, 16000, ctx.modelo || undefined) };
+  return { articuloMd: limpiarMd(await pedirTexto(prompt, 16000, ctx.modelo || undefined)) };
 };
