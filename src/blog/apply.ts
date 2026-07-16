@@ -13,7 +13,7 @@ import type { BlogStore, PostRow } from "@/src/repositories/blog";
 
 type Deps = { store: ProjectStore; blog: BlogStore; storage: StorageAdapter };
 
-const EXT_POR_CONTENT_TYPE: Record<string, string> = {
+export const EXT_POR_CONTENT_TYPE: Record<string, string> = {
   "image/png": "png", "image/jpeg": "jpg", "image/gif": "gif",
   "image/webp": "webp", "image/avif": "avif", "image/svg+xml": "svg",
 };
