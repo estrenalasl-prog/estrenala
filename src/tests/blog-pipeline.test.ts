@@ -9,8 +9,13 @@ vi.mock("@/src/ia/claude", async (importOriginal) => ({
   pedirJson: vi.fn(),
   pedirConBusquedaWeb: vi.fn(),
 }));
+vi.mock("@/src/config/claves", async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  modeloOrganizacion: vi.fn(),
+}));
 
 import { pedirTexto, pedirJson, pedirConBusquedaWeb } from "@/src/ia/claude";
+import { modeloOrganizacion } from "@/src/config/claves";
 import { ejecutarEtapa, siguienteEtapa, ETAPAS } from "@/src/blog/pipeline";
 
 const ORG = "org-1";
@@ -45,14 +50,14 @@ function postDe(titulo: string, slug: string): PostRow {
   };
 }
 
-function fakes(opts: { draft?: DraftRow | null; posts?: PostRow[]; nicho?: string; modelo?: string } = {}) {
+function fakes(opts: { draft?: DraftRow | null; posts?: PostRow[]; nicho?: string } = {}) {
   const drafts = new Map<string, DraftRow>();
   if (opts.draft !== null) drafts.set(DRAFT_ID, opts.draft ?? draftBase());
   const posts = opts.posts ?? [];
 
   const blog = {
     async getBlogSettings() {
-      return { nicho: opts.nicho ?? "IA para pymes", idioma: "es", modelo: opts.modelo ?? "" };
+      return { nicho: opts.nicho ?? "IA para pymes", idioma: "es", keywordsSemilla: "" };
     },
     async listPosts() {
       return posts;
@@ -85,6 +90,7 @@ beforeEach(() => {
   vi.mocked(pedirJson).mockReset();
   vi.mocked(pedirTexto).mockReset().mockResolvedValue("texto generado");
   vi.mocked(pedirConBusquedaWeb).mockReset().mockResolvedValue("investigación con fuentes");
+  vi.mocked(modeloOrganizacion).mockReset().mockResolvedValue("");
   vi.stubEnv("SITES_BASE_DOMAIN", "wc.app");
 });
 
@@ -250,11 +256,12 @@ describe("ejecutarEtapa", () => {
     expect(prompt).toContain("Instrucción adicional del editor: hazlo más técnico");
   });
 
-  it("el modelo elegido por proyecto llega a cada tipo de llamada IA (4b2)", async () => {
+  it("el modelo elegido en Configuración llega a cada tipo de llamada IA", async () => {
+    vi.mocked(modeloOrganizacion).mockResolvedValue("proveedor/modelo-barato");
     const d = draftBase();
     d.analisisJson = JSON.stringify({ keyword_principal: "k", keywords_secundarias: [], intencion_busqueda: "i" });
     d.planMd = "p";
-    const f = fakes({ draft: d, modelo: "proveedor/modelo-barato" });
+    const f = fakes({ draft: d });
     vi.mocked(pedirJson).mockResolvedValue({ keyword_principal: "x", keywords_secundarias: [], intencion_busqueda: "y" });
 
     await ejecutarEtapa(f.deps, DRAFT_ID, "analisis");
@@ -267,8 +274,8 @@ describe("ejecutarEtapa", () => {
     expect(vi.mocked(pedirConBusquedaWeb).mock.calls[0][3]).toBe("proveedor/modelo-barato");
   });
 
-  it("sin modelo elegido ('' en settings) las llamadas van con undefined → default de plataforma", async () => {
-    const f = fakes({ modelo: "" });
+  it("sin modelo elegido en Configuración las llamadas van con undefined → default de plataforma", async () => {
+    const f = fakes();
     vi.mocked(pedirJson).mockResolvedValue({ keyword_principal: "x", keywords_secundarias: [], intencion_busqueda: "y" });
     await ejecutarEtapa(f.deps, DRAFT_ID, "analisis");
     expect(vi.mocked(pedirJson).mock.calls[0][3]).toBeUndefined();

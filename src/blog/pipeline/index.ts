@@ -1,6 +1,7 @@
 import { EditorError } from "@/src/editor/errors";
 import { basePublica } from "@/src/blog/render";
 import { sitesBaseDomain } from "@/src/blog/apply";
+import { modeloOrganizacion } from "@/src/config/claves";
 import type { DraftRow } from "@/src/repositories/blog";
 import { ETAPAS, type Contexto, type DepsPipeline, type Etapa, type FnEtapa } from "./tipos";
 import { etapaAnalisis } from "./analisis";
@@ -56,7 +57,7 @@ export async function ejecutarEtapa(
     nicho: settings?.nicho ?? "",
     idioma: settings?.idioma ?? "es",
     base: basePublica(project, sitesBaseDomain()) ?? "",
-    modelo: settings?.modelo ?? "",
+    modelo: await modeloOrganizacion(), // se elige en Configuración (4d)
     hoy: new Date().toISOString().slice(0, 10),
   };
 

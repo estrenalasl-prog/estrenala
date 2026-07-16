@@ -2,31 +2,32 @@ import { eq } from "drizzle-orm";
 import { db } from "@/src/db/client";
 import { orgSettings } from "@/src/db/schema";
 
-export type ClavesOrg = { openrouterKey: string; serpapiKey: string };
+export type OrgSettings = { openrouterKey: string; serpapiKey: string; modeloIa: string };
 
 export interface OrgSettingsStore {
-  getClaves(orgId: string): Promise<ClavesOrg | null>;
-  setClaves(orgId: string, patch: Partial<ClavesOrg>): Promise<void>; // upsert parcial
+  getSettings(orgId: string): Promise<OrgSettings | null>;
+  setSettings(orgId: string, patch: Partial<OrgSettings>): Promise<void>; // upsert parcial
 }
 
 export class DrizzleOrgSettingsStore implements OrgSettingsStore {
-  async getClaves(orgId: string): Promise<ClavesOrg | null> {
+  async getSettings(orgId: string): Promise<OrgSettings | null> {
     const r = await db.select().from(orgSettings).where(eq(orgSettings.orgId, orgId)).limit(1);
     if (!r[0]) return null;
-    return { openrouterKey: r[0].openrouterKey, serpapiKey: r[0].serpapiKey };
+    return { openrouterKey: r[0].openrouterKey, serpapiKey: r[0].serpapiKey, modeloIa: r[0].modeloIa };
   }
 
-  async setClaves(orgId: string, patch: Partial<ClavesOrg>): Promise<void> {
-    const previo = await this.getClaves(orgId);
-    const claves = {
+  async setSettings(orgId: string, patch: Partial<OrgSettings>): Promise<void> {
+    const previo = await this.getSettings(orgId);
+    const valores = {
       openrouterKey: patch.openrouterKey ?? previo?.openrouterKey ?? "",
       serpapiKey: patch.serpapiKey ?? previo?.serpapiKey ?? "",
+      modeloIa: patch.modeloIa ?? previo?.modeloIa ?? "",
     };
     await db.insert(orgSettings)
-      .values({ orgId, ...claves })
+      .values({ orgId, ...valores })
       .onConflictDoUpdate({
         target: orgSettings.orgId,
-        set: { ...claves, updatedAt: new Date() },
+        set: { ...valores, updatedAt: new Date() },
       });
   }
 }

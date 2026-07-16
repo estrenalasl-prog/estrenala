@@ -47,7 +47,9 @@ export type DraftPatch = Partial<Pick<DraftRow,
   "analisisJson" | "planMd" | "investigacionMd" | "articuloMd" | "linksHechos" |
   "titulo" | "slug" | "metaDescripcion" | "estado" | "errorMsg">>;
 
-export type BlogSettings = { nicho: string; idioma: string; modelo: string; keywordsSemilla: string };
+// El modelo de IA ya no vive aquí: se elige en Configuración (org_settings.modelo_ia, 4d).
+// La columna blog_settings.modelo del 4b2 queda sin uso en código.
+export type BlogSettings = { nicho: string; idioma: string; keywordsSemilla: string };
 
 export type KeywordRow = {
   id: string;
@@ -199,16 +201,16 @@ export class DrizzleBlogStore implements BlogStore {
     const r = await db.select().from(blogSettings)
       .where(eq(blogSettings.projectId, projectId)).limit(1);
     if (!r[0]) return null;
-    return { nicho: r[0].nicho, idioma: r[0].idioma, modelo: r[0].modelo, keywordsSemilla: r[0].keywordsSemilla };
+    return { nicho: r[0].nicho, idioma: r[0].idioma, keywordsSemilla: r[0].keywordsSemilla };
   }
 
   async setBlogSettings(orgId: string, projectId: string, s: BlogSettings): Promise<void> {
     if (!(await proyectoDeOrg(orgId, projectId))) return;
     await db.insert(blogSettings)
-      .values({ projectId, nicho: s.nicho, idioma: s.idioma, modelo: s.modelo, keywordsSemilla: s.keywordsSemilla })
+      .values({ projectId, nicho: s.nicho, idioma: s.idioma, keywordsSemilla: s.keywordsSemilla })
       .onConflictDoUpdate({
         target: blogSettings.projectId,
-        set: { nicho: s.nicho, idioma: s.idioma, modelo: s.modelo, keywordsSemilla: s.keywordsSemilla, updatedAt: new Date() },
+        set: { nicho: s.nicho, idioma: s.idioma, keywordsSemilla: s.keywordsSemilla, updatedAt: new Date() },
       });
   }
 

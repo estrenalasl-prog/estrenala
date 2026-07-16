@@ -74,3 +74,19 @@ premium; la monetización se planeará cuando toque.
 
 Cifrado de claves en reposo · claves por usuario individual (multiusuario) · más ajustes en la
 página (idioma UI, plan/billing) · gating premium del blog (backlog de monetización).
+
+## Adenda (2026-07-15, tras probar el usuario)
+
+1. **El selector de modelo de IA se muda del panel del blog a Configuración** (petición del
+   usuario: «así no hay confusión, queda todo en configuración»). Pasa a ser un ajuste de la
+   organización (`org_settings.modelo_ia`, default `''` = default de la plataforma); la columna
+   `blog_settings.modelo` del 4b2 queda sin uso en código (se conserva en BD). La migración copia
+   el modelo por proyecto más reciente al de la organización. El workspace sigue mostrando el
+   modelo activo; la página `/settings` gana la tarjeta «Modelo de IA».
+2. **Bug real encontrado por el usuario**: el radar devolvía «Error interno» cuando la puntuación
+   de relevancia fallaba en OpenRouter (p. ej. 402 sin saldo) — SerpAPI ya había respondido bien.
+   Se mapea como en el 4a: 402 → «Tu cuenta de OpenRouter no tiene saldo. Añade crédito en
+   openrouter.ai/settings/credits e inténtalo de nuevo.» (EditorError 402); otros fallos de
+   puntuación → 502 «No se pudo puntuar la relevancia de los temas, vuelve a intentarlo». La caché
+   diaria NO se marca si la puntuación falla (se puede reintentar), a costa de repetir los créditos
+   de SerpAPI en el reintento.

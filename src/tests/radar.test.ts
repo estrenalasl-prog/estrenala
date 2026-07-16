@@ -11,9 +11,14 @@ vi.mock("@/src/ia/claude", async (importOriginal) => ({
   ...(await importOriginal<object>()),
   pedirJson: vi.fn(),
 }));
+vi.mock("@/src/config/claves", async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  modeloOrganizacion: vi.fn(),
+}));
 
 import { buscarTendencias, buscarRelacionadas } from "@/src/blog/radar/serpapi";
-import { pedirJson } from "@/src/ia/claude";
+import { pedirJson, OpenRouterError } from "@/src/ia/claude";
+import { modeloOrganizacion } from "@/src/config/claves";
 import { actualizarRadar } from "@/src/blog/radar";
 
 const ORG = "org-1";
@@ -21,7 +26,7 @@ const P = "p1";
 
 type KwGuardada = KeywordNueva & { id: string; estado: string };
 
-function fakes(opts: { nicho?: string; semillas?: string; modelo?: string } = {}) {
+function fakes(opts: { nicho?: string; semillas?: string } = {}) {
   const keywords: KwGuardada[] = [];
   const cache = new Set<string>();
   const blog = {
@@ -29,7 +34,6 @@ function fakes(opts: { nicho?: string; semillas?: string; modelo?: string } = {}
       return {
         nicho: opts.nicho ?? "IA y automatización para pymes",
         idioma: "es",
-        modelo: opts.modelo ?? "",
         keywordsSemilla: opts.semillas ?? "agentes ia, automatización pymes",
       };
     },
@@ -65,6 +69,7 @@ function fakes(opts: { nicho?: string; semillas?: string; modelo?: string } = {}
 beforeEach(() => {
   vi.stubEnv("SERPAPI_KEY", "test-key");
   vi.stubEnv("SITES_BASE_DOMAIN", "wc.app");
+  vi.mocked(modeloOrganizacion).mockReset().mockResolvedValue("");
   vi.mocked(buscarTendencias).mockReset().mockResolvedValue([
     { keyword: "ia generativa", fuente: "trends", crecimientoPct: 900, volumenAprox: 50000 },
     { keyword: "resultado futbol", fuente: "trends", crecimientoPct: 2000, volumenAprox: 100000 },
@@ -142,14 +147,36 @@ describe("actualizarRadar", () => {
     expect(vi.mocked(buscarTendencias)).not.toHaveBeenCalled();
   });
 
-  it("el prompt lleva nombre y nicho y pedirJson recibe el modelo del proyecto", async () => {
-    const f = fakes({ modelo: "proveedor/modelo-barato" });
+  it("el prompt lleva nombre y nicho y pedirJson recibe el modelo de Configuración", async () => {
+    vi.mocked(modeloOrganizacion).mockResolvedValue("proveedor/modelo-barato");
+    const f = fakes();
     await actualizarRadar(f.deps);
     const prompt = vi.mocked(pedirJson).mock.calls[0][0] as string;
     expect(prompt).toContain("Quantiva");
     expect(prompt).toContain("IA y automatización para pymes");
     expect(prompt).toContain("- ia generativa");
     expect(vi.mocked(pedirJson).mock.calls[0][3]).toBe("proveedor/modelo-barato");
+  });
+
+  it("OpenRouter sin saldo (402) al puntuar → EditorError 402 accionable y caché sin marcar", async () => {
+    const f = fakes();
+    vi.mocked(pedirJson).mockRejectedValue(new OpenRouterError(402, "OpenRouter HTTP 402: insufficient credits"));
+    const err = await actualizarRadar(f.deps).catch((e) => e);
+    expect(err).toBeInstanceOf(EditorError);
+    expect((err as EditorError).status).toBe(402);
+    expect((err as Error).message).toBe("Tu cuenta de OpenRouter no tiene saldo. Añade crédito en openrouter.ai/settings/credits e inténtalo de nuevo.");
+    expect(f.cache.size).toBe(0); // reintentable: la caché diaria no se marca
+    expect(f.keywords).toHaveLength(0);
+  });
+
+  it("otro fallo al puntuar → EditorError 502 con mensaje claro (no «Error interno»)", async () => {
+    const f = fakes();
+    vi.mocked(pedirJson).mockRejectedValue(new Error("respuesta no valida contra el schema"));
+    const err = await actualizarRadar(f.deps).catch((e) => e);
+    expect(err).toBeInstanceOf(EditorError);
+    expect((err as EditorError).status).toBe(502);
+    expect((err as Error).message).toBe("No se pudo puntuar la relevancia de los temas, vuelve a intentarlo");
+    expect(f.cache.size).toBe(0);
   });
 
   it("consulta como mucho 3 semillas (máx. 4 créditos por actualización)", async () => {

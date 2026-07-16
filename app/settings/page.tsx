@@ -1,14 +1,67 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { MODELOS, nombreModelo } from "../_components/modelos";
 
 type EstadoClave = { origen: "ui" | "env" | null; sufijo: string };
-type EstadoClaves = { openrouter: EstadoClave; serpapi: EstadoClave };
+type EstadoClaves = { openrouter: EstadoClave; serpapi: EstadoClave; modeloIa: string };
 
 function textoEstado(e: EstadoClave): string {
   if (e.origen === "ui") return `Usando tu clave (…${e.sufijo})`;
   if (e.origen === "env") return `Usando la del servidor (…${e.sufijo})`;
   return "Sin configurar";
+}
+
+// Tarjeta del modelo de IA con el que se redacta (lista curada + slug libre).
+// A NIVEL DE MÓDULO (regla de foco del proyecto).
+function TarjetaModelo({ modeloActual, ocupado, onGuardar }: {
+  modeloActual: string;
+  ocupado: boolean;
+  onGuardar: (modelo: string) => Promise<boolean>;
+}) {
+  const [sel, setSel] = useState("");
+  const [custom, setCustom] = useState("");
+  const [msg, setMsg] = useState<string | null>(null);
+
+  // Sincroniza el selector con lo guardado cuando llega del GET.
+  useEffect(() => {
+    if (MODELOS.some((m) => m.valor === modeloActual)) { setSel(modeloActual); setCustom(""); }
+    else { setSel("otro"); setCustom(modeloActual); }
+  }, [modeloActual]);
+
+  async function guardar() {
+    setMsg(null);
+    const modelo = sel === "otro" ? custom.trim() : sel;
+    if (await onGuardar(modelo)) setMsg("Modelo guardado.");
+  }
+
+  return (
+    <div className="rounded-lg border bg-white p-4">
+      <div className="flex items-center justify-between">
+        <p className="font-medium">Modelo de IA para redactar</p>
+        <span className="text-xs text-gray-500">Actual: {nombreModelo(modeloActual)}</span>
+      </div>
+      <p className="mt-1 text-sm text-gray-500">
+        Con este modelo se redactan los artículos del blog y se puntúa el radar de temas.
+        Los económicos gastan menos crédito (los «:free» nada); si uno da error al generar, prueba otro.
+      </p>
+      <div className="mt-2 flex items-center gap-2">
+        <select value={sel} onChange={(e) => { setSel(e.target.value); setMsg(null); }}
+          className="rounded border px-2 py-1 text-sm">
+          {MODELOS.map((m) => <option key={m.valor} value={m.valor}>{m.nombre}</option>)}
+          <option value="otro">Otro…</option>
+        </select>
+        {sel === "otro" && (
+          <input value={custom} placeholder="identificador de openrouter.ai/models, p. ej. deepseek/deepseek-chat:free"
+            onChange={(e) => { setCustom(e.target.value); setMsg(null); }}
+            className="w-full rounded border px-2 py-1 text-sm" />
+        )}
+        <button onClick={() => void guardar()} disabled={ocupado}
+          className="shrink-0 rounded bg-indigo-600 px-3 py-1 text-sm text-white disabled:opacity-50">Guardar</button>
+      </div>
+      {msg && <p className="mt-1 text-xs text-green-700">{msg}</p>}
+    </div>
+  );
 }
 
 // Tarjeta de un servicio: estado, input de clave, guardar/probar/quitar.
@@ -125,6 +178,24 @@ export default function SettingsPage() {
       </p>
 
       <div className="space-y-4">
+        <TarjetaModelo
+          modeloActual={estados?.modeloIa ?? ""}
+          ocupado={ocupado}
+          onGuardar={async (modelo) => {
+            setOcupado(true); setError(null);
+            try {
+              const res = await fetch("/api/settings", {
+                method: "PUT", headers: { "content-type": "application/json" },
+                body: JSON.stringify({ modeloIa: modelo }),
+              });
+              const d = (await res.json().catch(() => ({}))) as { error?: string };
+              if (!res.ok) { setError(d.error ?? "Error"); return false; }
+              await cargar();
+              return true;
+            } catch { setError("Error de conexión"); return false; }
+            finally { setOcupado(false); }
+          }}
+        />
         <TarjetaServicio
           titulo="OpenRouter (IA)"
           descripcion="Redacta los artículos del blog y genera las plantillas. Crea tu clave en"

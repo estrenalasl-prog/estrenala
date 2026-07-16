@@ -27,6 +27,7 @@ export const orgSettings = pgTable("org_settings", {
   orgId: uuid("org_id").notNull().unique().references(() => organizations.id),
   openrouterKey: text("openrouter_key").notNull().default(""), // '' = usar la del .env.local
   serpapiKey: text("serpapi_key").notNull().default(""),
+  modeloIa: text("modelo_ia").notNull().default(""), // '' = modelo por defecto de la plataforma
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

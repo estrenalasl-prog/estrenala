@@ -1,8 +1,8 @@
 import { EditorError } from "@/src/editor/errors";
-import { pedirJson, RelevanciaSchema } from "@/src/ia/claude";
+import { pedirJson, RelevanciaSchema, OpenRouterError } from "@/src/ia/claude";
 import { basePublica } from "@/src/blog/render";
 import { sitesBaseDomain } from "@/src/blog/apply";
-import { claveSerpApi } from "@/src/config/claves";
+import { claveSerpApi, modeloOrganizacion } from "@/src/config/claves";
 import { buscarTendencias, buscarRelacionadas, type CandidatoKeyword } from "./serpapi";
 import type { ProjectStore } from "@/src/repositories/types";
 import type { BlogStore } from "@/src/repositories/blog";
@@ -67,7 +67,18 @@ Puntúa de 0 a 100 la relevancia de cada keyword como tema para un artículo del
 En cada puntuación, usa EXACTAMENTE el mismo texto de la keyword tal y como aparece en la lista (cópialo literal).
 Keywords:
 ${unicos.map((c) => `- ${c.keyword}`).join("\n")}`;
-  const { puntuaciones } = await pedirJson(prompt, RelevanciaSchema, 8000, settings.modelo || undefined);
+  // La puntuación puede fallar por OpenRouter (saldo, modelo caído) DESPUÉS de
+  // haber gastado SerpAPI: mensaje accionable y caché sin marcar (reintentable).
+  let puntuaciones: { keyword: string; relevancia: number }[];
+  try {
+    const modelo = await modeloOrganizacion();
+    ({ puntuaciones } = await pedirJson(prompt, RelevanciaSchema, 8000, modelo || undefined));
+  } catch (e) {
+    if (e instanceof OpenRouterError && e.status === 402) {
+      throw new EditorError("Tu cuenta de OpenRouter no tiene saldo. Añade crédito en openrouter.ai/settings/credits e inténtalo de nuevo.", 402);
+    }
+    throw new EditorError("No se pudo puntuar la relevancia de los temas, vuelve a intentarlo", 502);
+  }
   const mapa = new Map(puntuaciones.map((p) => [p.keyword.toLowerCase(), Math.round(p.relevancia)]));
 
   // 3) Guardar las relevantes (los duplicados los ignora el UNIQUE) y marcar la caché del día.
