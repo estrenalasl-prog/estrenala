@@ -179,6 +179,20 @@ function fakes(opts: { project?: Partial<ProjectRow>; tienePlantilla?: boolean }
       return false;
     },
     async marcarTrendsCache() {},
+    // Programados del 4e: apply.ts tampoco los usa; stubs mínimos.
+    async crearProgramado() {
+      return { programadoId: "prog-1" };
+    },
+    async listProgramados() {
+      return [];
+    },
+    async borrarProgramado() {
+      return false;
+    },
+    async reclamarProgramadosVencidos() {
+      return [];
+    },
+    async resolverProgramado() {},
   };
 
   return { store, storage, blog, archivos, puts, createSnapshotCalls };

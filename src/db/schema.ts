@@ -120,6 +120,22 @@ export const trendsCache = pgTable("trends_cache", {
   payload: text("payload").notNull(),
 }, (t) => [unique().on(t.projectId, t.fecha)]);
 
+export const scheduledPosts = pgTable("scheduled_posts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  projectId: uuid("project_id").notNull().references(() => projects.id),
+  titulo: text("titulo").notNull(),
+  slug: text("slug").notNull(),
+  metaDescripcion: text("meta_descripcion").notNull(),
+  md: text("md").notNull(),
+  imagenAssetId: uuid("imagen_asset_id").notNull(),
+  publicarEn: timestamp("publicar_en", { withTimezone: true }).notNull(),
+  estado: text("estado").notNull().default("pendiente"), // pendiente | publicando | publicado | error
+  errorMsg: text("error_msg"),
+  postId: uuid("post_id"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const posts = pgTable("posts", {
   id: uuid("id").primaryKey().defaultRandom(),
   projectId: uuid("project_id").notNull().references(() => projects.id),

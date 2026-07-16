@@ -1,6 +1,6 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray, lte } from "drizzle-orm";
 import { db } from "@/src/db/client";
-import { articleDrafts, blogKeywords, blogSettings, blogTemplates, posts, projects, trendsCache } from "@/src/db/schema";
+import { articleDrafts, blogKeywords, blogSettings, blogTemplates, posts, projects, scheduledPosts, trendsCache } from "@/src/db/schema";
 
 export type PostRow = {
   id: string;
@@ -65,6 +65,26 @@ export type KeywordRow = {
 
 export type KeywordNueva = Pick<KeywordRow, "keyword" | "fuente" | "crecimientoPct" | "volumenAprox" | "relevancia">;
 
+export type ProgramadoRow = {
+  id: string;
+  projectId: string;
+  titulo: string;
+  slug: string;
+  metaDescripcion: string;
+  md: string;
+  imagenAssetId: string;
+  publicarEn: string; // ISO
+  estado: string; // pendiente | publicando | publicado | error
+  errorMsg: string | null;
+  postId: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ProgramadoNuevo = Pick<ProgramadoRow, "titulo" | "slug" | "metaDescripcion" | "md" | "imagenAssetId" | "publicarEn">;
+
+export type ProgramadoResultado = { estado: "publicado" | "error"; errorMsg?: string | null; postId?: string | null };
+
 export interface BlogStore {
   getBlogTemplate(orgId: string, projectId: string): Promise<{ tplPost: string; tplIndex: string } | null>;
   setBlogTemplate(orgId: string, projectId: string, tpl: { tplPost: string; tplIndex: string }): Promise<void>;
@@ -85,6 +105,12 @@ export interface BlogStore {
   setKeywordEstado(orgId: string, projectId: string, keywordId: string, estado: string): Promise<boolean>; // false si no existe
   hayTrendsCache(orgId: string, projectId: string, fecha: string): Promise<boolean>;
   marcarTrendsCache(orgId: string, projectId: string, fecha: string, payload: string): Promise<void>;
+  crearProgramado(orgId: string, projectId: string, input: ProgramadoNuevo): Promise<{ programadoId: string }>;
+  listProgramados(orgId: string, projectId: string): Promise<ProgramadoRow[]>; // publicarEn asc
+  borrarProgramado(orgId: string, projectId: string, programadoId: string): Promise<boolean>; // false si no existe
+  // Para el runner (globales: cruzan organizaciones, sin org-scoping):
+  reclamarProgramadosVencidos(limite: number): Promise<(ProgramadoRow & { orgId: string })[]>; // pendiente→publicando
+  resolverProgramado(programadoId: string, r: ProgramadoResultado): Promise<void>;
 }
 
 async function proyectoDeOrg(orgId: string, projectId: string): Promise<boolean> {
@@ -108,6 +134,24 @@ function toDraftRow(r: typeof articleDrafts.$inferSelect): DraftRow {
     metaDescripcion: r.metaDescripcion,
     estado: r.estado,
     errorMsg: r.errorMsg,
+    createdAt: r.createdAt.toISOString(),
+    updatedAt: r.updatedAt.toISOString(),
+  };
+}
+
+function toProgramadoRow(r: typeof scheduledPosts.$inferSelect): ProgramadoRow {
+  return {
+    id: r.id,
+    projectId: r.projectId,
+    titulo: r.titulo,
+    slug: r.slug,
+    metaDescripcion: r.metaDescripcion,
+    md: r.md,
+    imagenAssetId: r.imagenAssetId,
+    publicarEn: r.publicarEn.toISOString(),
+    estado: r.estado,
+    errorMsg: r.errorMsg,
+    postId: r.postId,
     createdAt: r.createdAt.toISOString(),
     updatedAt: r.updatedAt.toISOString(),
   };
@@ -289,6 +333,64 @@ export class DrizzleBlogStore implements BlogStore {
   async marcarTrendsCache(orgId: string, projectId: string, fecha: string, payload: string): Promise<void> {
     if (!(await proyectoDeOrg(orgId, projectId))) return;
     await db.insert(trendsCache).values({ projectId, fecha, payload }).onConflictDoNothing();
+  }
+
+  async crearProgramado(orgId: string, projectId: string, input: ProgramadoNuevo): Promise<{ programadoId: string }> {
+    if (!(await proyectoDeOrg(orgId, projectId))) throw new Error("Proyecto no encontrado en la organización");
+    const r = await db.insert(scheduledPosts).values({
+      projectId,
+      titulo: input.titulo,
+      slug: input.slug,
+      metaDescripcion: input.metaDescripcion,
+      md: input.md,
+      imagenAssetId: input.imagenAssetId,
+      publicarEn: new Date(input.publicarEn),
+    }).returning({ id: scheduledPosts.id });
+    return { programadoId: r[0].id };
+  }
+
+  async listProgramados(orgId: string, projectId: string): Promise<ProgramadoRow[]> {
+    if (!(await proyectoDeOrg(orgId, projectId))) return [];
+    const rows = await db.select().from(scheduledPosts)
+      .where(eq(scheduledPosts.projectId, projectId))
+      .orderBy(scheduledPosts.publicarEn);
+    return rows.map(toProgramadoRow);
+  }
+
+  async borrarProgramado(orgId: string, projectId: string, programadoId: string): Promise<boolean> {
+    if (!(await proyectoDeOrg(orgId, projectId))) return false;
+    const r = await db.delete(scheduledPosts)
+      .where(and(eq(scheduledPosts.id, programadoId), eq(scheduledPosts.projectId, projectId)))
+      .returning({ id: scheduledPosts.id });
+    return r.length > 0;
+  }
+
+  async reclamarProgramadosVencidos(limite: number): Promise<(ProgramadoRow & { orgId: string })[]> {
+    // Candidatos vencidos (los más antiguos primero) y reclamo en dos pasos:
+    // el UPDATE re-comprueba estado='pendiente', así dos ticks solapados no
+    // publican la misma fila dos veces (el segundo no la reclama).
+    const vencidos = await db.select({ id: scheduledPosts.id }).from(scheduledPosts)
+      .where(and(eq(scheduledPosts.estado, "pendiente"), lte(scheduledPosts.publicarEn, new Date())))
+      .orderBy(scheduledPosts.publicarEn).limit(limite);
+    if (vencidos.length === 0) return [];
+    const filas = await db.update(scheduledPosts)
+      .set({ estado: "publicando", updatedAt: new Date() })
+      .where(and(inArray(scheduledPosts.id, vencidos.map((v) => v.id)), eq(scheduledPosts.estado, "pendiente")))
+      .returning();
+    if (filas.length === 0) return [];
+    const duenos = await db.select({ id: projects.id, orgId: projects.orgId }).from(projects)
+      .where(inArray(projects.id, [...new Set(filas.map((f) => f.projectId))]));
+    const orgPorProyecto = new Map(duenos.map((p) => [p.id, p.orgId]));
+    return filas.map((f) => ({ ...toProgramadoRow(f), orgId: orgPorProyecto.get(f.projectId)! }));
+  }
+
+  async resolverProgramado(programadoId: string, r: ProgramadoResultado): Promise<void> {
+    await db.update(scheduledPosts).set({
+      estado: r.estado,
+      errorMsg: r.errorMsg ?? null,
+      postId: r.postId ?? null,
+      updatedAt: new Date(),
+    }).where(eq(scheduledPosts.id, programadoId));
   }
 }
 
