@@ -2,11 +2,11 @@ import { NextResponse, type NextRequest } from "next/server";
 import { parseHost } from "@/src/publish/host";
 import { verificarSesion, SESSION_COOKIE } from "@/src/auth/session-cookie";
 
-// Rutas del panel accesibles sin sesión. El cron de publicación programada es
-// para disparadores externos (sin cookie): solo publica programaciones ya
-// vencidas (lo mismo que hará el tick del servidor en <60 s) y puede exigir
-// CRON_SECRET — el candado real está en la propia ruta.
-const RUTAS_PUBLICAS = ["/login", "/api/login", "/api/health", "/api/cron/publicar"];
+// Rutas del panel accesibles sin sesión. Los cron son para disparadores
+// externos (sin cookie): solo hacen lo que el tick del servidor haría igual en
+// <60 s (publicar vencidos / ejecutar pilotos ya configurados por sus dueños)
+// y pueden exigir CRON_SECRET — el candado real está en cada ruta.
+const RUTAS_PUBLICAS = ["/login", "/api/login", "/api/health", "/api/cron/publicar", "/api/cron/piloto"];
 
 // 1) Hosts que no son la plataforma → se sirven como sitio publicado (/sites/<host>).
 // 2) La raíz del dominio madre → redirect al panel.
