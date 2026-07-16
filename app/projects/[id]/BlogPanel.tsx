@@ -12,6 +12,10 @@ type TemaItem = {
   id: string; keyword: string; fuente: string; crecimientoPct: number | null;
   volumenAprox: number | null; relevancia: number; estado: string; discoveredAt: string;
 };
+type ProgramadoItem = {
+  id: string; titulo: string; slug: string; metaDescripcion: string; md: string;
+  imagenAssetId: string; publicarEn: string; estado: string; errorMsg: string | null; postId: string | null;
+};
 type Vista = "lista" | "plantillas" | "editor" | "ia";
 
 const AVISO = "Las páginas del blog se generan desde aquí; si las tocas con el editor visual, la próxima regeneración del blog deshará esos cambios.";
@@ -20,6 +24,12 @@ function estadoLegible(estado: string): string {
   if (estado === "revision") return "✅ para revisar";
   if (estado === "error") return "⚠ error";
   return "⏳ en marcha";
+}
+
+function estadoProgramadoLegible(estado: string): string {
+  if (estado === "publicado") return "✓ publicado";
+  if (estado === "error") return "⚠ error";
+  return "⏳ pendiente"; // pendiente | publicando
 }
 
 function BadgeRelevancia({ relevancia }: { relevancia: number }) {
@@ -68,15 +78,20 @@ export function BlogPanel({ projectId }: { projectId: string }) {
   const [semillas, setSemillas] = useState("");
   const [temas, setTemas] = useState<TemaItem[]>([]);
   const [radarMsg, setRadarMsg] = useState<string | null>(null);
+  // publicación programada (4e)
+  const [programados, setProgramados] = useState<ProgramadoItem[]>([]);
+  const [progFecha, setProgFecha] = useState(""); // valor del datetime-local del editor
+  const [progMsg, setProgMsg] = useState<string | null>(null);
 
   async function cargar() {
     try {
-      const [rEstado, rSettings, rDrafts, rTemas, rOrg] = await Promise.all([
+      const [rEstado, rSettings, rDrafts, rTemas, rOrg, rProg] = await Promise.all([
         fetch(`/api/projects/${projectId}/blog`),
         fetch(`/api/projects/${projectId}/blog/settings`),
         fetch(`/api/projects/${projectId}/blog/drafts`),
         fetch(`/api/projects/${projectId}/blog/keywords`),
         fetch(`/api/settings`),
+        fetch(`/api/projects/${projectId}/blog/programados`),
       ]);
       if (rEstado.ok) setEstado((await rEstado.json()) as EstadoBlog);
       if (rSettings.ok) {
@@ -87,6 +102,7 @@ export function BlogPanel({ projectId }: { projectId: string }) {
       if (rDrafts.ok) setBorradores((await rDrafts.json()) as BorradorItem[]);
       if (rTemas.ok) setTemas((await rTemas.json()) as TemaItem[]);
       if (rOrg.ok) setModeloOrg(((await rOrg.json()) as { modeloIa?: string }).modeloIa ?? "");
+      if (rProg.ok) setProgramados((await rProg.json()) as ProgramadoItem[]);
     } catch { /* silencioso: se reintenta al reabrir */ }
   }
   useEffect(() => { if (abierto && !estado) void cargar(); }, [abierto]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -128,7 +144,7 @@ export function BlogPanel({ projectId }: { projectId: string }) {
 
   function nuevoArticulo() {
     setPostId(null); setTitulo(""); setSlug(""); setSlugTocado(false); setMeta(""); setMd("");
-    setImagenAssetId(""); setImagenUrl(""); setPreviewArt(null); setVista("editor");
+    setImagenAssetId(""); setImagenUrl(""); setPreviewArt(null); setProgFecha(""); setVista("editor");
   }
   async function editarArticulo(id: string) {
     const d = await llamar(`/api/projects/${projectId}/blog/posts/${id}`, { method: "GET" });
@@ -137,7 +153,7 @@ export function BlogPanel({ projectId }: { projectId: string }) {
     setMeta(d.metaDescripcion as string); setMd(d.md as string);
     setImagenAssetId(d.imagenAssetId as string);
     setImagenUrl(`/api/projects/${projectId}/preview/blog/img/${d.slug}.${d.imagenExt}`);
-    setPreviewArt(null); setVista("editor");
+    setPreviewArt(null); setProgFecha(""); setVista("editor");
   }
   async function subirPortada(f: File) {
     setOcupado(true); setError(null);
@@ -176,6 +192,43 @@ export function BlogPanel({ projectId }: { projectId: string }) {
     if (!confirm(`¿Borrar el artículo "${tituloPost}"? Esta acción no se puede deshacer.`)) return;
     const d = await llamar(`/api/projects/${projectId}/blog/posts/${id}`, { method: "DELETE" });
     if (d) { setEstado(null); await cargar(); router.refresh(); }
+  }
+
+  // --- publicación programada (4e) ---
+  async function programarArticulo() {
+    const d = await llamar(`/api/projects/${projectId}/blog/programados`, {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        titulo, slug, metaDescripcion: meta, md, imagenAssetId,
+        publicarEn: progFecha ? new Date(progFecha).toISOString() : "",
+      }),
+    });
+    if (!d) return;
+    if (draftOrigenId) {
+      // Igual que al guardar: el contenido ya vive en la programación.
+      try { await fetch(`/api/projects/${projectId}/blog/drafts/${draftOrigenId}`, { method: "DELETE" }); } catch { /* silencioso */ }
+      setDraftOrigenId(null);
+    }
+    setProgMsg(`Artículo programado para el ${new Date(progFecha).toLocaleString()}. A esa hora se publica solo (artículo y sitio).`);
+    setProgFecha("");
+    setVista("lista"); setEstado(null); await cargar();
+  }
+  // «Editar» recupera el contenido al editor y quita la programación:
+  // reprogramar = volver a programar desde ahí.
+  async function editarProgramado(p: ProgramadoItem) {
+    const d = await llamar(`/api/projects/${projectId}/blog/programados/${p.id}`, { method: "DELETE" });
+    if (!d) return;
+    setPostId(null); setTitulo(p.titulo); setSlug(p.slug); setSlugTocado(true);
+    setMeta(p.metaDescripcion); setMd(p.md);
+    setImagenAssetId(p.imagenAssetId);
+    setImagenUrl(p.imagenAssetId ? `/api/projects/${projectId}/assets/${p.imagenAssetId}` : "");
+    setPreviewArt(null); setDraftOrigenId(null); setProgFecha(""); setProgMsg(null);
+    setVista("editor");
+    void cargar();
+  }
+  async function ocultarProgramado(id: string) {
+    const d = await llamar(`/api/projects/${projectId}/blog/programados/${id}`, { method: "DELETE" });
+    if (d) { setProgMsg(null); await cargar(); }
   }
 
   // --- redacción con IA (4b) ---
@@ -253,7 +306,7 @@ export function BlogPanel({ projectId }: { projectId: string }) {
     setSlugTocado(true);
     setMeta(det.draft.metaDescripcion ?? "");
     setMd(det.draft.articuloMd ?? "");
-    setImagenAssetId(""); setImagenUrl(""); setPreviewArt(null);
+    setImagenAssetId(""); setImagenUrl(""); setPreviewArt(null); setProgFecha("");
     setDraftOrigenId(det.draft.id);
     setVista("editor");
   }
@@ -363,6 +416,35 @@ export function BlogPanel({ projectId }: { projectId: string }) {
                       )}
                     </div>
                   </div>
+                  {(programados.length > 0 || progMsg) && (
+                    <div className="mb-2 rounded-lg border bg-white p-3">
+                      <p className="text-sm font-medium">Programados</p>
+                      {progMsg && <p className="mt-1 text-xs text-green-700">{progMsg}</p>}
+                      <ul className="mt-1 space-y-1">
+                        {programados.map((p) => (
+                          <li key={p.id} className="flex items-center justify-between rounded border bg-gray-50 px-2 py-1 text-sm">
+                            <span>
+                              {p.titulo}{" "}
+                              <span className="text-xs text-gray-400">· {new Date(p.publicarEn).toLocaleString()} · {estadoProgramadoLegible(p.estado)}</span>
+                              {p.estado === "error" && p.errorMsg && <span className="text-xs text-red-600"> — {p.errorMsg}</span>}
+                            </span>
+                            <span className="flex shrink-0 gap-2">
+                              {(p.estado === "pendiente" || p.estado === "error") && (
+                                <button onClick={() => void editarProgramado(p)} disabled={ocupado}
+                                  title="Recupera el contenido al editor y quita la programación (reprograma desde ahí)"
+                                  className="rounded border px-2 py-0.5 text-xs">Editar</button>
+                              )}
+                              {p.estado === "publicado" && (
+                                <button onClick={() => void ocultarProgramado(p.id)} disabled={ocupado}
+                                  title="Quita esta fila; el artículo ya está en la lista de abajo"
+                                  className="text-xs text-gray-500 underline">Ocultar</button>
+                              )}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                   <div className="mb-2 flex items-center gap-2">
                     <button onClick={nuevoArticulo} className="rounded bg-indigo-600 px-3 py-1 text-sm text-white">Nuevo artículo</button>
                     <button onClick={() => void abrirPlantillas()} className="text-xs text-gray-500 underline">Editar plantillas</button>
@@ -445,6 +527,15 @@ export function BlogPanel({ projectId }: { projectId: string }) {
                 <button onClick={() => void verPreviewArticulo()} disabled={ocupado} className="rounded border px-2 py-1 text-xs">Vista previa</button>
                 <button onClick={() => setVista("lista")} className="rounded border px-2 py-1 text-xs">Cancelar</button>
               </div>
+              {!postId && (
+                <div className="flex flex-wrap items-center gap-2 border-t pt-2">
+                  <span className="text-xs text-gray-500">O deja que se publique solo (artículo y sitio):</span>
+                  <input type="datetime-local" value={progFecha} onChange={(e) => setProgFecha(e.target.value)}
+                    className="rounded border px-2 py-1 text-xs" />
+                  <button onClick={() => void programarArticulo()} disabled={ocupado || !progFecha}
+                    className="rounded border px-2 py-1 text-xs disabled:opacity-50">Programar publicación</button>
+                </div>
+              )}
               {previewArt && <IframePreview html={previewArt} />}
             </div>
           )}
