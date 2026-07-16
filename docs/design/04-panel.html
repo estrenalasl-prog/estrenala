@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup — Panel (tus webs)</title>
+<style>
+  :root{
+    --lienzo:#f8fafc; --superficie:#fff; --superficie-2:#f1f5f9; --borde:#e2e8f0; --borde-fuerte:#cbd5e1;
+    --texto:#0f172a; --texto-2:#475569; --texto-3:#94a3b8;
+    --primario:#4f46e5; --primario-osc:#4338ca; --primario-suave:#eef2ff; --primario-borde:#c7d2fe;
+    --exito:#059669; --exito-suave:#ecfdf5; --exito-texto:#047857;
+    --aviso:#d97706; --aviso-suave:#fffbeb; --aviso-texto:#b45309;
+    --radio-c:8px; --radio-t:12px;
+    --sombra-1:0 1px 2px rgba(15,23,42,.06); --sombra-2:0 4px 12px -2px rgba(15,23,42,.10);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--lienzo);color:var(--texto);
+    font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+
+  /* ---------- Cabecera global ---------- */
+  .cabecera{position:sticky;top:0;background:rgba(255,255,255,.85);backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--borde);z-index:5}
+  .cabecera-int{max-width:1040px;margin:0 auto;display:flex;align-items:center;gap:14px;padding:12px 24px}
+  .marca{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px}
+  .marca .simbolo{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;color:#fff;
+    background:linear-gradient(135deg,var(--primario),#0ea5e9);font-size:12px}
+  .cabecera nav{margin-left:auto;display:flex;align-items:center;gap:14px;font-size:13px}
+  .cabecera a{color:var(--texto-2);text-decoration:none}
+  .cabecera a:hover{color:var(--texto)}
+
+  main{max-width:1040px;margin:0 auto;padding:32px 24px 80px}
+  h1{font-size:28px;font-weight:700;letter-spacing:-.01em;margin:0}
+  .sub{color:var(--texto-2);margin:4px 0 24px}
+
+  /* ---------- Importación: LA acción primaria ---------- */
+  .importar{display:flex;flex-wrap:wrap;align-items:center;gap:16px;background:var(--superficie);
+    border:1.5px dashed var(--primario-borde);border-radius:var(--radio-t);
+    padding:20px 24px;margin-bottom:32px;box-shadow:var(--sombra-1)}
+  .importar:hover{border-color:var(--primario)}
+  .importar .icono{width:44px;height:44px;border-radius:10px;background:var(--primario-suave);
+    display:grid;place-items:center;font-size:20px;flex:none}
+  .importar .texto{min-width:220px;flex:1}
+  .importar b{display:block;font-size:15px}
+  .importar span{font-size:13px;color:var(--texto-2)}
+  .importar .campos{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  .input{height:38px;border:1px solid var(--borde);border-radius:var(--radio-c);background:var(--superficie);
+    padding:0 12px;font:inherit;color:var(--texto);width:220px}
+  .input::placeholder{color:var(--texto-3)}
+  .input:focus{border-color:var(--primario);box-shadow:0 0 0 3px rgba(79,70,229,.25);outline:none}
+  .btn{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 18px;border-radius:var(--radio-c);
+    font:600 14px system-ui;cursor:pointer;border:1px solid transparent;transition:.12s}
+  .btn-primario{background:var(--primario);color:#fff;box-shadow:var(--sombra-1)}
+  .btn-primario:hover{background:var(--primario-osc)}
+
+  /* ---------- Rejilla de proyectos ---------- */
+  h2{font-size:15px;font-weight:600;color:var(--texto-2);margin:0 0 12px}
+  .rejilla{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px}
+  .tarjeta{border:1px solid var(--borde);border-radius:var(--radio-t);background:var(--superficie);
+    box-shadow:var(--sombra-1);overflow:hidden;cursor:pointer;transition:.15s;text-decoration:none;color:inherit;display:block}
+  .tarjeta:hover{box-shadow:var(--sombra-2);border-color:var(--borde-fuerte)}
+  .mini{height:110px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:34px;font-weight:700}
+  .cuerpo{padding:14px 16px 16px}
+  .cuerpo h3{margin:0 0 8px;font-size:15px;font-weight:600}
+  .badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:500}
+  .badge .punto{width:6px;height:6px;border-radius:50%}
+  .badge-exito{background:var(--exito-suave);color:var(--exito-texto)}.badge-exito .punto{background:var(--exito)}
+  .badge-aviso{background:var(--aviso-suave);color:var(--aviso-texto)}.badge-aviso .punto{background:var(--aviso)}
+  .badge-neutro{background:var(--superficie-2);color:var(--texto-2)}.badge-neutro .punto{background:var(--texto-3)}
+  .url{display:inline-block;margin-top:8px;max-width:100%;border-radius:999px;background:var(--primario-suave);
+    color:var(--primario);border:1px solid var(--primario-borde);padding:3px 10px;font-size:12px;
+    overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+  .meta{font-size:12px;color:var(--texto-3);margin-top:8px}
+
+  /* ---------- Estado vacío (primera vez) ---------- */
+  .vacio{margin-top:48px;border:1.5px dashed var(--borde-fuerte);border-radius:var(--radio-t);
+    padding:48px 24px;text-align:center;color:var(--texto-2);background:var(--superficie)}
+  .vacio .icono{font-size:34px;margin-bottom:10px}
+  .vacio h3{margin:0 0 4px;color:var(--texto);font-size:16px}
+  .vacio p{margin:0 0 16px;font-size:13px}
+  .separador{margin:56px 0 8px;font-size:12px;color:var(--texto-3);text-transform:uppercase;letter-spacing:.06em}
+</style>
+</head>
+<body>
+
+<header class="cabecera">
+  <div class="cabecera-int">
+    <span class="marca"><span class="simbolo">▲</span>[Marca]</span>
+    <nav>
+      <a href="#">Configuración</a>
+      <a href="#">Salir</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <h1>Tus webs</h1>
+  <p class="sub">Todo lo que has publicado (o vas a publicar), en un sitio.</p>
+
+  <!-- Importación destacada: zona de arrastre + campos -->
+  <div class="importar">
+    <div class="icono">📦</div>
+    <div class="texto">
+      <b>Importa una web nueva</b>
+      <span>Arrastra aquí el ZIP que te generó tu IA, o elígelo a mano.</span>
+    </div>
+    <div class="campos">
+      <input class="input" placeholder="Nombre (p. ej. Clínica Sonrisa)">
+      <button class="btn" style="background:var(--superficie);border-color:var(--borde);color:var(--texto);font-weight:500">Elegir ZIP…</button>
+      <button class="btn btn-primario">Importar</button>
+    </div>
+  </div>
+
+  <h2>3 proyectos</h2>
+  <div class="rejilla">
+    <a class="tarjeta" href="#">
+      <div class="mini" style="background:linear-gradient(135deg,#4f46e5,#0ea5e9)">C</div>
+      <div class="cuerpo">
+        <h3>Clínica Sonrisa</h3>
+        <span class="badge badge-exito"><span class="punto"></span>Publicado</span>
+        <br><span class="url">clinica-sonrisa.plataforma.com</span>
+        <div class="meta">Actualizado hace 2 días</div>
+      </div>
+    </a>
+    <a class="tarjeta" href="#">
+      <div class="mini" style="background:linear-gradient(135deg,#0f766e,#84cc16)">T</div>
+      <div class="cuerpo">
+        <h3>Taller Rodríguez</h3>
+        <span class="badge badge-aviso"><span class="punto"></span>Cambios sin publicar</span>
+        <br><span class="url">taller-rodriguez.plataforma.com</span>
+        <div class="meta">Editado hoy · publicado hace 1 semana</div>
+      </div>
+    </a>
+    <a class="tarjeta" href="#">
+      <div class="mini" style="background:linear-gradient(135deg,#7c3aed,#db2777)">F</div>
+      <div class="cuerpo">
+        <h3>Floristería Pétalos</h3>
+        <span class="badge badge-neutro"><span class="punto"></span>Sin publicar</span>
+        <div class="meta" style="margin-top:26px">Importado ayer</div>
+      </div>
+    </a>
+  </div>
+
+  <!-- Variante: primera visita, sin proyectos -->
+  <p class="separador">Variante: estado vacío (primera visita)</p>
+  <div class="vacio">
+    <div class="icono">👋</div>
+    <h3>Importa tu primera web</h3>
+    <p>¿Tu IA ya te hizo la web? Sube el ZIP y en un minuto estará online,<br>con su dirección propia y lista para editar sin código.</p>
+    <button class="btn btn-primario">Importar mi web</button>
+  </div>
+</main>
+</body>
+</html>
