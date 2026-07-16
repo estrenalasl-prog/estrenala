@@ -212,7 +212,13 @@ export function BlogPanel({ projectId }: { projectId: string }) {
     });
     if (!d) return;
     if (d.actualizado === false) setRadarMsg("El radar ya se actualizó hoy.");
-    else setRadarMsg(`Radar actualizado: ${d.candidatos as number} temas analizados.`);
+    else {
+      const rel = (d.relacionadas as number) ?? 0;
+      setRadarMsg(
+        `Radar actualizado: ${d.candidatos as number} temas analizados (${(d.tendencias as number) ?? 0} de tendencias de hoy, ${rel} de tus semillas).` +
+        (rel === 0 ? " Tus semillas no dieron resultados en Google Trends: prueba con otras más habituales." : "")
+      );
+    }
     await cargar();
   }
   async function escribirDesdeTema(t: TemaItem) {

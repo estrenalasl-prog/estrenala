@@ -91,7 +91,7 @@ describe("actualizarRadar", () => {
   it("guarda keywords puntuadas y descarta las irrelevantes (<20)", async () => {
     const f = fakes();
     const r = await actualizarRadar(f.deps);
-    expect(r).toEqual({ actualizado: true, candidatos: 3 });
+    expect(r).toEqual({ actualizado: true, candidatos: 3, tendencias: 2, relacionadas: 1 });
     expect(f.keywords.map((k) => k.keyword).sort()).toEqual(["agentes ia para pymes", "ia generativa"]);
     expect(f.keywords.find((k) => k.keyword === "agentes ia para pymes")!.relevancia).toBe(95);
   });
@@ -147,8 +147,8 @@ describe("actualizarRadar", () => {
     expect(vi.mocked(buscarTendencias)).not.toHaveBeenCalled();
   });
 
-  it("el prompt lleva nombre y nicho y pedirJson recibe el modelo de Configuración", async () => {
-    vi.mocked(modeloOrganizacion).mockResolvedValue("proveedor/modelo-barato");
+  it("el prompt lleva nombre y nicho; la puntuación usa SIEMPRE el modelo por defecto (no el de redactar)", async () => {
+    vi.mocked(modeloOrganizacion).mockResolvedValue("proveedor/modelo-barato"); // debe ignorarse aquí
     const f = fakes();
     await actualizarRadar(f.deps);
     const prompt = vi.mocked(pedirJson).mock.calls[0][0] as string;
@@ -156,7 +156,7 @@ describe("actualizarRadar", () => {
     expect(prompt).toContain("IA y automatización para pymes");
     expect(prompt).toContain("- ia generativa");
     expect(prompt).toContain("Sé ESTRICTO"); // sin esto, los modelos generosos cuelan tendencias genéricas con 20
-    expect(vi.mocked(pedirJson).mock.calls[0][3]).toBe("proveedor/modelo-barato");
+    expect(vi.mocked(pedirJson).mock.calls[0][3]).toBeUndefined(); // los económicos puntuaban todo justo al corte (20)
   });
 
   it("OpenRouter sin saldo (402) al puntuar → EditorError 402 accionable y caché sin marcar", async () => {

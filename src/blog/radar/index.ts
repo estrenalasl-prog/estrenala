@@ -2,7 +2,7 @@ import { EditorError } from "@/src/editor/errors";
 import { pedirJson, RelevanciaSchema, OpenRouterError } from "@/src/ia/claude";
 import { basePublica } from "@/src/blog/render";
 import { sitesBaseDomain } from "@/src/blog/apply";
-import { claveSerpApi, modeloOrganizacion } from "@/src/config/claves";
+import { claveSerpApi } from "@/src/config/claves";
 import { buscarTendencias, buscarRelacionadas, type CandidatoKeyword } from "./serpapi";
 import type { ProjectStore } from "@/src/repositories/types";
 import type { BlogStore } from "@/src/repositories/blog";
@@ -23,7 +23,7 @@ export function hoy(): string {
 export async function actualizarRadar(
   deps: DepsRadar,
   forzar = false
-): Promise<{ actualizado: false } | { actualizado: true; candidatos: number }> {
+): Promise<{ actualizado: false } | { actualizado: true; candidatos: number; tendencias: number; relacionadas: number }> {
   const project = await deps.store.getProject(deps.orgId, deps.projectId);
   if (!project) throw new EditorError("Proyecto no encontrado", 404);
   const settings = await deps.blog.getBlogSettings(deps.orgId, deps.projectId);
@@ -71,12 +71,15 @@ Devuelve una puntuación para CADA keyword. En cada puntuación, usa EXACTAMENTE
 keyword tal y como aparece en la lista (cópialo literal).
 Keywords:
 ${unicos.map((c) => `- ${c.keyword}`).join("\n")}`;
-  // La puntuación puede fallar por OpenRouter (saldo, modelo caído) DESPUÉS de
-  // haber gastado SerpAPI: mensaje accionable y caché sin marcar (reintentable).
+  // La puntuación usa SIEMPRE el modelo por defecto de la plataforma, NO el
+  // elegido para redactar: los modelos económicos puntúan con manga ancha
+  // (visto con DeepSeek: toda tendencia genérica recibía justo el corte de 20)
+  // y es una sola llamada al día — céntimos con el modelo bueno.
+  // Puede fallar por OpenRouter (saldo, modelo caído) DESPUÉS de haber gastado
+  // SerpAPI: mensaje accionable y caché sin marcar (reintentable).
   let puntuaciones: { keyword: string; relevancia: number }[];
   try {
-    const modelo = await modeloOrganizacion();
-    ({ puntuaciones } = await pedirJson(prompt, RelevanciaSchema, 8000, modelo || undefined));
+    ({ puntuaciones } = await pedirJson(prompt, RelevanciaSchema, 8000));
   } catch (e) {
     if (e instanceof OpenRouterError && e.status === 402) {
       throw new EditorError("Tu cuenta de OpenRouter no tiene saldo. Añade crédito en openrouter.ai/settings/credits e inténtalo de nuevo.", 402);
@@ -98,5 +101,7 @@ ${unicos.map((c) => `- ${c.keyword}`).join("\n")}`;
   await deps.blog.insertKeywords(deps.orgId, deps.projectId, nuevas);
   await deps.blog.marcarTrendsCache(deps.orgId, deps.projectId, fechaHoy, JSON.stringify({ candidatos: unicos.length }));
 
-  return { actualizado: true, candidatos: unicos.length };
+  // Desglose por fuente: si las semillas no aportan nada, el usuario debe verlo.
+  const tendencias = unicos.filter((c) => c.fuente === "trends").length;
+  return { actualizado: true, candidatos: unicos.length, tendencias, relacionadas: unicos.length - tendencias };
 }

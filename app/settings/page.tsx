@@ -42,8 +42,9 @@ function TarjetaModelo({ modeloActual, ocupado, onGuardar }: {
         <span className="text-xs text-gray-500">Actual: {nombreModelo(modeloActual)}</span>
       </div>
       <p className="mt-1 text-sm text-gray-500">
-        Con este modelo se redactan los artículos del blog y se puntúa el radar de temas.
-        Los económicos gastan menos crédito (los «:free» nada); si uno da error al generar, prueba otro.
+        Con este modelo se redactan los artículos del blog. Los económicos gastan menos crédito
+        (los «:free» nada); si uno da error al generar, prueba otro. La puntuación del radar de temas
+        usa siempre el modelo por defecto de la plataforma (es 1 llamada al día y necesita criterio fino).
       </p>
       <div className="mt-2 flex items-center gap-2">
         <select value={sel} onChange={(e) => { setSel(e.target.value); setMsg(null); }}
