@@ -155,6 +155,7 @@ describe("actualizarRadar", () => {
     expect(prompt).toContain("Quantiva");
     expect(prompt).toContain("IA y automatización para pymes");
     expect(prompt).toContain("- ia generativa");
+    expect(prompt).toContain("Sé ESTRICTO"); // sin esto, los modelos generosos cuelan tendencias genéricas con 20
     expect(vi.mocked(pedirJson).mock.calls[0][3]).toBe("proveedor/modelo-barato");
   });
 

@@ -61,10 +61,14 @@ export async function actualizarRadar(
 
   // 2) Puntuación de relevancia frente al nicho (con el modelo del proyecto, 4b2)
   const base = basePublica(project, sitesBaseDomain()) ?? "";
-  const prompt = `Eres un estratega SEO. Sitio: "${project.nombre}"${base ? ` (${base})` : ""}. Nicho: ${settings.nicho}.
-Puntúa de 0 a 100 la relevancia de cada keyword como tema para un artículo del blog de este sitio
-(100 = encaja perfecto con el nicho y su audiencia; 0 = nada que ver). Devuelve una puntuación para CADA keyword.
-En cada puntuación, usa EXACTAMENTE el mismo texto de la keyword tal y como aparece en la lista (cópialo literal).
+  const prompt = `Eres un estratega SEO muy exigente. Sitio: "${project.nombre}"${base ? ` (${base})` : ""}. Nicho: ${settings.nicho}.
+Puntúa de 0 a 100 la relevancia de cada keyword como tema para un artículo del blog de este sitio.
+Sé ESTRICTO con la escala: 100 = encaja perfecto con el nicho y su audiencia; 40 = solo tangencial
+(habría que forzar el enfoque); 0-10 = nada que ver. Las tendencias genéricas (deportes, famosos,
+televisión, sucesos, loterías, clima) puntúan 0-10 SALVO que el nicho trate exactamente de eso.
+En la duda, puntúa BAJO: solo deben superar 20 los temas sobre los que este blog escribiría de verdad.
+Devuelve una puntuación para CADA keyword. En cada puntuación, usa EXACTAMENTE el mismo texto de la
+keyword tal y como aparece en la lista (cópialo literal).
 Keywords:
 ${unicos.map((c) => `- ${c.keyword}`).join("\n")}`;
   // La puntuación puede fallar por OpenRouter (saldo, modelo caído) DESPUÉS de
