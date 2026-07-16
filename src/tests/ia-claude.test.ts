@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
-  limpiarJson, limpiarMd, pedirJson, pedirTexto, pedirConBusquedaWeb,
+  limpiarJson, limpiarMd, pedirJson, pedirTexto, pedirConBusquedaWeb, pedirImagen,
   PlantillasSchema, AnalisisSchema, MetadatosSchema, RelevanciaSchema,
+  MODELO_IMAGEN, OpenRouterError,
 } from "@/src/ia/claude";
 
 describe("RelevanciaSchema", () => {
@@ -209,6 +210,55 @@ describe("pedirConBusquedaWeb", () => {
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
     expect(body.plugins).toEqual([{ id: "web", max_results: 3 }]);
     expect(body.max_tokens).toBe(4000);
+  });
+});
+
+describe("pedirImagen (4f)", () => {
+  let mockFetch: ReturnType<typeof vi.fn>;
+
+  const PNG_B64 = Buffer.from("PNGBYTES").toString("base64");
+  const respuestaImagen = (url: unknown) => ({
+    ok: true,
+    json: async () => ({
+      choices: [{ message: { content: "", images: url === null ? [] : [{ image_url: { url } }] } }],
+    }),
+  });
+
+  beforeEach(() => {
+    mockFetch = vi.fn();
+    vi.stubGlobal("fetch", mockFetch);
+    vi.stubEnv("OPENROUTER_API_KEY", "test-key");
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+
+  it("camino feliz: parsea la data URL y usa el modelo de imagen FIJO con modalities", async () => {
+    mockFetch.mockResolvedValueOnce(respuestaImagen(`data:image/png;base64,${PNG_B64}`));
+    const r = await pedirImagen("una portada");
+    expect(r.contentType).toBe("image/png");
+    expect(r.bytes.toString()).toBe("PNGBYTES");
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.model).toBe(MODELO_IMAGEN);
+    expect(body.model).toBe("google/gemini-2.5-flash-image"); // nunca el modelo de texto del usuario
+    expect(body.modalities).toEqual(["image", "text"]);
+  });
+
+  it("respuesta sin imagen → OpenRouterError 502 byte-exacto", async () => {
+    mockFetch.mockResolvedValueOnce(respuestaImagen(null));
+    const err = await pedirImagen("p").catch((e) => e);
+    expect(err).toBeInstanceOf(OpenRouterError);
+    expect((err as OpenRouterError).status).toBe(502);
+    expect((err as Error).message).toBe("OpenRouter no devolvió ninguna imagen");
+  });
+
+  it("HTTP 402 → OpenRouterError con el status", async () => {
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 402, text: async () => "insufficient credits" });
+    const err = await pedirImagen("p").catch((e) => e);
+    expect(err).toBeInstanceOf(OpenRouterError);
+    expect((err as OpenRouterError).status).toBe(402);
   });
 });
 

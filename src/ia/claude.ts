@@ -148,6 +148,37 @@ export async function pedirJson<S extends z.ZodType>(
   }
 }
 
+// Modelo de imagen (portadas 4f). Fijo e independiente del modelo de texto
+// elegido por el usuario (los de texto no generan imágenes); override con
+// OPENROUTER_MODEL_IMAGEN.
+export const MODELO_IMAGEN = process.env.OPENROUTER_MODEL_IMAGEN ?? "google/gemini-2.5-flash-image";
+
+// Genera una imagen; OpenRouter la devuelve como data URL base64 dentro de
+// message.images (API de modalidades). Céntimos por imagen.
+export async function pedirImagen(prompt: string): Promise<{ bytes: Buffer; contentType: string }> {
+  const resp = await fetch(`${BASE_URL}/chat/completions`, {
+    method: "POST",
+    headers: await cabeceras(),
+    body: JSON.stringify({
+      model: MODELO_IMAGEN,
+      messages: [{ role: "user", content: prompt }],
+      modalities: ["image", "text"],
+    }),
+  });
+  if (!resp.ok) {
+    const txt = await resp.text().catch(() => "");
+    throw new OpenRouterError(resp.status, `OpenRouter HTTP ${resp.status}: ${txt.slice(0, 500)}`);
+  }
+  const data = await resp.json();
+  if (data?.error?.message) {
+    throw new OpenRouterError(Number(data.error.code) || 502, `OpenRouter: ${data.error.message}`);
+  }
+  const url: unknown = data?.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+  const m = typeof url === "string" ? url.match(/^data:(image\/[\w.+-]+);base64,(.+)$/s) : null;
+  if (!m) throw new OpenRouterError(502, "OpenRouter no devolvió ninguna imagen");
+  return { bytes: Buffer.from(m[2], "base64"), contentType: m[1] };
+}
+
 // Valida la clave de OpenRouter sin gastar tokens (endpoint /key).
 export async function probarConexionModelo(): Promise<string> {
   const resp = await fetch(`${BASE_URL}/key`, { headers: await cabeceras() });
