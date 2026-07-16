@@ -83,7 +83,14 @@ function TarjetaServicio({ titulo, descripcion, enlace, estado, ocupado, onGuard
   async function guardar() {
     if (!clave.trim()) return;
     setMsg(null);
-    if (await onGuardar(clave)) { setClave(""); setMsg("Clave guardada."); setMsgError(false); }
+    if (!(await onGuardar(clave))) return;
+    setClave("");
+    // Prueba automática: detecta al momento una clave mal copiada.
+    const detalle = await onProbar();
+    if (detalle === null) { setMsg("Clave guardada."); setMsgError(false); return; }
+    const valida = detalle.startsWith("Clave válida");
+    setMsg(valida ? `Clave guardada. ${detalle}` : `Clave guardada, pero la prueba falló: ${detalle}. Revisa que la copiaste entera.`);
+    setMsgError(!valida);
   }
   async function probar() {
     setMsg(null);
