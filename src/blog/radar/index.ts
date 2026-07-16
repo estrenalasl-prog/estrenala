@@ -97,7 +97,7 @@ ${unicos.map((c) => `- ${c.keyword}`).join("\n")}`;
       volumenAprox: c.volumenAprox,
       relevancia: mapa.get(c.keyword.toLowerCase()) ?? 0,
     }))
-    .filter((k) => k.relevancia >= RELEVANCIA_MINIMA);
+    .filter((k) => k.relevancia > RELEVANCIA_MINIMA); // "superar 20", como dice el prompt: el 20 justo (borderline) se queda fuera
   await deps.blog.insertKeywords(deps.orgId, deps.projectId, nuevas);
   await deps.blog.marcarTrendsCache(deps.orgId, deps.projectId, fechaHoy, JSON.stringify({ candidatos: unicos.length }));
 

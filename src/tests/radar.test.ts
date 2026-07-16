@@ -73,6 +73,7 @@ beforeEach(() => {
   vi.mocked(buscarTendencias).mockReset().mockResolvedValue([
     { keyword: "ia generativa", fuente: "trends", crecimientoPct: 900, volumenAprox: 50000 },
     { keyword: "resultado futbol", fuente: "trends", crecimientoPct: 2000, volumenAprox: 100000 },
+    { keyword: "iphone 17 pro", fuente: "trends", crecimientoPct: 100, volumenAprox: 20000 },
   ]);
   vi.mocked(buscarRelacionadas).mockReset().mockResolvedValue([
     { keyword: "agentes ia para pymes", fuente: "related", crecimientoPct: 850, volumenAprox: null },
@@ -81,6 +82,7 @@ beforeEach(() => {
     puntuaciones: [
       { keyword: "ia generativa", relevancia: 85 },
       { keyword: "resultado futbol", relevancia: 2 },
+      { keyword: "iphone 17 pro", relevancia: 20 }, // borderline exacto: NO debe pasar
       { keyword: "agentes ia para pymes", relevancia: 95 },
     ],
   });
@@ -88,10 +90,10 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllEnvs());
 
 describe("actualizarRadar", () => {
-  it("guarda keywords puntuadas y descarta las irrelevantes (<20)", async () => {
+  it("guarda las keywords que superan 20 y descarta irrelevantes y borderline (20 justo)", async () => {
     const f = fakes();
     const r = await actualizarRadar(f.deps);
-    expect(r).toEqual({ actualizado: true, candidatos: 3, tendencias: 2, relacionadas: 1 });
+    expect(r).toEqual({ actualizado: true, candidatos: 4, tendencias: 3, relacionadas: 1 });
     expect(f.keywords.map((k) => k.keyword).sort()).toEqual(["agentes ia para pymes", "ia generativa"]);
     expect(f.keywords.find((k) => k.keyword === "agentes ia para pymes")!.relevancia).toBe(95);
   });
