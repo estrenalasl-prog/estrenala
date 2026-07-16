@@ -193,6 +193,18 @@ function fakes(opts: { project?: Partial<ProjectRow>; tienePlantilla?: boolean }
       return [];
     },
     async resolverProgramado() {},
+    // Piloto del 4g: apply.ts tampoco lo usa; stubs mínimos.
+    async getPiloto() {
+      return null;
+    },
+    async setPiloto() {},
+    async listPilotosActivos() {
+      return [];
+    },
+    async reclamarPiloto() {
+      return false;
+    },
+    async registrarPiloto() {},
   };
 
   return { store, storage, blog, archivos, puts, createSnapshotCalls };

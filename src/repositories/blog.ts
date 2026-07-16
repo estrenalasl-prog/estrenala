@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, lte } from "drizzle-orm";
+import { and, desc, eq, inArray, lte, sql } from "drizzle-orm";
 import { db } from "@/src/db/client";
 import { articleDrafts, blogKeywords, blogSettings, blogTemplates, posts, projects, scheduledPosts, trendsCache } from "@/src/db/schema";
 
@@ -50,6 +50,18 @@ export type DraftPatch = Partial<Pick<DraftRow,
 // El modelo de IA ya no vive aquí: se elige en Configuración (org_settings.modelo_ia, 4d).
 // La columna blog_settings.modelo del 4b2 queda sin uso en código.
 export type BlogSettings = { nicho: string; idioma: string; keywordsSemilla: string };
+
+// Piloto automático (4g): vive en blog_settings pero con métodos propios para
+// que el PUT de settings no pueda pisar su configuración (ni al revés).
+export type Piloto = {
+  activo: boolean;
+  cadaDias: number; // 1 | 3 | 7
+  hora: number; // hora local del servidor (0-23)
+  portada: string; // diseno | ia
+  ultimoDia: string | null; // YYYY-MM-DD; también actúa de reclamo diario
+  ultimoMsg: string | null;
+};
+export type PilotoConfig = Pick<Piloto, "activo" | "cadaDias" | "hora" | "portada">;
 
 export type KeywordRow = {
   id: string;
@@ -111,6 +123,12 @@ export interface BlogStore {
   // Para el runner (globales: cruzan organizaciones, sin org-scoping):
   reclamarProgramadosVencidos(limite: number): Promise<(ProgramadoRow & { orgId: string })[]>; // pendiente→publicando
   resolverProgramado(programadoId: string, r: ProgramadoResultado): Promise<void>;
+  getPiloto(orgId: string, projectId: string): Promise<Piloto | null>; // null si no hay fila de settings
+  setPiloto(orgId: string, projectId: string, p: PilotoConfig): Promise<void>; // upsert SOLO columnas piloto
+  // Para el runner del piloto (globales):
+  listPilotosActivos(): Promise<(Piloto & { projectId: string; orgId: string })[]>;
+  reclamarPiloto(projectId: string, dia: string): Promise<boolean>; // false si ya reclamado ese día
+  registrarPiloto(projectId: string, msg: string): Promise<void>;
 }
 
 async function proyectoDeOrg(orgId: string, projectId: string): Promise<boolean> {
@@ -391,6 +409,50 @@ export class DrizzleBlogStore implements BlogStore {
       postId: r.postId ?? null,
       updatedAt: new Date(),
     }).where(eq(scheduledPosts.id, programadoId));
+  }
+
+  async getPiloto(orgId: string, projectId: string): Promise<Piloto | null> {
+    if (!(await proyectoDeOrg(orgId, projectId))) return null;
+    const r = await db.select().from(blogSettings)
+      .where(eq(blogSettings.projectId, projectId)).limit(1);
+    if (!r[0]) return null;
+    return {
+      activo: r[0].pilotoActivo, cadaDias: r[0].pilotoCadaDias, hora: r[0].pilotoHora,
+      portada: r[0].pilotoPortada, ultimoDia: r[0].pilotoUltimoDia, ultimoMsg: r[0].pilotoUltimoMsg,
+    };
+  }
+
+  async setPiloto(orgId: string, projectId: string, p: PilotoConfig): Promise<void> {
+    if (!(await proyectoDeOrg(orgId, projectId))) return;
+    const columnas = { pilotoActivo: p.activo, pilotoCadaDias: p.cadaDias, pilotoHora: p.hora, pilotoPortada: p.portada };
+    await db.insert(blogSettings)
+      .values({ projectId, ...columnas })
+      .onConflictDoUpdate({ target: blogSettings.projectId, set: { ...columnas, updatedAt: new Date() } });
+  }
+
+  async listPilotosActivos(): Promise<(Piloto & { projectId: string; orgId: string })[]> {
+    return db.select({
+      projectId: blogSettings.projectId, orgId: projects.orgId,
+      activo: blogSettings.pilotoActivo, cadaDias: blogSettings.pilotoCadaDias,
+      hora: blogSettings.pilotoHora, portada: blogSettings.pilotoPortada,
+      ultimoDia: blogSettings.pilotoUltimoDia, ultimoMsg: blogSettings.pilotoUltimoMsg,
+    }).from(blogSettings)
+      .innerJoin(projects, eq(projects.id, blogSettings.projectId))
+      .where(eq(blogSettings.pilotoActivo, true));
+  }
+
+  async reclamarPiloto(projectId: string, dia: string): Promise<boolean> {
+    // Reclamo diario: solo gana quien cambia el día (dos ticks solapados, uno).
+    const r = await db.update(blogSettings)
+      .set({ pilotoUltimoDia: dia, updatedAt: new Date() })
+      .where(and(eq(blogSettings.projectId, projectId), sql`${blogSettings.pilotoUltimoDia} IS DISTINCT FROM ${dia}`))
+      .returning({ id: blogSettings.id });
+    return r.length > 0;
+  }
+
+  async registrarPiloto(projectId: string, msg: string): Promise<void> {
+    await db.update(blogSettings).set({ pilotoUltimoMsg: msg, updatedAt: new Date() })
+      .where(eq(blogSettings.projectId, projectId));
   }
 }
 

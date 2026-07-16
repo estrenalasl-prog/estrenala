@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, jsonb, integer, unique } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, timestamp, jsonb, integer, unique, boolean } from "drizzle-orm/pg-core";
 
 export const organizations = pgTable("organizations", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -79,6 +79,13 @@ export const blogSettings = pgTable("blog_settings", {
   idioma: text("idioma").notNull().default("es"),
   modelo: text("modelo").notNull().default(""), // '' = modelo por defecto de la plataforma
   keywordsSemilla: text("keywords_semilla").notNull().default(""), // separadas por comas (radar 4c)
+  // Piloto automático (4g)
+  pilotoActivo: boolean("piloto_activo").notNull().default(false),
+  pilotoCadaDias: integer("piloto_cada_dias").notNull().default(1), // 1 | 3 | 7
+  pilotoHora: integer("piloto_hora").notNull().default(9), // hora local del servidor (0-23)
+  pilotoPortada: text("piloto_portada").notNull().default("diseno"), // diseno | ia
+  pilotoUltimoDia: text("piloto_ultimo_dia"), // YYYY-MM-DD local; también actúa de reclamo
+  pilotoUltimoMsg: text("piloto_ultimo_msg"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
