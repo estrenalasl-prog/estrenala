@@ -194,6 +194,18 @@ export function BlogPanel({ projectId }: { projectId: string }) {
     if (d) { setEstado(null); await cargar(); router.refresh(); }
   }
 
+  // --- portada automática (4f) ---
+  async function generarPortadaAuto(modo: "diseno" | "ia") {
+    const d = await llamar(`/api/projects/${projectId}/blog/portada`, {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ titulo, modo }),
+    });
+    if (d && d.assetId) {
+      setImagenAssetId(d.assetId as string);
+      setImagenUrl(d.url as string);
+    }
+  }
+
   // --- publicación programada (4e) ---
   async function programarArticulo() {
     const d = await llamar(`/api/projects/${projectId}/blog/programados`, {
@@ -514,10 +526,17 @@ export function BlogPanel({ projectId }: { projectId: string }) {
                   onChange={(e) => setMeta(e.target.value)} className="w-full rounded border px-2 py-1 text-sm" />
                 <span className={"text-xs " + (meta.length > 160 ? "text-red-600" : "text-gray-400")}>{meta.length}/160</span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs text-gray-500">Imagen de portada:</span>
                 {imagenUrl && <img src={imagenUrl} alt="" className="h-8 w-14 rounded object-cover" />}
+                <button onClick={() => void generarPortadaAuto("diseno")} disabled={ocupado || !titulo.trim()}
+                  title="Gratis: un diseño con el título y los colores de tu web"
+                  className="rounded border px-2 py-1 text-xs disabled:opacity-50">Generar diseño</button>
+                <button onClick={() => void generarPortadaAuto("ia")} disabled={ocupado || !titulo.trim()}
+                  title="Imagen generada con IA (céntimos por imagen, a tu cuenta de OpenRouter)"
+                  className="rounded border px-2 py-1 text-xs disabled:opacity-50">Generar con IA</button>
                 <BotonSubir texto={imagenAssetId ? "Cambiar imagen" : "Subir imagen"} ocupado={ocupado} onFile={(f) => void subirPortada(f)} />
+                {!titulo.trim() && <span className="text-xs text-gray-400">(escribe el título para generarla)</span>}
               </div>
               <textarea value={md} onChange={(e) => setMd(e.target.value)} rows={14}
                 placeholder="Escribe o pega aquí el artículo en markdown (por ejemplo, el que te escribió tu IA)…"
