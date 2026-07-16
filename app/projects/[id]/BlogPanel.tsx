@@ -16,6 +16,10 @@ type ProgramadoItem = {
   id: string; titulo: string; slug: string; metaDescripcion: string; md: string;
   imagenAssetId: string; publicarEn: string; estado: string; errorMsg: string | null; postId: string | null;
 };
+type PilotoConfig = {
+  activo: boolean; cadaDias: number; hora: number; portada: string;
+  ultimoDia: string | null; ultimoMsg: string | null;
+};
 type Vista = "lista" | "plantillas" | "editor" | "ia";
 
 const AVISO = "Las páginas del blog se generan desde aquí; si las tocas con el editor visual, la próxima regeneración del blog deshará esos cambios.";
@@ -82,16 +86,20 @@ export function BlogPanel({ projectId }: { projectId: string }) {
   const [programados, setProgramados] = useState<ProgramadoItem[]>([]);
   const [progFecha, setProgFecha] = useState(""); // valor del datetime-local del editor
   const [progMsg, setProgMsg] = useState<string | null>(null);
+  // piloto automático (4g)
+  const [piloto, setPiloto] = useState<PilotoConfig | null>(null);
+  const [pilotoMsg, setPilotoMsg] = useState<string | null>(null);
 
   async function cargar() {
     try {
-      const [rEstado, rSettings, rDrafts, rTemas, rOrg, rProg] = await Promise.all([
+      const [rEstado, rSettings, rDrafts, rTemas, rOrg, rProg, rPiloto] = await Promise.all([
         fetch(`/api/projects/${projectId}/blog`),
         fetch(`/api/projects/${projectId}/blog/settings`),
         fetch(`/api/projects/${projectId}/blog/drafts`),
         fetch(`/api/projects/${projectId}/blog/keywords`),
         fetch(`/api/settings`),
         fetch(`/api/projects/${projectId}/blog/programados`),
+        fetch(`/api/projects/${projectId}/blog/piloto`),
       ]);
       if (rEstado.ok) setEstado((await rEstado.json()) as EstadoBlog);
       if (rSettings.ok) {
@@ -103,6 +111,7 @@ export function BlogPanel({ projectId }: { projectId: string }) {
       if (rTemas.ok) setTemas((await rTemas.json()) as TemaItem[]);
       if (rOrg.ok) setModeloOrg(((await rOrg.json()) as { modeloIa?: string }).modeloIa ?? "");
       if (rProg.ok) setProgramados((await rProg.json()) as ProgramadoItem[]);
+      if (rPiloto.ok) setPiloto((await rPiloto.json()) as PilotoConfig);
     } catch { /* silencioso: se reintenta al reabrir */ }
   }
   useEffect(() => { if (abierto && !estado) void cargar(); }, [abierto]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -192,6 +201,17 @@ export function BlogPanel({ projectId }: { projectId: string }) {
     if (!confirm(`¿Borrar el artículo "${tituloPost}"? Esta acción no se puede deshacer.`)) return;
     const d = await llamar(`/api/projects/${projectId}/blog/posts/${id}`, { method: "DELETE" });
     if (d) { setEstado(null); await cargar(); router.refresh(); }
+  }
+
+  // --- piloto automático (4g) ---
+  async function guardarPiloto() {
+    if (!piloto) return;
+    setPilotoMsg(null);
+    const d = await llamar(`/api/projects/${projectId}/blog/piloto`, {
+      method: "PUT", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ activo: piloto.activo, cadaDias: piloto.cadaDias, hora: piloto.hora, portada: piloto.portada }),
+    });
+    if (d) setPilotoMsg(piloto.activo ? "Guardado. El piloto está EN MARCHA." : "Guardado (piloto apagado).");
   }
 
   // --- portada automática (4f) ---
@@ -428,6 +448,51 @@ export function BlogPanel({ projectId }: { projectId: string }) {
                       )}
                     </div>
                   </div>
+                  {piloto && (
+                    <div className="mb-2 rounded-lg border bg-white p-3">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium">Piloto automático {piloto.activo ? "🟢" : "⚪"}</p>
+                        <label className="flex items-center gap-1 text-xs">
+                          <input type="checkbox" checked={piloto.activo}
+                            onChange={(e) => { setPiloto({ ...piloto, activo: e.target.checked }); setPilotoMsg(null); }} />
+                          Activo
+                        </label>
+                      </div>
+                      <p className="mt-1 text-xs text-gray-500">
+                        El blog se escribe solo: el radar busca el tema del día, la IA redacta con tu modelo,
+                        se genera la portada y la publicación se programa automáticamente. Solo escribe si hay
+                        un tema con relevancia &gt; 60 (si no, ese día no gasta nada en redactar). Gasto por
+                        artículo: las llamadas de IA de tu modelo + el radar (hasta 4 créditos de SerpAPI al día).
+                      </p>
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                        <select value={piloto.cadaDias} onChange={(e) => { setPiloto({ ...piloto, cadaDias: Number(e.target.value) }); setPilotoMsg(null); }}
+                          className="rounded border px-2 py-1">
+                          <option value={1}>Cada día</option>
+                          <option value={3}>Cada 3 días</option>
+                          <option value={7}>Cada semana</option>
+                        </select>
+                        <select value={piloto.hora} onChange={(e) => { setPiloto({ ...piloto, hora: Number(e.target.value) }); setPilotoMsg(null); }}
+                          className="rounded border px-2 py-1">
+                          {Array.from({ length: 24 }, (_, h) => (
+                            <option key={h} value={h}>a partir de las {h}:00</option>
+                          ))}
+                        </select>
+                        <select value={piloto.portada} onChange={(e) => { setPiloto({ ...piloto, portada: e.target.value }); setPilotoMsg(null); }}
+                          className="rounded border px-2 py-1">
+                          <option value="diseno">Portada: diseño (gratis)</option>
+                          <option value="ia">Portada: imagen con IA (céntimos)</option>
+                        </select>
+                        <button onClick={() => void guardarPiloto()} disabled={ocupado}
+                          className="rounded bg-indigo-600 px-3 py-1 text-white disabled:opacity-50">Guardar</button>
+                        {pilotoMsg && <span className="text-green-700">{pilotoMsg}</span>}
+                      </div>
+                      {piloto.ultimoMsg && (
+                        <p className="mt-2 rounded bg-gray-50 px-2 py-1 text-xs text-gray-600">
+                          Última ejecución{piloto.ultimoDia ? ` (${piloto.ultimoDia})` : ""}: {piloto.ultimoMsg}
+                        </p>
+                      )}
+                    </div>
+                  )}
                   {(programados.length > 0 || progMsg) && (
                     <div className="mb-2 rounded-lg border bg-white p-3">
                       <p className="text-sm font-medium">Programados</p>
