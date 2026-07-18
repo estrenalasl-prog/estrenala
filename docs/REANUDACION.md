@@ -1,0 +1,90 @@
+# Reanudación tras formateo — léeme primero
+
+Actualizado: 2026-07-17 (el usuario formatea el PC por urgencia; segundo formateo,
+el anterior fue el 2026-07-10). Este documento es la fuente de verdad para retomar:
+la memoria de Claude en `C:\Users\Sebas\.claude` NO sobrevive a los formateos.
+
+## ✅ Checklist ANTES de formatear (para Sebas)
+
+1. **Copia LA CARPETA ENTERA** `Desktop\Carpeta de Proyectos\Wordclicks` a un USB o
+   nube. El repo NO tiene remoto: este disco es la única copia. La carpeta incluye
+   tres cosas que NO están en git y son irrecuperables:
+   - `.env.local` — las claves (DATABASE_URL, PANEL_PASSWORD, SESSION_SECRET,
+     OPENROUTER_API_KEY, OPENROUTER_MODEL). **La joya de la corona.**
+   - `data/storage/` — los archivos de las webs subidas en dev (snapshots, imágenes).
+     Sin esto, los proyectos de la BD apuntan a archivos que no existen.
+   - `Creador de Blog/` — el proyecto hermano fuente de los portes (ignorado por git).
+2. Nada más. La base de datos vive en Supabase (nube) y las claves de OpenRouter y
+   SerpAPI pegadas en Configuración están guardadas en esa BD (`org_settings`).
+
+## 🔄 Checklist DESPUÉS de formatear (primeros pasos con Claude)
+
+1. Restaurar la carpeta en la misma ruta: `C:\Users\Sebas\Desktop\Carpeta de Proyectos\Wordclicks`.
+2. **Toolchain portable** (no requiere admin), como en el formateo anterior:
+   - Node: bajar el ZIP de nodejs.org (la vez pasada v24.18.0-win-x64; considerar
+     **v22 LTS**: el 24 dio 3 crashes nativos silenciosos) y extraer a
+     `%LOCALAPPDATA%\Programs\nodejs` (usar `tar -xf`, Expand-Archive falla por rutas largas).
+   - Git: bajar **MinGit** (portable) y extraer a `%LOCALAPPDATA%\Programs\MinGit`.
+   - En CADA comando del harness, prefijar:
+     `$env:PATH = "$env:LOCALAPPDATA\Programs\nodejs;$env:LOCALAPPDATA\Programs\MinGit\cmd;" + $env:PATH`
+3. `npm install` en la carpeta del proyecto.
+4. Comprobar `.env.local` restaurado (los NOMBRES esperados están en `.env.example`).
+5. `npm run dev` → login en `http://localhost:3000` → abrir el proyecto «Quantiva
+   Technology» y comprobar que la vista previa carga (= storage restaurado bien).
+6. `npx vitest run` (422 tests) y `npx tsc --noEmit` deben salir limpios.
+7. Reconstruir la memoria de Claude a partir de este documento (estado, guardas y
+   preferencias de abajo).
+
+## 📦 Estado del proyecto (qué hay construido)
+
+Plataforma «el WordPress para webs hechas con IA» (Next.js 16, React 19, Tailwind v4,
+Drizzle/Postgres en Supabase, vitest). Flujo de trabajo: spec → plan (docs/superpowers)
+→ TDD con commit por tarea → e2e sin gastar IA → merge ff a master.
+
+| Incremento | Qué es |
+|---|---|
+| 1–3c | Importar ZIP, preview, editor in-situ, publicar (subdominios/dominios), herramientas |
+| 4a | Blog base: plantillas IA, posts, índice, sitemap |
+| 4b | Redacción IA: pipeline 6 etapas con checkpoints (`article_drafts`) |
+| 4b2/4d | Modelo de IA elegible + Configuración `/settings` con claves BYOK (`org_settings`) |
+| 4c | Radar de keywords: Google Trends (SerpAPI) + puntuación IA vs nicho, caché diaria |
+| 4e | Publicación programada: `scheduled_posts`, tick 60 s (instrumentation.ts) + cron |
+| 4f | Portada automática: SVG con colores del sitio (gratis) o imagen IA (modelo fijo) |
+| 4g | **Piloto automático**: radar→redacta→portada→programa, solo; OFF por defecto |
+| 5a | Sistema visual v1 en `docs/design/` (tokens, 4 pantallas, componentes, 404, wordmarks) |
+
+Detalles finos por incremento: specs y planes en `docs/superpowers/`. E2e regenerables
+en `scripts/e2e/` (necesitan dev server + .env.local; se ejecutan con `node`).
+
+## ⏭️ En qué punto estamos y qué sigue
+
+1. **El usuario está haciendo la sesión de diseño ÉL MISMO en claude.ai** («Claude
+   Design») partiendo de la base v1: el prompt listo y la lista de adjuntos están en
+   `docs/design/prompt-para-claude-design.md`. Cuando vuelva con los archivos
+   mejorados (mismos nombres 01–08 + README): sobreescribir `docs/design/` y arrancar
+   la **integración por fases** (5b tokens+login+panel · 5c proyecto · 5d popover ·
+   5e 404+BlogPanel — mapa en `docs/design/README.md`). NO integrar la v1 sin su OK.
+2. **Decisión pendiente del usuario: el nombre** (Estrénala / WebNace / YaVive —
+   direcciones en `docs/design/08-wordmarks.html`). El sistema es agnóstico.
+3. **El piloto automático (4g) está SIN estrenar**: el usuario lo probará «cuando
+   salgamos con nuestra propia página» (2026-07-17). No activarlo por él.
+4. Backlog después: edición rich-text, multiusuario/claves por usuario, rasterizar
+   portada SVG→PNG (og:image de WhatsApp/X no muestra SVG), landing de marketing,
+   blog como sección premium (solo al monetizar — apuntado, NO construir).
+
+## ⚠️ Guardas y preferencias (aprendidas a base de sustos)
+
+- **Los e2e JAMÁS escriben en `org_settings`** cuando hay claves reales (el
+  2026-07-15 una regresión borró las claves del usuario; irrecuperables). Los
+  scripts de `scripts/e2e/` ya llevan guardas (abortan/skipean); mantenerlas.
+- **Nunca imprimir material de claves guardadas**, ni fragmentos (solo booleanos y
+  longitud si hay que diagnosticar).
+- El e2e del 4g **jamás deja `piloto_activo=true`** (el tick correría con claves reales).
+- El usuario tiene POCOS créditos: todo lo que gaste IA/SerpAPI se diseña opt-in,
+  acotado y con aviso de coste; probar con su clave lo decide él.
+- Mensajes de error en español byte-exactos (los tests los fijan). UI en español,
+  tono cercano y sin jerga. El usuario responde a preguntas con opciones (elige
+  el recomendado casi siempre) y valida en el navegador con capturas.
+- El scorer del radar usa SIEMPRE el modelo por defecto de la plataforma (DeepSeek
+  puntuaba basura al corte); la redacción usa el modelo del usuario (deepseek-chat).
+- Dev: proyectos «E2E 4b/4c/4e/4f/4g» son residuos de e2e, borrables.
