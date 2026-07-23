@@ -9,7 +9,7 @@ export function LogoutButton() {
     router.refresh();
   }
   return (
-    <button onClick={() => void salir()} className="text-xs text-gray-500 underline">
+    <button onClick={() => void salir()} className="btn btn-fantasma btn-sm">
       Salir
     </button>
   );

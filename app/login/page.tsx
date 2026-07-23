@@ -26,18 +26,44 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="grid min-h-screen place-items-center p-8">
-      <form onSubmit={entrar} className="w-full max-w-xs space-y-3 rounded-lg border p-6">
-        <h1 className="text-lg font-bold">Wordclicks</h1>
-        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-          placeholder="Contraseña" autoFocus
-          className="w-full rounded border px-3 py-2 text-sm" />
-        <button type="submit" disabled={ocupado}
-          className="w-full rounded bg-emerald-600 px-3 py-2 text-sm text-white disabled:opacity-50">
-          Entrar
-        </button>
-        {error && <p className="text-sm text-red-600">{error}</p>}
-      </form>
+    <main className="login-envoltorio">
+      <div className="split">
+        <aside className="marca-panel">
+          <div className="grano" />
+          <div className="wordmark">Estrénal<span className="hl">a</span></div>
+          <p className="claim">Tu web hecha con IA, por fin en directo.</p>
+          <p className="sub">Súbela online, edítala con un clic y deja que el blog escriba solo.</p>
+        </aside>
+
+        <form className="form-panel" onSubmit={entrar}>
+          <h2>Entra</h2>
+          <p className="lead">Bienvenido de nuevo. Vamos a tu web.</p>
+
+          {error && (
+            <div className="aviso-error" role="alert">
+              <span className="ico">!</span>
+              <span>{error}</span>
+            </div>
+          )}
+
+          <div>
+            <label className="etiqueta-campo" htmlFor="password">Contraseña</label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Tu contraseña"
+              autoFocus
+              className={error ? "campo campo-error" : "campo"}
+            />
+          </div>
+
+          <button type="submit" disabled={ocupado} className="btn btn-primario btn-lg" style={{ width: "100%", marginTop: 20 }}>
+            {ocupado ? <><span className="cargador" /> Entrando…</> : "Entrar"}
+          </button>
+        </form>
+      </div>
     </main>
   );
 }

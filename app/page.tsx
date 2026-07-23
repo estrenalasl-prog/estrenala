@@ -1,42 +1,104 @@
 import Link from "next/link";
 import { getDevContext } from "@/src/auth/dev-stub";
 import { projectStore } from "@/src/repositories/projects";
+import type { ProjectRow } from "@/src/repositories/types";
 import { ImportDropzone } from "./_components/ImportDropzone";
 import { LogoutButton } from "./LogoutButton";
 
 export const dynamic = "force-dynamic";
 
+type Estado = { clase: string; texto: string };
+
+function estadoDe(p: ProjectRow): Estado {
+  if (!p.publishedSnapshotId) return { clase: "badge-neutro", texto: "Sin publicar" };
+  if (p.publishedSnapshotId === p.currentSnapshotId) return { clase: "badge-exito", texto: "Publicado" };
+  return { clase: "badge-aviso", texto: "Cambios sin publicar" };
+}
+
+function direccionDe(p: ProjectRow): string {
+  if (p.dominio) return p.dominio;
+  if (p.subdominio) return p.subdominio;
+  return `Borrador · ${p.createdAt.slice(0, 10)}`;
+}
+
+function Cabecera() {
+  return (
+    <header className="cabecera">
+      <div className="cab-int">
+        <span className="wordmark">Estrénal<span className="hl">a</span></span>
+        <nav>
+          <Link href="/settings">Configuración</Link>
+          <LogoutButton />
+        </nav>
+      </div>
+    </header>
+  );
+}
+
 export default async function Dashboard() {
   const { orgId } = await getDevContext();
   const proyectos = await projectStore.listProjects(orgId);
 
+  if (proyectos.length === 0) {
+    return (
+      <>
+        <Cabecera />
+        <main className="panel-main">
+          <div className="vacio">
+            <h2>Vamos a poner tu web online.</h2>
+            <p>Sube la web que te generó la IA. La alojamos, le damos dirección y HTTPS, y podrás editarla sin código.</p>
+            <ImportDropzone tono="claro" />
+            <div className="pasos">
+              <span className="p"><span className="n">1</span> <b>Súbela</b></span>
+              <span>›</span>
+              <span className="p"><span className="n">2</span> <b>Edítala</b> con un clic</span>
+              <span>›</span>
+              <span className="p"><span className="n">3</span> <b>Publícala</b></span>
+            </div>
+          </div>
+        </main>
+      </>
+    );
+  }
+
   return (
-    <main className="mx-auto max-w-4xl p-8">
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Wordclicks</h1>
-        <div className="flex items-center gap-3">
-          <Link href="/settings" className="text-sm text-gray-500 hover:underline">⚙ Configuración</Link>
-          <LogoutButton />
+    <>
+      <Cabecera />
+      <main className="panel-main">
+        <div className="titulo-fila">
+          <h1>Tus webs</h1>
+          <span className="cuenta">{proyectos.length} {proyectos.length === 1 ? "proyecto" : "proyectos"}</span>
         </div>
-      </div>
-      <section className="mb-10">
-        <ImportDropzone />
-      </section>
-      <h2 className="mb-4 text-xl font-semibold">Tus proyectos</h2>
-      {proyectos.length === 0 ? (
-        <p className="text-gray-500">Aún no hay proyectos. Sube un ZIP para empezar.</p>
-      ) : (
-        <ul className="grid grid-cols-2 gap-4">
-          {proyectos.map((p) => (
-            <li key={p.id} className="rounded-lg border p-4">
-              <Link href={`/projects/${p.id}`} className="font-medium hover:underline">
-                {p.nombre}
+
+        <section className="importar" id="importar">
+          <div className="grano" />
+          <div className="txt">
+            <div className="eyebrow">Empieza aquí</div>
+            <h2>Sube tu web hecha con IA</h2>
+            <p>Arrastra el .zip que te dio Claude, ChatGPT o v0. En un clic estará online, con dirección y HTTPS.</p>
+          </div>
+          <ImportDropzone tono="oscuro" />
+        </section>
+
+        <div className="seccion-cab"><h2>Recientes</h2><span className="conteo">· {proyectos.length}</span></div>
+        <div className="rejilla">
+          {proyectos.map((p) => {
+            const estado = estadoDe(p);
+            return (
+              <Link key={p.id} href={`/projects/${p.id}`} className="card">
+                <div className="thumb"><span className="mini">Inicio</span></div>
+                <div className="cuerpo">
+                  <div className="fila">
+                    <h3>{p.nombre}</h3>
+                    <span className={`badge ${estado.clase}`}><span className="punto" />{estado.texto}</span>
+                  </div>
+                  <p className="url">{direccionDe(p)}</p>
+                </div>
               </Link>
-              <p className="text-sm text-gray-400">{p.createdAt.slice(0, 10)}</p>
-            </li>
-          ))}
-        </ul>
-      )}
-    </main>
+            );
+          })}
+        </div>
+      </main>
+    </>
   );
 }

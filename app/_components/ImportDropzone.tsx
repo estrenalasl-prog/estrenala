@@ -1,10 +1,12 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
-export function ImportDropzone() {
+export function ImportDropzone({ tono = "oscuro" }: { tono?: "oscuro" | "claro" }) {
   const router = useRouter();
+  const inputRef = useRef<HTMLInputElement>(null);
   const [subiendo, setSubiendo] = useState(false);
+  const [arrastrando, setArrastrando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function subir(file: File) {
@@ -24,33 +26,43 @@ export function ImportDropzone() {
     }
   }
 
+  const claseBase = tono === "oscuro" ? "dropzone" : "dropzone-vacio";
+
   return (
-    <div
-      onDragOver={(e) => e.preventDefault()}
-      onDrop={(e) => {
-        e.preventDefault();
-        const file = e.dataTransfer.files?.[0];
-        if (file) void subir(file);
-      }}
-      className="rounded-xl border-2 border-dashed border-gray-300 p-10 text-center"
-    >
-      <p className="mb-3 text-gray-600">
-        {subiendo ? "Subiendo…" : "Arrastra aquí el .zip de tu web"}
-      </p>
-      <label className="cursor-pointer rounded-lg bg-black px-4 py-2 text-white">
-        Elegir archivo
-        <input
-          type="file"
-          accept=".zip,application/zip"
-          className="hidden"
-          disabled={subiendo}
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) void subir(file);
-          }}
-        />
-      </label>
-      {error && <p className="mt-3 text-red-600">{error}</p>}
+    <div>
+      <div
+        className={arrastrando ? `${claseBase} is-drag` : claseBase}
+        onClick={() => inputRef.current?.click()}
+        onDragOver={(e) => { e.preventDefault(); setArrastrando(true); }}
+        onDragLeave={() => setArrastrando(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setArrastrando(false);
+          const file = e.dataTransfer.files?.[0];
+          if (file) void subir(file);
+        }}
+      >
+        <div className="icono">↑</div>
+        <div className="grande">{subiendo ? "Subiendo…" : "Arrastra tu web aquí"}</div>
+        <div className="peque">.zip de tu web</div>
+        {tono === "oscuro" ? (
+          <div className="o-boton">
+            <button type="button" className="btn btn-primario" disabled={subiendo}>Elegir archivo</button>
+          </div>
+        ) : null}
+      </div>
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".zip,application/zip"
+        className="hidden"
+        disabled={subiendo}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) void subir(file);
+        }}
+      />
+      {error && <p className="error-campo" style={{ marginTop: 12 }}>{error}</p>}
     </div>
   );
 }
