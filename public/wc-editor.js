@@ -37,7 +37,9 @@
   // ---------- popover (DOM propio, nunca se guarda) ----------
   var pop = document.createElement("div");
   pop.setAttribute("data-wc-ui", "1");
-  pop.style.cssText = "position:absolute;z-index:2147483647;display:none;gap:6px;align-items:center;flex-wrap:wrap;max-width:360px;background:#111827;color:#fff;border-radius:8px;padding:8px;font:13px system-ui,sans-serif;box-shadow:0 4px 16px rgba(0,0,0,.3)";
+  // Estilo Estrénala v2: tarjeta clara con acento lima, tipografía de sistema (no
+  // se asume Space Grotesk cargada en la web del cliente). z-index máximo.
+  pop.style.cssText = "position:absolute;z-index:2147483647;display:none;flex-direction:column;gap:8px;align-items:stretch;width:280px;max-width:92vw;background:#fff;color:#141509;border:1px solid #DEDFD6;border-radius:14px;padding:12px;font:13px/1.45 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;box-shadow:0 18px 48px -12px rgba(20,21,9,.28)";
   function montarPop() { if (!pop.parentNode && document.body) document.body.appendChild(pop); }
   if (document.body) montarPop(); else document.addEventListener("DOMContentLoaded", montarPop);
 
@@ -70,17 +72,41 @@
   function inputTexto(valor, placeholder) {
     var inp = document.createElement("input");
     inp.type = "text"; inp.placeholder = placeholder || ""; inp.value = valor;
-    inp.style.cssText = "width:170px;padding:3px 6px;border-radius:4px;border:1px solid #374151;background:#1f2937;color:#fff";
+    inp.style.cssText = "width:100%;height:32px;padding:0 10px;border-radius:9px;border:1px solid #DEDFD6;background:#fff;color:#141509;font-size:13px;outline:none";
+    inp.addEventListener("focus", function () { inp.style.borderColor = "#8FB300"; inp.style.boxShadow = "0 0 0 2px #fff,0 0 0 4px #8FB300"; });
+    inp.addEventListener("blur", function () { inp.style.borderColor = "#DEDFD6"; inp.style.boxShadow = "none"; });
     return inp;
   }
   function botonOk() {
-    var ok = document.createElement("button"); ok.type = "button"; ok.textContent = "OK";
-    ok.style.cssText = "padding:3px 8px;border-radius:4px;border:0;background:#6366f1;color:#fff;cursor:pointer";
+    var ok = document.createElement("button"); ok.type = "button"; ok.textContent = "Guardar";
+    ok.style.cssText = "height:32px;padding:0 14px;border-radius:9px;border:0;background:#C4F000;color:#141509;font-size:13px;font-weight:600;cursor:pointer";
     return ok;
   }
   function etiqueta(texto) {
-    var s = document.createElement("span"); s.textContent = texto; s.style.opacity = ".8";
+    var s = document.createElement("span"); s.textContent = texto;
+    s.style.cssText = "font-size:11.5px;font-weight:500;color:#55584C";
     return s;
+  }
+
+  function tipoDe(el) {
+    if (esImagen(el)) return "Imagen";
+    if (esBoton(el)) return "Botón";
+    if (esEnlace(el)) return "Enlace";
+    if (el.closest && el.closest("a[data-wc-id]") && !esTextoHoja(el) && !esTextoMixto(el)) return "Enlace";
+    return "Texto";
+  }
+  function cabecera(tipo) {
+    var h = document.createElement("div");
+    h.style.cssText = "display:flex;align-items:center;gap:8px;width:100%;margin-bottom:2px";
+    var t = document.createElement("span"); t.textContent = "Editar";
+    t.style.cssText = "font-weight:600;font-size:13px;color:#141509";
+    var b = document.createElement("span"); b.textContent = tipo;
+    b.style.cssText = "font-size:11px;font-weight:600;color:#141509;background:#C4F000;border-radius:999px;padding:2px 9px";
+    var x = document.createElement("button"); x.type = "button"; x.textContent = "✕";
+    x.style.cssText = "margin-left:auto;border:0;background:none;cursor:pointer;color:#9A9C8F;font-size:14px;line-height:1;width:22px;height:22px;border-radius:6px";
+    x.addEventListener("click", function () { pop.style.display = "none"; objetivo = null; });
+    h.appendChild(t); h.appendChild(b); h.appendChild(x);
+    return h;
   }
 
   function construir(el) {
@@ -92,7 +118,7 @@
     if (hoja) {
       var color = document.createElement("input"); color.type = "color";
       color.value = rgbAHex(getComputedStyle(el).color);
-      color.style.cssText = "width:28px;height:24px;border:0;background:none;padding:0;cursor:pointer";
+      color.style.cssText = "width:30px;height:30px;border:1px solid rgba(20,21,9,.12);border-radius:8px;background:none;padding:0;cursor:pointer";
       color.addEventListener("input", function () {
         el.style.color = color.value;
         emitir({ page: PAGE, nodeId: idDe(el), kind: "style", property: "color", value: color.value });
@@ -144,12 +170,16 @@
 
     if (esImagen(el)) {
       var btn = document.createElement("button"); btn.type = "button"; btn.textContent = "Cambiar imagen";
-      btn.style.cssText = "padding:3px 8px;border-radius:4px;border:0;background:#6366f1;color:#fff;cursor:pointer";
+      btn.style.cssText = "height:32px;padding:0 14px;border-radius:9px;border:0;background:#C4F000;color:#141509;font-size:13px;font-weight:600;cursor:pointer";
       btn.addEventListener("click", function () {
         window.parent.postMessage({ type: "wc-image-request", nodeId: idDe(el), page: PAGE }, "*");
       });
       pop.appendChild(btn);
     }
+
+    // Cabecera (título + tipo + cerrar) solo si hay controles: si el elemento no es
+    // editable, pop queda vacío y mostrar() lo oculta por el guard !pop.firstChild.
+    if (pop.firstChild) pop.insertBefore(cabecera(tipoDe(el)), pop.firstChild);
   }
 
   function mostrar(el) {
@@ -168,7 +198,7 @@
   }
 
   // ---------- marcado visual ----------
-  function marcar(el) { el.style.outline = "2px dashed #6366f1"; el.style.outlineOffset = "2px"; if (esTextoHoja(el) || esTextoMixto(el)) el.style.cursor = "text"; }
+  function marcar(el) { el.style.outline = "2px dashed rgba(196,240,0,.95)"; el.style.outlineOffset = "3px"; if (esTextoHoja(el) || esTextoMixto(el)) el.style.cursor = "text"; }
   function desmarcar(el) { if (el === editando) return; el.style.outline = ""; el.style.outlineOffset = ""; el.style.cursor = ""; }
 
   // ---------- edición de texto in-situ ----------
