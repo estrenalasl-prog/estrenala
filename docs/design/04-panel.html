@@ -3,152 +3,230 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mockup — Panel (tus webs)</title>
+<title>Panel «Tus webs» — Estrénala · v2 Alto Voltaje</title>
 <style>
   :root{
-    --lienzo:#f8fafc; --superficie:#fff; --superficie-2:#f1f5f9; --borde:#e2e8f0; --borde-fuerte:#cbd5e1;
-    --texto:#0f172a; --texto-2:#475569; --texto-3:#94a3b8;
-    --primario:#4f46e5; --primario-osc:#4338ca; --primario-suave:#eef2ff; --primario-borde:#c7d2fe;
-    --exito:#059669; --exito-suave:#ecfdf5; --exito-texto:#047857;
-    --aviso:#d97706; --aviso-suave:#fffbeb; --aviso-texto:#b45309;
-    --radio-c:8px; --radio-t:12px;
-    --sombra-1:0 1px 2px rgba(15,23,42,.06); --sombra-2:0 4px 12px -2px rgba(15,23,42,.10);
+    --lienzo:#F5F6F1; --superficie:#FFFFFF; --superficie-2:#ECEDE4;
+    --borde:#DEDFD6; --borde-fuerte:#C9CABF;
+    --texto:#141509; --texto-2:#55584C; --texto-3:#9A9C8F;
+    --acento:#C4F000; --acento-vivo:#B4E000; --acento-activo:#A3CC00;
+    --acento-texto:#5E7300; --acento-suave:#F2FBCB; --acento-borde:#DDF08A; --acento-anillo:#8FB300;
+    --exito:#2A9D3F; --exito-suave:#E7F5E9; --exito-texto:#1F7A34;
+    --aviso:#D99500; --aviso-suave:#FFF7E6; --aviso-texto:#8A5B00; --aviso-borde:#F5E3B8;
+    --peligro:#DC2626; --peligro-suave:#FEECEC; --peligro-texto:#B42020; --peligro-borde:#F6C9C9;
+    --radio-c:9px; --radio-t:14px; --radio-full:999px;
+    --sombra-1:0 1px 2px rgba(20,21,9,.06);
+    --sombra-2:0 4px 14px -3px rgba(20,21,9,.12);
+    --sombra-3:0 18px 48px -12px rgba(20,21,9,.20);
+    --anillo-foco:0 0 0 2px var(--lienzo),0 0 0 4px var(--acento-anillo);
+    --sans:"Space Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
   }
   *{box-sizing:border-box}
-  body{margin:0;background:var(--lienzo);color:var(--texto);
-    font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  body{margin:0;background:var(--lienzo);color:var(--texto);font:15px/1.55 var(--sans);-webkit-font-smoothing:antialiased}
+  h1,h2,h3{margin:0;letter-spacing:-.02em}
+  a{color:var(--acento-texto);text-decoration:none} a:hover{color:var(--texto)}
+  ::selection{background:var(--acento);color:var(--texto)}
 
-  /* ---------- Cabecera global ---------- */
-  .cabecera{position:sticky;top:0;background:rgba(255,255,255,.85);backdrop-filter:blur(8px);
-    border-bottom:1px solid var(--borde);z-index:5}
-  .cabecera-int{max-width:1040px;margin:0 auto;display:flex;align-items:center;gap:14px;padding:12px 24px}
-  .marca{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px}
-  .marca .simbolo{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;color:#fff;
-    background:linear-gradient(135deg,var(--primario),#0ea5e9);font-size:12px}
-  .cabecera nav{margin-left:auto;display:flex;align-items:center;gap:14px;font-size:13px}
-  .cabecera a{color:var(--texto-2);text-decoration:none}
-  .cabecera a:hover{color:var(--texto)}
+  /* Cabecera */
+  .cabecera{position:sticky;top:0;z-index:5;background:rgba(245,246,241,.82);backdrop-filter:blur(10px);border-bottom:1px solid var(--borde)}
+  .cab-int{max-width:1120px;margin:0 auto;display:flex;align-items:center;gap:14px;padding:13px 24px}
+  .wordmark{font:700 19px/1 var(--sans);letter-spacing:-.03em}
+  .wordmark .hl{background:var(--acento);color:var(--texto);padding:0 4px;border-radius:4px}
+  .cab-int nav{margin-left:auto;display:flex;align-items:center;gap:16px;font-size:13.5px}
+  .cab-int nav a{color:var(--texto-2)} .cab-int nav a:hover{color:var(--texto)}
+  .avatar{width:32px;height:32px;border-radius:50%;background:var(--texto);color:#F3F4EC;display:grid;place-items:center;font:700 12px var(--sans)}
 
-  main{max-width:1040px;margin:0 auto;padding:32px 24px 80px}
-  h1{font-size:28px;font-weight:700;letter-spacing:-.01em;margin:0}
-  .sub{color:var(--texto-2);margin:4px 0 24px}
+  main{max-width:1120px;margin:0 auto;padding:32px 24px 80px}
+  .titulo-fila{display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;margin-bottom:22px}
+  .titulo-fila h1{font-size:28px;font-weight:700}
+  .titulo-fila .cuenta{color:var(--texto-3);font-size:14px;padding-bottom:3px}
 
-  /* ---------- Importación: LA acción primaria ---------- */
-  .importar{display:flex;flex-wrap:wrap;align-items:center;gap:16px;background:var(--superficie);
-    border:1.5px dashed var(--primario-borde);border-radius:var(--radio-t);
-    padding:20px 24px;margin-bottom:32px;box-shadow:var(--sombra-1)}
-  .importar:hover{border-color:var(--primario)}
-  .importar .icono{width:44px;height:44px;border-radius:10px;background:var(--primario-suave);
-    display:grid;place-items:center;font-size:20px;flex:none}
-  .importar .texto{min-width:220px;flex:1}
-  .importar b{display:block;font-size:15px}
-  .importar span{font-size:13px;color:var(--texto-2)}
-  .importar .campos{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-  .input{height:38px;border:1px solid var(--borde);border-radius:var(--radio-c);background:var(--superficie);
-    padding:0 12px;font:inherit;color:var(--texto);width:220px}
-  .input::placeholder{color:var(--texto-3)}
-  .input:focus{border-color:var(--primario);box-shadow:0 0 0 3px rgba(79,70,229,.25);outline:none}
-  .btn{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 18px;border-radius:var(--radio-c);
-    font:600 14px system-ui;cursor:pointer;border:1px solid transparent;transition:.12s}
-  .btn-primario{background:var(--primario);color:#fff;box-shadow:var(--sombra-1)}
-  .btn-primario:hover{background:var(--primario-osc)}
+  /* Botones */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 18px;
+    border-radius:var(--radio-c);font:600 14px var(--sans);cursor:pointer;border:1px solid transparent;transition:background .12s,box-shadow .12s,border-color .12s}
+  .btn:focus-visible{outline:none;box-shadow:var(--anillo-foco)}
+  .btn-primario{background:var(--acento);color:var(--texto);box-shadow:var(--sombra-1)}
+  .btn-primario:hover{background:var(--acento-vivo)}
+  .btn-sec{background:var(--superficie);border-color:var(--borde);color:var(--texto);font-weight:500}
+  .btn-sec:hover{border-color:var(--borde-fuerte);background:var(--superficie-2)}
+  .btn-fantasma{background:transparent;color:var(--texto-2);font-weight:500}
+  .btn-fantasma:hover{background:var(--superficie-2);color:var(--texto)}
+  .btn-sm{height:32px;padding:0 12px;font-size:13px}
 
-  /* ---------- Rejilla de proyectos ---------- */
-  h2{font-size:15px;font-weight:600;color:var(--texto-2);margin:0 0 12px}
-  .rejilla{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px}
-  .tarjeta{border:1px solid var(--borde);border-radius:var(--radio-t);background:var(--superficie);
-    box-shadow:var(--sombra-1);overflow:hidden;cursor:pointer;transition:.15s;text-decoration:none;color:inherit;display:block}
-  .tarjeta:hover{box-shadow:var(--sombra-2);border-color:var(--borde-fuerte)}
-  .mini{height:110px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:34px;font-weight:700}
-  .cuerpo{padding:14px 16px 16px}
-  .cuerpo h3{margin:0 0 8px;font-size:15px;font-weight:600}
-  .badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:500}
+  /* Badges */
+  .badge{display:inline-flex;align-items:center;gap:6px;border-radius:var(--radio-full);padding:4px 11px;font:500 11.5px/1 var(--sans)}
   .badge .punto{width:6px;height:6px;border-radius:50%}
-  .badge-exito{background:var(--exito-suave);color:var(--exito-texto)}.badge-exito .punto{background:var(--exito)}
-  .badge-aviso{background:var(--aviso-suave);color:var(--aviso-texto)}.badge-aviso .punto{background:var(--aviso)}
-  .badge-neutro{background:var(--superficie-2);color:var(--texto-2)}.badge-neutro .punto{background:var(--texto-3)}
-  .url{display:inline-block;margin-top:8px;max-width:100%;border-radius:999px;background:var(--primario-suave);
-    color:var(--primario);border:1px solid var(--primario-borde);padding:3px 10px;font-size:12px;
-    overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-  .meta{font-size:12px;color:var(--texto-3);margin-top:8px}
+  .badge-exito{background:var(--exito-suave);color:var(--exito-texto)} .badge-exito .punto{background:var(--exito)}
+  .badge-aviso{background:var(--aviso-suave);color:var(--aviso-texto)} .badge-aviso .punto{background:var(--aviso)}
+  .badge-neutro{background:var(--superficie-2);color:var(--texto-2)} .badge-neutro .punto{background:var(--texto-3)}
 
-  /* ---------- Estado vacío (primera vez) ---------- */
-  .vacio{margin-top:48px;border:1.5px dashed var(--borde-fuerte);border-radius:var(--radio-t);
-    padding:48px 24px;text-align:center;color:var(--texto-2);background:var(--superficie)}
-  .vacio .icono{font-size:34px;margin-bottom:10px}
-  .vacio h3{margin:0 0 4px;color:var(--texto);font-size:16px}
-  .vacio p{margin:0 0 16px;font-size:13px}
-  .separador{margin:56px 0 8px;font-size:12px;color:var(--texto-3);text-transform:uppercase;letter-spacing:.06em}
+  /* ---- ZONA DE IMPORTACIÓN (la acción destacada del panel) ---- */
+  .importar{position:relative;background:var(--texto);color:#F3F4EC;border-radius:20px;overflow:hidden;
+    padding:30px;display:flex;gap:28px;align-items:center;flex-wrap:wrap;box-shadow:var(--sombra-2);margin-bottom:36px}
+  .importar .grano{position:absolute;inset:0;opacity:.05;background:repeating-linear-gradient(45deg,#fff 0 1px,transparent 1px 8px)}
+  .importar .txt{position:relative;flex:1;min-width:240px}
+  .importar .eyebrow{font:600 11px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--acento)}
+  .importar h2{font-size:24px;font-weight:700;letter-spacing:-.02em;color:#fff;margin:10px 0 6px}
+  .importar p{margin:0;color:#C7C8BC;font-size:14px;max-width:420px}
+  .dropzone{position:relative;flex:1;min-width:280px;border:1.5px dashed rgba(196,240,0,.5);border-radius:var(--radio-t);
+    background:rgba(196,240,0,.05);padding:26px;text-align:center;transition:background .15s,border-color .15s;cursor:pointer}
+  .dropzone:hover{border-color:var(--acento);background:rgba(196,240,0,.1)}
+  .dropzone .icono{width:44px;height:44px;border-radius:12px;background:var(--acento);color:var(--texto);display:grid;place-items:center;margin:0 auto 12px;font-size:22px;font-weight:700}
+  .dropzone .grande{font-weight:600;font-size:15px;color:#fff}
+  .dropzone .peque{color:#9A9C8F;font-size:12.5px;margin-top:4px}
+  .dropzone .o-boton{margin-top:14px}
+
+  /* ---- Rejilla de proyectos ---- */
+  .seccion-cab{display:flex;align-items:center;gap:12px;margin:0 0 16px}
+  .seccion-cab h2{font-size:17px;font-weight:600}
+  .seccion-cab .conteo{color:var(--texto-3);font-size:13px}
+  .rejilla{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px}
+  .card{overflow:hidden;background:var(--superficie);border:1px solid var(--borde);border-radius:var(--radio-t);
+    box-shadow:var(--sombra-1);transition:box-shadow .12s,border-color .12s;cursor:pointer;text-decoration:none;color:inherit;display:block}
+  .card:hover{box-shadow:var(--sombra-2);border-color:var(--borde-fuerte)}
+  .card .thumb{height:130px;position:relative;background:repeating-linear-gradient(45deg,#ECEDE4 0 12px,#E3E4D9 12px 24px)}
+  .card .thumb .mini{position:absolute;left:12px;top:12px;font:600 10px var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--texto-3);background:rgba(255,255,255,.7);border-radius:6px;padding:3px 7px}
+  .card .cuerpo{padding:14px 16px}
+  .card .fila{display:flex;align-items:center;gap:10px}
+  .card h3{font-size:15px;font-weight:600;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .card .url{font-size:12px;color:var(--texto-3);margin:7px 0 0;font-family:ui-monospace,Consolas,monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* Card "importar otra" fantasma */
+  .card-nueva{border:1.5px dashed var(--borde-fuerte);background:transparent;box-shadow:none;display:grid;place-items:center;min-height:210px;color:var(--texto-2)}
+  .card-nueva:hover{border-color:var(--acento-anillo);background:var(--acento-suave);box-shadow:none}
+  .card-nueva .mas{width:40px;height:40px;border-radius:11px;background:var(--superficie-2);display:grid;place-items:center;font-size:22px;margin:0 auto 8px}
+
+  /* ---- Estado vacío (primera visita) ---- */
+  .vacio{background:var(--superficie);border:1px solid var(--borde);border-radius:20px;box-shadow:var(--sombra-1);
+    padding:56px 32px;text-align:center;max-width:620px;margin:0 auto}
+  .vacio .wave{font-size:34px}
+  .vacio h2{font-size:26px;font-weight:700;letter-spacing:-.02em;margin:12px 0 8px}
+  .vacio p{color:var(--texto-2);max-width:420px;margin:0 auto 24px}
+  .dropzone-vacio{border:1.5px dashed var(--borde-fuerte);border-radius:var(--radio-t);padding:34px;background:var(--lienzo);cursor:pointer;transition:.15s;max-width:440px;margin:0 auto}
+  .dropzone-vacio:hover{border-color:var(--acento-anillo);background:var(--acento-suave)}
+  .dropzone-vacio .icono{width:52px;height:52px;border-radius:14px;background:var(--acento);color:var(--texto);display:grid;place-items:center;margin:0 auto 14px;font-size:26px;font-weight:700}
+  .dropzone-vacio .grande{font-weight:600;font-size:16px}
+  .dropzone-vacio .peque{color:var(--texto-3);font-size:13px;margin-top:5px}
+  .pasos{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:26px;color:var(--texto-3);font-size:12.5px}
+  .pasos b{color:var(--texto-2)}
+  .pasos .p{display:inline-flex;align-items:center;gap:6px}
+  .pasos .n{width:18px;height:18px;border-radius:50%;background:var(--superficie-2);color:var(--texto-2);display:grid;place-items:center;font:700 10px var(--sans)}
+
+  .sep{max-width:1120px;margin:44px auto 0;padding:0 24px}
+  .sep .cap{font:600 11px/1 var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--texto-3);padding-bottom:10px;border-bottom:1px solid var(--borde);display:block}
+  .rotulo{max-width:1120px;margin:0 auto;padding:40px 24px 0}
+  .rotulo .eyebrow{font:600 11px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--acento-texto)}
+  .rotulo h1{font-size:30px;font-weight:700;letter-spacing:-.03em;margin:12px 0 6px}
+  .rotulo p{color:var(--texto-2);margin:0;max-width:640px}
 </style>
 </head>
 <body>
 
+<div class="rotulo">
+  <div class="eyebrow">Sistema visual · Entregable 4</div>
+  <h1>Panel «Tus webs»</h1>
+  <p>Dirección <b>1b · Alto Voltaje</b>. Aquí manda <b>Importar</b> (único primario). Debajo, el panel poblado
+  con tarjetas de estado; más abajo, el estado vacío de primera visita.</p>
+</div>
+
+<!-- ===================== PANEL POBLADO ===================== -->
+<div class="sep"><span class="cap">A · Panel con webs</span></div>
+
 <header class="cabecera">
-  <div class="cabecera-int">
-    <span class="marca"><span class="simbolo">▲</span>[Marca]</span>
+  <div class="cab-int">
+    <span class="wordmark">Estrénal<span class="hl">a</span></span>
     <nav>
-      <a href="#">Configuración</a>
-      <a href="#">Salir</a>
+      <a href="#">Ayuda</a>
+      <span class="avatar">MR</span>
     </nav>
   </div>
 </header>
 
 <main>
-  <h1>Tus webs</h1>
-  <p class="sub">Todo lo que has publicado (o vas a publicar), en un sitio.</p>
+  <div class="titulo-fila">
+    <h1>Tus webs</h1>
+    <span class="cuenta">3 proyectos</span>
+  </div>
 
-  <!-- Importación destacada: zona de arrastre + campos -->
+  <!-- Importar: la acción destacada -->
   <div class="importar">
-    <div class="icono">📦</div>
-    <div class="texto">
-      <b>Importa una web nueva</b>
-      <span>Arrastra aquí el ZIP que te generó tu IA, o elígelo a mano.</span>
+    <div class="grano"></div>
+    <div class="txt">
+      <div class="eyebrow">Empieza aquí</div>
+      <h2>Sube tu web hecha con IA</h2>
+      <p>Arrastra el archivo (o la carpeta) que te dio Claude, ChatGPT o v0. En un clic estará online, con dirección y HTTPS.</p>
     </div>
-    <div class="campos">
-      <input class="input" placeholder="Nombre (p. ej. Clínica Sonrisa)">
-      <button class="btn" style="background:var(--superficie);border-color:var(--borde);color:var(--texto);font-weight:500">Elegir ZIP…</button>
-      <button class="btn btn-primario">Importar</button>
+    <div class="dropzone">
+      <div class="icono">↑</div>
+      <div class="grande">Arrastra tu web aquí</div>
+      <div class="peque">.html, .zip o una carpeta entera</div>
+      <div class="o-boton"><button class="btn btn-primario">Elegir archivo</button></div>
     </div>
   </div>
 
-  <h2>3 proyectos</h2>
+  <!-- Rejilla -->
+  <div class="seccion-cab"><h2>Recientes</h2><span class="conteo">· 3</span></div>
   <div class="rejilla">
-    <a class="tarjeta" href="#">
-      <div class="mini" style="background:linear-gradient(135deg,#4f46e5,#0ea5e9)">C</div>
+    <a class="card" href="#">
+      <div class="thumb"><span class="mini">Inicio</span></div>
       <div class="cuerpo">
-        <h3>Clínica Sonrisa</h3>
-        <span class="badge badge-exito"><span class="punto"></span>Publicado</span>
-        <br><span class="url">clinica-sonrisa.plataforma.com</span>
-        <div class="meta">Actualizado hace 2 días</div>
+        <div class="fila"><h3>Clínica Sonrisa</h3><span class="badge badge-exito"><span class="punto"></span>Publicado</span></div>
+        <p class="url">clinica-sonrisa.estrenala.com</p>
       </div>
     </a>
-    <a class="tarjeta" href="#">
-      <div class="mini" style="background:linear-gradient(135deg,#0f766e,#84cc16)">T</div>
+    <a class="card" href="#">
+      <div class="thumb"><span class="mini">Inicio</span></div>
       <div class="cuerpo">
-        <h3>Taller Rodríguez</h3>
-        <span class="badge badge-aviso"><span class="punto"></span>Cambios sin publicar</span>
-        <br><span class="url">taller-rodriguez.plataforma.com</span>
-        <div class="meta">Editado hoy · publicado hace 1 semana</div>
+        <div class="fila"><h3>Estudio Mará</h3><span class="badge badge-aviso"><span class="punto"></span>Cambios sin publicar</span></div>
+        <p class="url">estudio-mara.estrenala.com</p>
       </div>
     </a>
-    <a class="tarjeta" href="#">
-      <div class="mini" style="background:linear-gradient(135deg,#7c3aed,#db2777)">F</div>
+    <a class="card" href="#">
+      <div class="thumb"><span class="mini">Inicio</span></div>
       <div class="cuerpo">
-        <h3>Floristería Pétalos</h3>
-        <span class="badge badge-neutro"><span class="punto"></span>Sin publicar</span>
-        <div class="meta" style="margin-top:26px">Importado ayer</div>
+        <div class="fila"><h3>Bar La Esquina</h3><span class="badge badge-neutro"><span class="punto"></span>Sin publicar</span></div>
+        <p class="url">borrador · importada ayer</p>
       </div>
     </a>
-  </div>
-
-  <!-- Variante: primera visita, sin proyectos -->
-  <p class="separador">Variante: estado vacío (primera visita)</p>
-  <div class="vacio">
-    <div class="icono">👋</div>
-    <h3>Importa tu primera web</h3>
-    <p>¿Tu IA ya te hizo la web? Sube el ZIP y en un minuto estará online,<br>con su dirección propia y lista para editar sin código.</p>
-    <button class="btn btn-primario">Importar mi web</button>
+    <a class="card card-nueva" href="#">
+      <div>
+        <div class="mas">+</div>
+        <div style="font-weight:600;font-size:14px">Importar otra web</div>
+      </div>
+    </a>
   </div>
 </main>
+
+<!-- ===================== ESTADO VACÍO ===================== -->
+<div class="sep"><span class="cap">B · Primera visita · estado vacío</span></div>
+
+<header class="cabecera" style="position:static">
+  <div class="cab-int">
+    <span class="wordmark">Estrénal<span class="hl">a</span></span>
+    <nav>
+      <a href="#">Ayuda</a>
+      <span class="avatar">MR</span>
+    </nav>
+  </div>
+</header>
+
+<main style="padding-bottom:90px">
+  <div class="vacio">
+    <h2>Hola, María. Vamos a poner tu web online.</h2>
+    <p>Sube la web que te generó la IA. Nosotros la alojamos, le damos dirección y HTTPS, y podrás editarla sin código.</p>
+    <div class="dropzone-vacio">
+      <div class="icono">↑</div>
+      <div class="grande">Arrastra tu web aquí</div>
+      <div class="peque">.html, .zip o una carpeta · o <a href="#">elígela desde tu equipo</a></div>
+    </div>
+    <div class="pasos">
+      <span class="p"><span class="n">1</span> <b>Súbela</b></span>
+      <span>›</span>
+      <span class="p"><span class="n">2</span> <b>Edítala</b> con un clic</span>
+      <span>›</span>
+      <span class="p"><span class="n">3</span> <b>Publícala</b></span>
+    </div>
+  </div>
+</main>
+
 </body>
 </html>

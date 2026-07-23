@@ -3,260 +3,469 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Hoja de componentes — sistema visual</title>
+<title>Hoja de componentes — Estrénala · v2 Alto Voltaje</title>
 <style>
+  /* ============================================================
+     TOKENS (espejo del bloque @theme de 01-tokens.md, dir. 1b)
+     ============================================================ */
   :root{
-    --lienzo:#f8fafc; --superficie:#fff; --superficie-2:#f1f5f9; --borde:#e2e8f0; --borde-fuerte:#cbd5e1;
-    --texto:#0f172a; --texto-2:#475569; --texto-3:#94a3b8;
-    --primario:#4f46e5; --primario-osc:#4338ca; --primario-suave:#eef2ff; --primario-borde:#c7d2fe;
-    --exito:#059669; --exito-suave:#ecfdf5; --exito-texto:#047857;
-    --aviso:#d97706; --aviso-suave:#fffbeb; --aviso-texto:#b45309; --aviso-borde:#fde68a;
-    --peligro:#e11d48; --peligro-osc:#be123c; --peligro-suave:#fff1f2; --peligro-borde:#fecdd3;
-    --radio-c:8px; --radio-t:12px;
-    --sombra-1:0 1px 2px rgba(15,23,42,.06);
-    --sombra-2:0 4px 12px -2px rgba(15,23,42,.10);
-    --sombra-3:0 12px 24px -6px rgba(15,23,42,.16);
+    --lienzo:#F5F6F1; --superficie:#FFFFFF; --superficie-2:#ECEDE4;
+    --borde:#DEDFD6; --borde-fuerte:#C9CABF;
+    --texto:#141509; --texto-2:#55584C; --texto-3:#9A9C8F;
+
+    --acento:#C4F000; --acento-vivo:#B4E000; --acento-activo:#A3CC00;
+    --acento-texto:#5E7300; --acento-suave:#F2FBCB; --acento-borde:#DDF08A; --acento-anillo:#8FB300;
+
+    --exito:#2A9D3F; --exito-suave:#E7F5E9; --exito-texto:#1F7A34;
+    --aviso:#D99500; --aviso-suave:#FFF7E6; --aviso-texto:#8A5B00; --aviso-borde:#F5E3B8;
+    --peligro:#DC2626; --peligro-suave:#FEECEC; --peligro-texto:#B42020; --peligro-borde:#F6C9C9;
+
+    --radio-c:9px; --radio-t:14px; --radio-pop:16px; --radio-full:999px;
+    --sombra-1:0 1px 2px rgba(20,21,9,.06);
+    --sombra-2:0 4px 14px -3px rgba(20,21,9,.12);
+    --sombra-3:0 18px 48px -12px rgba(20,21,9,.20);
+    --anillo-foco:0 0 0 2px var(--lienzo),0 0 0 4px var(--acento-anillo);
+
+    --sans:"Space Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
   }
   *{box-sizing:border-box}
-  body{margin:0;background:var(--lienzo);color:var(--texto);
-    font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-  main{max-width:960px;margin:0 auto;padding:40px 24px 80px}
-  h1{font-size:28px;font-weight:700;letter-spacing:-.01em;margin:0 0 4px}
-  .sub{color:var(--texto-2);margin:0 0 32px}
-  section{margin-top:36px}
-  h2{font-size:18px;font-weight:600;letter-spacing:-.01em;margin:0 0 4px}
-  .nota{font-size:13px;color:var(--texto-2);margin:0 0 14px}
-  .fila{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
-  .muestra{background:var(--superficie);border:1px solid var(--borde);border-radius:var(--radio-t);
-    padding:20px;box-shadow:var(--sombra-1)}
+  body{margin:0;background:var(--lienzo);color:var(--texto);font:15px/1.55 var(--sans);
+    -webkit-font-smoothing:antialiased}
+  h1,h2,h3{margin:0;letter-spacing:-.02em}
+  a{color:var(--acento-texto)} a:hover{color:var(--texto)}
+  ::selection{background:var(--acento);color:var(--texto)}
 
-  /* ---------- Botones ---------- */
-  .btn{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 16px;border-radius:var(--radio-c);
-    font:inherit;font-weight:500;cursor:pointer;border:1px solid transparent;transition:.12s}
-  .btn:focus-visible{outline:2px solid var(--primario);outline-offset:2px}
-  .btn-primario{background:var(--primario);color:#fff;font-weight:600;box-shadow:var(--sombra-1)}
-  .btn-primario:hover{background:var(--primario-osc)}
+  /* Layout de la hoja */
+  .cabecera{max-width:1080px;margin:0 auto;padding:48px 32px 8px}
+  .eyebrow{font:600 11px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--acento-texto)}
+  .cabecera h1{font-size:34px;font-weight:700;letter-spacing:-.03em;margin:12px 0 6px}
+  .cabecera p{color:var(--texto-2);max-width:640px;margin:0;text-wrap:pretty}
+  main{max-width:1080px;margin:0 auto;padding:24px 32px 96px}
+  section{padding:28px 0;border-top:1px solid var(--borde)}
+  section>h2{font-size:20px;font-weight:600;margin-bottom:4px}
+  section>.desc{color:var(--texto-2);font-size:13.5px;margin:0 0 20px;max-width:620px}
+  .rejilla{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:20px}
+  .muestra{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+  .estado-fila{display:flex;flex-wrap:wrap;gap:20px}
+  .celda{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+  .cap{font:600 10px/1.4 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--texto-3)}
+  .panel{background:var(--superficie);border:1px solid var(--borde);border-radius:var(--radio-t);
+    box-shadow:var(--sombra-1);padding:20px}
+
+  /* ===================== BOTONES ===================== */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:36px;padding:0 16px;
+    border-radius:var(--radio-c);font:500 14px var(--sans);cursor:pointer;border:1px solid transparent;
+    transition:background .12s,box-shadow .12s,border-color .12s;user-select:none}
+  .btn:focus-visible{outline:none;box-shadow:var(--anillo-foco)}
+  .btn:disabled,.btn.is-disabled{opacity:.5;cursor:not-allowed}
+  .btn-primario{background:var(--acento);color:var(--texto);font-weight:600;box-shadow:var(--sombra-1)}
+  .btn-primario:hover:not(:disabled):not(.is-disabled),.btn-primario.is-hover{background:var(--acento-vivo)}
+  .btn-primario.is-active{background:var(--acento-activo)}
+  .btn-primario.is-focus{box-shadow:var(--anillo-foco)}
   .btn-sec{background:var(--superficie);border-color:var(--borde);color:var(--texto)}
-  .btn-sec:hover{border-color:var(--borde-fuerte);background:var(--superficie-2)}
-  .btn-peligro{background:var(--peligro);color:#fff;font-weight:600}
-  .btn-peligro:hover{background:var(--peligro-osc)}
-  .btn-peligro-sutil{background:var(--peligro-suave);border-color:var(--peligro-borde);color:var(--peligro)}
-  .btn[disabled]{opacity:.5;pointer-events:none}
-  .btn-quieto{height:30px;padding:0 10px;font-size:13px}
-  .spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;
-    animation:girar .7s linear infinite}
-  .btn-sec .spinner{border-color:var(--borde-fuerte);border-top-color:var(--texto-2)}
+  .btn-sec:hover:not(:disabled):not(.is-disabled),.btn-sec.is-hover{border-color:var(--borde-fuerte);background:var(--superficie-2)}
+  .btn-sec.is-focus{box-shadow:var(--anillo-foco)}
+  .btn-fantasma{background:transparent;color:var(--texto-2)}
+  .btn-fantasma:hover:not(:disabled):not(.is-disabled),.btn-fantasma.is-hover{background:var(--superficie-2);color:var(--texto)}
+  .btn-peligro-sutil{background:var(--peligro-suave);border-color:var(--peligro-borde);color:var(--peligro-texto)}
+  .btn-peligro-sutil:hover:not(:disabled):not(.is-disabled),.btn-peligro-sutil.is-hover{background:#FCDCDC}
+  .btn-peligro-solido{background:var(--peligro);color:#fff;font-weight:600}
+  .btn-peligro-solido:hover:not(:disabled):not(.is-disabled),.btn-peligro-solido.is-hover{background:#C11F1F}
+  .btn-sm{height:32px;padding:0 12px;font-size:13px}
+  .btn-lg{height:44px;padding:0 24px;font-size:15px}
+  .cargador{display:inline-block;width:14px;height:14px;border-radius:50%;
+    border:2px solid currentColor;border-top-color:transparent;animation:girar .7s linear infinite}
   @keyframes girar{to{transform:rotate(360deg)}}
 
-  /* ---------- Inputs ---------- */
-  .campo{display:block;font-size:13px;font-weight:500;color:var(--texto-2);margin-bottom:6px}
-  .input{height:36px;width:100%;max-width:320px;border:1px solid var(--borde);border-radius:var(--radio-c);
-    background:var(--superficie);padding:0 12px;font:inherit;color:var(--texto)}
-  .input::placeholder{color:var(--texto-3)}
-  .input:hover{border-color:var(--borde-fuerte)}
-  .input:focus{border-color:var(--primario);box-shadow:0 0 0 3px rgba(79,70,229,.25);outline:none}
-  .input-error{border-color:var(--peligro)}
-  .input-error:focus{box-shadow:0 0 0 3px rgba(225,29,72,.2)}
-  .ayuda-error{font-size:12px;color:var(--peligro);margin-top:6px}
-  .input[disabled]{background:var(--superficie-2);color:var(--texto-3)}
-
-  /* ---------- Badges ---------- */
-  .badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;
-    font-size:12px;font-weight:500}
+  /* ===================== BADGES ===================== */
+  .badge{display:inline-flex;align-items:center;gap:6px;border-radius:var(--radio-full);
+    padding:4px 11px;font:500 11.5px/1 var(--sans)}
   .badge .punto{width:6px;height:6px;border-radius:50%}
-  .badge-exito{background:var(--exito-suave);color:var(--exito-texto)}
-  .badge-exito .punto{background:var(--exito)}
-  .badge-aviso{background:var(--aviso-suave);color:var(--aviso-texto)}
-  .badge-aviso .punto{background:var(--aviso)}
-  .badge-neutro{background:var(--superficie-2);color:var(--texto-2)}
-  .badge-neutro .punto{background:var(--texto-3)}
-  .badge-peligro{background:var(--peligro-suave);color:var(--peligro)}
-  .badge-peligro .punto{background:var(--peligro)}
+  .badge-exito{background:var(--exito-suave);color:var(--exito-texto)} .badge-exito .punto{background:var(--exito)}
+  .badge-aviso{background:var(--aviso-suave);color:var(--aviso-texto)} .badge-aviso .punto{background:var(--aviso)}
+  .badge-neutro{background:var(--superficie-2);color:var(--texto-2)} .badge-neutro .punto{background:var(--texto-3)}
 
-  /* ---------- Tarjeta de proyecto ---------- */
-  .tarjeta-proyecto{display:flex;flex-direction:column;width:280px;border:1px solid var(--borde);
-    border-radius:var(--radio-t);background:var(--superficie);box-shadow:var(--sombra-1);overflow:hidden;
-    cursor:pointer;transition:.15s}
-  .tarjeta-proyecto:hover{box-shadow:var(--sombra-2);border-color:var(--borde-fuerte)}
-  .mini{height:110px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:34px;
-    font-weight:700;background:linear-gradient(135deg,#4f46e5,#0ea5e9)}
-  .tarjeta-cuerpo{padding:14px 16px 16px}
-  .tarjeta-cuerpo h3{margin:0 0 6px;font-size:15px;font-weight:600}
-  .meta{font-size:12px;color:var(--texto-3)}
-  .url-publica{display:inline-flex;align-items:center;gap:6px;margin-top:8px;max-width:100%;
-    border-radius:999px;background:var(--primario-suave);color:var(--primario);border:1px solid var(--primario-borde);
-    padding:3px 10px;font-size:12px;text-decoration:none;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+  /* ===================== CAMPOS ===================== */
+  .campo{height:36px;width:100%;border:1px solid var(--borde);border-radius:var(--radio-c);
+    background:var(--superficie);padding:0 12px;font:400 14px var(--sans);color:var(--texto)}
+  .campo::placeholder{color:var(--texto-3)}
+  .campo:focus-visible,.campo.is-focus{outline:none;border-color:var(--acento-anillo);box-shadow:var(--anillo-foco)}
+  .campo:disabled,.campo.is-disabled{background:var(--superficie-2);color:var(--texto-3);cursor:not-allowed}
+  .campo-error{border-color:var(--peligro)}
+  .campo-error.is-focus{box-shadow:0 0 0 2px var(--lienzo),0 0 0 4px var(--peligro)}
+  textarea.campo{height:auto;min-height:72px;padding:8px 12px;resize:vertical;line-height:1.5}
+  select.campo{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' stroke='%2355584C' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
+  .etiqueta-campo{display:block;font:500 12px var(--sans);color:var(--texto-2);margin-bottom:6px}
+  .ayuda-campo{font-size:12px;color:var(--texto-3);margin:6px 0 0}
+  .error-campo{font-size:12px;color:var(--peligro-texto);margin:6px 0 0;display:flex;align-items:center;gap:5px}
 
-  /* ---------- Toasts ---------- */
-  .toast{display:flex;gap:10px;align-items:flex-start;max-width:420px;border-radius:var(--radio-t);
-    padding:12px 14px;font-size:13px;border:1px solid}
-  .toast b{display:block;font-size:13px}
-  .toast-exito{background:var(--exito-suave);border-color:#a7f3d0;color:var(--exito-texto)}
-  .toast-error{background:var(--peligro-suave);border-color:var(--peligro-borde);color:var(--peligro-osc)}
-  .toast .cerrar{margin-left:auto;border:0;background:none;cursor:pointer;color:inherit;opacity:.6}
+  /* ===================== INTERRUPTOR ===================== */
+  .interruptor{position:relative;width:36px;height:20px;border-radius:var(--radio-full);
+    background:var(--borde-fuerte);border:0;cursor:pointer;transition:background .12s;flex:none}
+  .interruptor::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;
+    background:#fff;box-shadow:var(--sombra-1);transition:transform .12s}
+  .interruptor[aria-checked="true"]{background:var(--acento)}
+  .interruptor[aria-checked="true"]::after{transform:translateX(16px)}
+  .interruptor:focus-visible{outline:none;box-shadow:var(--anillo-foco)}
 
-  /* ---------- Confirmación en dos pasos ---------- */
-  .confirmacion{display:inline-flex;align-items:center;gap:8px;background:var(--peligro-suave);
-    border:1px solid var(--peligro-borde);border-radius:var(--radio-c);padding:6px 8px 6px 12px;font-size:13px;color:var(--peligro-osc)}
+  /* ===================== PASTILLA URL ===================== */
+  .pastilla-url{display:inline-flex;align-items:center;gap:6px;border-radius:var(--radio-full);
+    background:var(--superficie-2);border:1px solid var(--borde);color:var(--texto);
+    padding:6px 6px 6px 14px;font:500 12px var(--sans)}
+  .pastilla-url .copiar{border:0;background:var(--superficie);color:var(--texto);border-radius:var(--radio-full);
+    padding:4px 10px;font:600 11px var(--sans);cursor:pointer}
+  .pastilla-url .copiar:hover{background:var(--acento)}
 
-  /* ---------- Bloque DNS ---------- */
-  .bloque-codigo{max-width:520px;background:var(--superficie-2);border:1px solid var(--borde);
-    border-radius:var(--radio-c);padding:4px 4px 4px 0;font-family:ui-monospace,Consolas,monospace;font-size:13px}
-  .bloque-codigo .linea{display:flex;align-items:center;gap:12px;padding:7px 8px 7px 14px;border-radius:6px}
-  .bloque-codigo .linea:hover{background:#e8edf3}
-  .bloque-codigo .copiar{margin-left:auto;height:26px;padding:0 10px;font:500 12px system-ui;border:1px solid var(--borde);
-    background:var(--superficie);border-radius:6px;cursor:pointer;color:var(--texto-2)}
-  .bloque-codigo .copiar:hover{border-color:var(--borde-fuerte);color:var(--texto)}
-  .etiqueta-dns{color:var(--texto-3);width:64px}
+  /* ===================== TARJETA DE PROYECTO ===================== */
+  .card-proy{overflow:hidden;background:var(--superficie);border:1px solid var(--borde);
+    border-radius:var(--radio-t);box-shadow:var(--sombra-1);transition:box-shadow .12s,border-color .12s;cursor:pointer}
+  .card-proy:hover{box-shadow:var(--sombra-2);border-color:var(--borde-fuerte)}
+  .card-proy .thumb{height:120px;background:repeating-linear-gradient(45deg,#ECEDE4 0 12px,#E3E4D9 12px 24px)}
+  .card-proy .cuerpo{padding:14px 16px}
+  .card-proy .fila{display:flex;align-items:center;gap:10px}
+  .card-proy h3{font-size:15px;font-weight:600;flex:1}
+  .card-proy .url{font-size:12px;color:var(--texto-3);margin:6px 0 0;font-family:ui-monospace,Consolas,monospace}
 
-  /* ---------- Historial ---------- */
-  .historial{max-width:460px;border:1px solid var(--borde);border-radius:var(--radio-t);background:var(--superficie);overflow:hidden}
-  .historial header{padding:12px 16px;font-weight:600;font-size:13px;border-bottom:1px solid var(--borde)}
-  .historial ul{margin:0;padding:0;list-style:none}
-  .historial li{display:flex;align-items:center;gap:10px;padding:10px 16px;font-size:13px;border-bottom:1px solid var(--borde)}
-  .historial li:last-child{border-bottom:0}
-  .historial .tipo{width:8px;height:8px;border-radius:50%;background:var(--texto-3);flex:none}
-  .historial .tipo.actual{background:var(--exito)}
-  .historial .cuando{color:var(--texto-3);margin-left:auto}
+  /* ===================== TARJETA DE CONFIG (blog) ===================== */
+  .card-cfg{display:flex;gap:14px;align-items:flex-start;background:var(--superficie);border:1px solid var(--borde);
+    border-radius:var(--radio-t);box-shadow:var(--sombra-1);padding:16px 18px}
+  .card-cfg .txt{flex:1}
+  .card-cfg h3{font-size:14px;font-weight:600;margin-bottom:2px}
+  .card-cfg p{margin:0;font-size:13px;color:var(--texto-2)}
 
-  /* ---------- Estado vacío ---------- */
-  .vacio{max-width:460px;border:1.5px dashed var(--borde-fuerte);border-radius:var(--radio-t);
-    padding:36px 24px;text-align:center;color:var(--texto-2);background:var(--superficie)}
-  .vacio .icono{font-size:30px;margin-bottom:8px}
-  .vacio h3{margin:0 0 4px;color:var(--texto);font-size:15px}
-  .vacio p{margin:0 0 14px;font-size:13px}
+  /* ===================== LISTA CON BADGES Y ACCIONES (blog) ===================== */
+  .lista{background:var(--superficie);border:1px solid var(--borde);border-radius:var(--radio-t);
+    box-shadow:var(--sombra-1);overflow:hidden}
+  .lista .item{display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid var(--borde)}
+  .lista .item:last-child{border-bottom:0}
+  .lista .item:hover{background:var(--superficie-2)}
+  .lista .item .t{flex:1;min-width:0}
+  .lista .item .t b{font-weight:600;font-size:14px}
+  .lista .item .t small{display:block;color:var(--texto-3);font-size:12px}
+  .lista .acciones{display:flex;gap:6px}
+
+  /* ===================== AVISO DE COSTE ===================== */
+  .aviso-coste{display:inline-flex;align-items:center;gap:8px;border-radius:var(--radio-c);
+    background:var(--aviso-suave);border:1px solid var(--aviso-borde);color:var(--aviso-texto);
+    padding:8px 12px;font-size:12.5px}
+
+  /* ===================== TOASTS ===================== */
+  .toast{display:flex;align-items:center;gap:10px;background:var(--texto);color:#F3F4EC;
+    border-radius:var(--radio-c);padding:11px 14px;font-size:13px;box-shadow:var(--sombra-3);max-width:380px}
+  .toast .icono{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;flex:none;font-size:11px;font-weight:700}
+  .toast-exito .icono{background:var(--exito);color:#fff}
+  .toast-error{background:var(--peligro-texto)} .toast-error .icono{background:#fff;color:var(--peligro-texto)}
+
+  /* ===================== AYUDAS (previsión: no técnicos) ===================== */
+  .quees{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;
+    background:var(--superficie-2);color:var(--texto-2);font:700 10px var(--sans);cursor:help;border:1px solid var(--borde)}
+  .tooltip{position:relative;display:inline-flex}
+  .tooltip .bocadillo{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);
+    background:var(--texto);color:#F3F4EC;font-size:12px;line-height:1.4;padding:8px 10px;border-radius:8px;
+    width:200px;box-shadow:var(--sombra-2);opacity:0;pointer-events:none;transition:opacity .15s}
+  .tooltip:hover .bocadillo,.tooltip.is-open .bocadillo{opacity:1}
+  .tooltip .bocadillo::after{content:"";position:absolute;top:100%;left:50%;transform:translateX(-50%);
+    border:5px solid transparent;border-top-color:var(--texto)}
+  /* Variante que abre hacia abajo (para demos sin espacio arriba) */
+  .tooltip.abajo .bocadillo{bottom:auto;top:calc(100% + 8px)}
+  .tooltip.abajo .bocadillo::after{top:auto;bottom:100%;border-top-color:transparent;border-bottom-color:var(--texto)}
+  .paso-tour{display:flex;gap:12px;align-items:flex-start;background:var(--texto);color:#F3F4EC;
+    border-radius:var(--radio-t);padding:16px;max-width:320px;box-shadow:var(--sombra-3)}
+  .paso-tour .num{width:22px;height:22px;border-radius:50%;background:var(--acento);color:var(--texto);
+    display:grid;place-items:center;font:700 12px var(--sans);flex:none}
+  .paso-tour h3{color:#fff;font-size:14px;margin-bottom:4px}
+  .paso-tour p{margin:0;font-size:12.5px;color:#C7C8BC;line-height:1.45}
+  .paso-tour .pie{display:flex;align-items:center;gap:10px;margin-top:14px}
+  .paso-tour .pts{display:flex;gap:5px;flex:1}
+  .paso-tour .pts i{width:6px;height:6px;border-radius:50%;background:#4A4B40}
+  .paso-tour .pts i.on{background:var(--acento)}
+  .btn-mini-claro{height:28px;padding:0 12px;border-radius:7px;border:0;font:600 12px var(--sans);cursor:pointer}
+
+  .nota{font-size:12px;color:var(--texto-3);margin-top:10px}
 </style>
 </head>
 <body>
-<main>
-  <h1>Hoja de componentes</h1>
-  <p class="sub">Entregable 3 del design-brief · todos los estados · los colores y medidas salen de <code>01-tokens.md</code></p>
 
+<div class="cabecera">
+  <div class="eyebrow">Sistema visual · Entregable 2</div>
+  <h1>Hoja de componentes</h1>
+  <p>Dirección <b>1b · Alto Voltaje</b>. Todos los estados de cada pieza: normal, hover, foco, deshabilitado,
+  ocupado y error. Incluye las piezas del panel de blog (listas con badges, tarjetas de config con interruptor,
+  avisos de coste) y los dos patrones «con previsión»: sistema de ayudas y caja de herramientas.</p>
+</div>
+
+<main>
+
+  <!-- TIPOGRAFÍA -->
+  <section>
+    <h2>Tipografía · Space Grotesk</h2>
+    <p class="desc">Familia única. Se autoaloja con next/font (sin CDN en el HTML). Fallback a system-ui.</p>
+    <div class="panel">
+      <div style="font:700 40px/1 var(--sans);letter-spacing:-.03em">Estrena tu web hoy mismo.</div>
+      <div style="font:700 28px/1.1 var(--sans);letter-spacing:-.02em;margin-top:16px">Título de pantalla · H1</div>
+      <div style="font:600 20px/1.2 var(--sans);margin-top:12px">Sección · H2</div>
+      <div style="font:600 16px/1.3 var(--sans);margin-top:12px">Tarjeta · H3</div>
+      <p style="margin:14px 0 0;max-width:560px">Cuerpo 15px: cuidamos que cualquier persona, sin saber de código,
+      entienda qué está pasando en su web. <a href="#">Esto es un enlace</a> con el lima como texto legible.</p>
+      <p style="font-size:13.5px;color:var(--texto-2);margin:8px 0 0">Cuerpo pequeño 13.5px para UI densa.</p>
+      <div style="font:600 11px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--acento-texto);margin-top:14px">Eyebrow · mini</div>
+    </div>
+  </section>
+
+  <!-- BOTONES -->
   <section>
     <h2>Botones</h2>
-    <p class="nota">Un solo primario por vista. «Ocupado» conserva el ancho y conjuga el verbo. El rojo nunca es «cancelar».</p>
-    <div class="muestra fila">
-      <button class="btn btn-primario">Publicar</button>
-      <button class="btn btn-primario" disabled><span class="spinner"></span>Publicando…</button>
-      <button class="btn btn-primario" disabled>Publicar</button>
-      <button class="btn btn-sec">Vista previa</button>
-      <button class="btn btn-sec" disabled><span class="spinner"></span>Cargando…</button>
-      <button class="btn btn-peligro">Despublicar</button>
-      <button class="btn btn-peligro-sutil">Quitar dominio</button>
-      <button class="btn btn-sec btn-quieto">Acción compacta</button>
+    <p class="desc">Un solo <b>primario (lima)</b> por vista. Secundario, fantasma y peligro para el resto.
+    El rojo, solo destructivo — nunca «Cancelar».</p>
+
+    <div class="estado-fila" style="margin-bottom:22px">
+      <div class="celda"><span class="cap">Primario · normal</span><button class="btn btn-primario">Publicar cambios</button></div>
+      <div class="celda"><span class="cap">Hover</span><button class="btn btn-primario is-hover">Publicar cambios</button></div>
+      <div class="celda"><span class="cap">Foco</span><button class="btn btn-primario is-focus">Publicar cambios</button></div>
+      <div class="celda"><span class="cap">Activo</span><button class="btn btn-primario is-active">Publicar cambios</button></div>
+      <div class="celda"><span class="cap">Ocupado</span><button class="btn btn-primario is-disabled"><span class="cargador"></span>Publicando…</button></div>
+      <div class="celda"><span class="cap">Deshabilitado</span><button class="btn btn-primario" disabled>Publicar cambios</button></div>
+    </div>
+
+    <div class="estado-fila" style="margin-bottom:22px">
+      <div class="celda"><span class="cap">Secundario</span><button class="btn btn-sec">Vista previa</button></div>
+      <div class="celda"><span class="cap">Sec · hover</span><button class="btn btn-sec is-hover">Vista previa</button></div>
+      <div class="celda"><span class="cap">Sec · foco</span><button class="btn btn-sec is-focus">Vista previa</button></div>
+      <div class="celda"><span class="cap">Fantasma</span><button class="btn btn-fantasma">Descartar</button></div>
+      <div class="celda"><span class="cap">Fantasma · hover</span><button class="btn btn-fantasma is-hover">Descartar</button></div>
+    </div>
+
+    <div class="estado-fila">
+      <div class="celda"><span class="cap">Peligro sutil</span><button class="btn btn-peligro-sutil">Despublicar</button></div>
+      <div class="celda"><span class="cap">Peligro sólido</span><button class="btn btn-peligro-solido">Eliminar web</button></div>
+      <div class="celda"><span class="cap">Pequeño</span><button class="btn btn-sec btn-sm">Cambiar</button></div>
+      <div class="celda"><span class="cap">Grande</span><button class="btn btn-primario btn-lg">Importar mi web</button></div>
     </div>
   </section>
 
-  <section>
-    <h2>Inputs</h2>
-    <p class="nota">Etiqueta arriba, siempre. El error habla en persona («Revisa…»), no en código.</p>
-    <div class="muestra" style="display:grid;gap:18px">
-      <div><label class="campo">Nombre del proyecto</label><input class="input" placeholder="p. ej. Clínica Sonrisa"></div>
-      <div><label class="campo">Subdominio</label><input class="input" value="clinica-sonrisa" style="border-color:var(--primario);box-shadow:0 0 0 3px rgba(79,70,229,.25)"></div>
-      <div>
-        <label class="campo">Dominio propio</label>
-        <input class="input input-error" value="clinica sonrisa,com">
-        <p class="ayuda-error">Dominio no válido (ejemplo: miempresa.com)</p>
-      </div>
-      <div><label class="campo">Campo deshabilitado</label><input class="input" disabled value="No disponible en tu plan"></div>
-    </div>
-  </section>
-
+  <!-- BADGES -->
   <section>
     <h2>Badges de estado</h2>
-    <div class="muestra fila">
-      <span class="badge badge-exito"><span class="punto"></span>Publicado</span>
-      <span class="badge badge-aviso"><span class="punto"></span>Cambios sin publicar</span>
-      <span class="badge badge-neutro"><span class="punto"></span>Sin publicar</span>
-      <span class="badge badge-peligro"><span class="punto"></span>Error</span>
-    </div>
-  </section>
-
-  <section>
-    <h2>Tarjeta de proyecto</h2>
-    <p class="nota">Miniatura (o degradado con inicial), estado, URL pública clicable y fecha.</p>
-    <div class="fila">
-      <div class="tarjeta-proyecto">
-        <div class="mini">C</div>
-        <div class="tarjeta-cuerpo">
-          <h3>Clínica Sonrisa</h3>
+    <p class="desc">El estado de la web, siempre como badge. Variante por defecto: <b>punto de color</b>.
+    Debajo, la variante <b>emoji</b> por si prefieres más calidez.</p>
+    <div class="estado-fila" style="margin-bottom:18px">
+      <div class="celda"><span class="cap">Punto · por defecto</span>
+        <div class="muestra">
           <span class="badge badge-exito"><span class="punto"></span>Publicado</span>
-          <br><a class="url-publica" href="#">clinica-sonrisa.plataforma.com</a>
-          <div class="meta" style="margin-top:8px">Actualizado hace 2 días</div>
-        </div>
-      </div>
-      <div class="tarjeta-proyecto">
-        <div class="mini" style="background:linear-gradient(135deg,#0f766e,#84cc16)">T</div>
-        <div class="tarjeta-cuerpo">
-          <h3>Taller Rodríguez</h3>
           <span class="badge badge-aviso"><span class="punto"></span>Cambios sin publicar</span>
-          <br><a class="url-publica" href="#">taller-rodriguez.plataforma.com</a>
-          <div class="meta" style="margin-top:8px">Actualizado hoy</div>
-        </div>
-      </div>
-      <div class="tarjeta-proyecto">
-        <div class="mini" style="background:linear-gradient(135deg,#7c3aed,#db2777)">F</div>
-        <div class="tarjeta-cuerpo">
-          <h3>Floristería Pétalos</h3>
           <span class="badge badge-neutro"><span class="punto"></span>Sin publicar</span>
-          <div class="meta" style="margin-top:8px">Importado ayer</div>
+        </div>
+      </div>
+    </div>
+    <div class="celda"><span class="cap">Emoji · variante opcional</span>
+      <div class="muestra">
+        <span class="badge badge-exito">🟢 Publicado</span>
+        <span class="badge badge-aviso">🟡 Cambios sin publicar</span>
+        <span class="badge badge-neutro">⚪ Sin publicar</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- CAMPOS -->
+  <section>
+    <h2>Campos de formulario</h2>
+    <p class="desc">Con foco de doble halo. El error habla en persona, en rojo, debajo del campo.</p>
+    <div class="rejilla">
+      <div class="celda" style="width:100%"><span class="cap">Normal</span>
+        <label class="etiqueta-campo" style="width:100%">Nombre de tu web
+          <input class="campo" placeholder="Clínica Sonrisa">
+        </label>
+      </div>
+      <div class="celda" style="width:100%"><span class="cap">Foco</span>
+        <label class="etiqueta-campo" style="width:100%">Subdominio
+          <input class="campo is-focus" value="clinica-sonrisa">
+        </label>
+      </div>
+      <div class="celda" style="width:100%"><span class="cap">Deshabilitado</span>
+        <label class="etiqueta-campo" style="width:100%">Dominio propio
+          <input class="campo is-disabled" value="clinicasonrisa.com" disabled>
+        </label>
+      </div>
+      <div class="celda" style="width:100%"><span class="cap">Error</span>
+        <label class="etiqueta-campo" style="width:100%">Correo
+          <input class="campo campo-error is-focus" value="hola@">
+        </label>
+        <p class="error-campo">⚠ Parece que falta algo después de la arroba.</p>
+      </div>
+      <div class="celda" style="width:100%"><span class="cap">Con ayuda</span>
+        <label class="etiqueta-campo" style="width:100%">Título de la página
+          <input class="campo" value="Inicio">
+        </label>
+        <p class="ayuda-campo">Es lo que se ve en la pestaña del navegador.</p>
+      </div>
+      <div class="celda" style="width:100%"><span class="cap">Desplegable</span>
+        <label class="etiqueta-campo" style="width:100%">Página a editar
+          <select class="campo"><option>inicio (index.html)</option><option>servicios.html</option><option>contacto.html</option></select>
+        </label>
+      </div>
+    </div>
+    <div class="celda" style="width:100%;margin-top:20px"><span class="cap">Área de texto</span>
+      <textarea class="campo" style="max-width:420px">Cuidamos tu salud dental desde 1998.</textarea>
+    </div>
+  </section>
+
+  <!-- INTERRUPTOR -->
+  <section>
+    <h2>Interruptor</h2>
+    <p class="desc">Para modo edición, piloto automático del blog, activar/desactivar herramientas.</p>
+    <div class="estado-fila">
+      <div class="celda"><span class="cap">Apagado</span><button class="interruptor" aria-checked="false" role="switch"></button></div>
+      <div class="celda"><span class="cap">Encendido</span><button class="interruptor" aria-checked="true" role="switch"></button></div>
+      <div class="celda"><span class="cap">Encendido · foco</span><button class="interruptor is-focus" aria-checked="true" role="switch" style="box-shadow:var(--anillo-foco)"></button></div>
+    </div>
+  </section>
+
+  <!-- PASTILLA URL + TARJETAS -->
+  <section>
+    <h2>Pastilla de URL y tarjetas</h2>
+    <p class="desc">La dirección de la web como pastilla copiable. Tarjeta de proyecto con estado (panel) y
+    tarjeta de configuración con interruptor (blog).</p>
+    <div class="muestra" style="margin-bottom:22px">
+      <span class="pastilla-url">clinica-sonrisa.estrenala.com <button class="copiar">Copiar</button></span>
+    </div>
+    <div class="rejilla">
+      <div class="card-proy">
+        <div class="thumb"></div>
+        <div class="cuerpo">
+          <div class="fila"><h3>Clínica Sonrisa</h3><span class="badge badge-exito"><span class="punto"></span>Publicado</span></div>
+          <p class="url">clinica-sonrisa.estrenala.com</p>
+        </div>
+      </div>
+      <div class="card-proy">
+        <div class="thumb"></div>
+        <div class="cuerpo">
+          <div class="fila"><h3>Estudio Mará</h3><span class="badge badge-aviso"><span class="punto"></span>Sin publicar</span></div>
+          <p class="url">borrador · importada hoy</p>
+        </div>
+      </div>
+      <div class="card-cfg" style="grid-column:1/-1;max-width:520px">
+        <div class="txt">
+          <h3>Piloto automático</h3>
+          <p>Publica un artículo del blog cada semana sin que tengas que hacer nada.</p>
+          <div class="aviso-coste" style="margin-top:10px">≈ 0,40 € por artículo generado</div>
+        </div>
+        <button class="interruptor" aria-checked="true" role="switch"></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- LISTA CON BADGES Y ACCIONES (blog) -->
+  <section>
+    <h2>Lista con badges y acciones · blog</h2>
+    <p class="desc">Artículos, borradores IA, temas en tendencia, programados. Un patrón, muchos usos.</p>
+    <div class="lista" style="max-width:640px">
+      <div class="item">
+        <span class="badge badge-exito"><span class="punto"></span>Publicado</span>
+        <div class="t"><b>5 señales de que necesitas una revisión dental</b><small>Publicado el 12 jul · 640 lecturas</small></div>
+        <div class="acciones"><button class="btn btn-fantasma btn-sm">Ver</button><button class="btn btn-sec btn-sm">Editar</button></div>
+      </div>
+      <div class="item">
+        <span class="badge badge-aviso"><span class="punto"></span>Borrador IA</span>
+        <div class="t"><b>Blanqueamiento dental: mitos y verdades</b><small>Redacción por etapas · 2 de 4</small></div>
+        <div class="acciones"><button class="btn btn-primario btn-sm">Continuar</button></div>
+      </div>
+      <div class="item">
+        <span class="badge badge-neutro"><span class="punto"></span>Programado</span>
+        <div class="t"><b>Cómo cuidar tu ortodoncia en verano</b><small>Se publica el 20 jul a las 9:00</small></div>
+        <div class="acciones"><button class="btn btn-fantasma btn-sm">Reprogramar</button></div>
+      </div>
+      <div class="item">
+        <span class="badge badge-neutro"><span class="punto"></span>En tendencia</span>
+        <div class="t"><b>«implante dental precio»</b><small>Radar de temas · +38% de búsquedas este mes</small></div>
+        <div class="acciones"><button class="btn btn-sec btn-sm">Redactar</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- AVISOS DE COSTE -->
+  <section>
+    <h2>Avisos de coste · blog IA</h2>
+    <p class="desc">Cuando una acción con IA cuesta dinero, se dice antes, en ámbar, sin drama.</p>
+    <div class="muestra">
+      <div class="aviso-coste">≈ 0,40 € por artículo generado</div>
+      <div class="aviso-coste">Generar portada con IA · ≈ 0,08 €</div>
+    </div>
+  </section>
+
+  <!-- TOASTS -->
+  <section>
+    <h2>Notificaciones (toast)</h2>
+    <p class="desc">Confirmaciones y errores efímeros. Tinta oscura por defecto; rojo para error.</p>
+    <div class="estado-fila">
+      <div class="celda"><span class="cap">Éxito</span>
+        <div class="toast toast-exito"><span class="icono">✓</span>Publicado. Tu web ya se ve en internet.</div>
+      </div>
+      <div class="celda"><span class="cap">Error</span>
+        <div class="toast toast-error"><span class="icono">!</span>No pudimos conectar tu dominio. Revisa los registros DNS.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- AYUDAS (previsión) -->
+  <section>
+    <h2>Sistema de ayudas para no técnicos <span style="font-size:12px;color:var(--texto-3);font-weight:400">· patrón con previsión</span></h2>
+    <p class="desc">Microcopy cercano, el icono «¿qué es esto?» que explica cualquier tecnicismo, y el mini-tour de 3 pasos.</p>
+    <div class="estado-fila" style="align-items:flex-start">
+      <div class="celda"><span class="cap">«¿Qué es esto?»</span>
+        <div class="panel" style="display:flex;align-items:center;gap:8px">
+          <span>Registros DNS</span>
+          <span class="tooltip abajo is-open"><span class="quees">?</span>
+            <span class="bocadillo">Son como la dirección postal de tu dominio. Copia estos datos en tu proveedor y nosotros hacemos el resto.</span>
+          </span>
+        </div>
+      </div>
+      <div class="celda"><span class="cap">Mini-tour · 3 pasos</span>
+        <div class="paso-tour">
+          <span class="num">1</span>
+          <div style="flex:1">
+            <h3>Haz clic sobre cualquier texto</h3>
+            <p>Se abre un editor ahí mismo. Escribe y guarda. Sin tocar código.</p>
+            <div class="pie">
+              <div class="pts"><i class="on"></i><i></i><i></i></div>
+              <button class="btn-mini-claro" style="background:transparent;color:#C7C8BC">Saltar</button>
+              <button class="btn-mini-claro" style="background:var(--acento);color:var(--texto)">Siguiente</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </section>
 
+  <!-- CAJA DE HERRAMIENTAS (previsión) -->
   <section>
-    <h2>Toast / banner</h2>
-    <div class="muestra" style="display:grid;gap:12px">
-      <div class="toast toast-exito">✅<div><b>Web publicada</b>Ya está online en clinica-sonrisa.plataforma.com</div><button class="cerrar">✕</button></div>
-      <div class="toast toast-error">⚠️<div><b>No se pudo publicar</b>El servidor no respondió. Vuelve a intentarlo en unos segundos.</div><button class="cerrar">✕</button></div>
-    </div>
-  </section>
-
-  <section>
-    <h2>Confirmación en dos pasos</h2>
-    <p class="nota">Patrón de Despublicar / Quitar dominio: la pregunta sustituye al botón, en su sitio.</p>
-    <div class="muestra fila">
-      <button class="btn btn-peligro-sutil">Despublicar</button>
-      <span style="color:var(--texto-3)">→ al hacer clic →</span>
-      <span class="confirmacion">¿Seguro? La web dejará de verse.
-        <button class="btn btn-peligro btn-quieto">Sí, despublicar</button>
-        <button class="btn btn-sec btn-quieto">Cancelar</button>
-      </span>
-    </div>
-  </section>
-
-  <section>
-    <h2>Bloque DNS / código copiable</h2>
-    <div class="muestra">
-      <div class="bloque-codigo">
-        <div class="linea"><span class="etiqueta-dns">Tipo A</span><span>@ → 76.76.21.21</span><button class="copiar">Copiar</button></div>
-        <div class="linea"><span class="etiqueta-dns">Tipo A</span><span>www → 76.76.21.21</span><button class="copiar">Copiar</button></div>
+    <h2>Caja de herramientas del sitio <span style="font-size:12px;color:var(--texto-3);font-weight:400">· patrón con previsión</span></h2>
+    <p class="desc">Search Console, Analytics, favicon, og:image — como filas configurables. Cada una: qué es,
+    estado, y una acción. Preparada para crecer.</p>
+    <div class="lista" style="max-width:640px">
+      <div class="item">
+        <div class="t"><b>Favicon</b><small>El iconito de la pestaña del navegador</small></div>
+        <span class="badge badge-neutro"><span class="punto"></span>Sin configurar</span>
+        <div class="acciones"><button class="btn btn-sec btn-sm">Subir imagen</button></div>
+      </div>
+      <div class="item">
+        <div class="t"><b>Imagen al compartir (og:image)</b><small>La foto que aparece al pegar tu enlace en WhatsApp o redes</small></div>
+        <span class="badge badge-exito"><span class="punto"></span>Listo</span>
+        <div class="acciones"><button class="btn btn-fantasma btn-sm">Cambiar</button></div>
+      </div>
+      <div class="item">
+        <div class="t"><b>Google Search Console</b><small>Para que Google encuentre y muestre tu web</small></div>
+        <span class="badge badge-aviso"><span class="punto"></span>A medias</span>
+        <div class="acciones"><button class="btn btn-sec btn-sm">Terminar</button></div>
+      </div>
+      <div class="item">
+        <div class="t"><b>Analítica de visitas</b><small>Cuánta gente entra y desde dónde</small></div>
+        <span class="badge badge-neutro"><span class="punto"></span>Desactivada</span>
+        <div class="acciones"><button class="interruptor" aria-checked="false" role="switch"></button></div>
       </div>
     </div>
+    <p class="nota">Cada fila es el mismo componente de lista de arriba: así el blog y la caja de herramientas comparten patrón.</p>
   </section>
 
-  <section>
-    <h2>Historial de versiones</h2>
-    <div class="historial">
-      <header>Historial</header>
-      <ul>
-        <li><span class="tipo actual"></span>Versión actual · edición de texto<span class="cuando">hace 5 min</span></li>
-        <li><span class="tipo"></span>Cambio de imagen<span class="cuando">ayer</span><button class="btn btn-sec btn-quieto">Restaurar</button></li>
-        <li><span class="tipo"></span>Importación inicial<span class="cuando">12 jul</span><button class="btn btn-sec btn-quieto">Restaurar</button></li>
-      </ul>
-    </div>
-  </section>
-
-  <section>
-    <h2>Estado vacío</h2>
-    <div class="vacio">
-      <div class="icono">🗂️</div>
-      <h3>Importa tu primera web</h3>
-      <p>Sube el ZIP que te generó tu IA y en un minuto estará online.</p>
-      <button class="btn btn-primario">Importar web</button>
-    </div>
-  </section>
 </main>
 </body>
 </html>

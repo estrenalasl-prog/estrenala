@@ -3,106 +3,150 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Wordmarks — 3 candidatos de nombre</title>
+<title>Wordmarks — 3 candidatos · Estrénala v2 Alto Voltaje</title>
 <style>
-  body{margin:0;background:#f8fafc;color:#0f172a;font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-  main{max-width:900px;margin:0 auto;padding:40px 24px 80px}
-  h1{font-size:28px;font-weight:700;letter-spacing:-.01em;margin:0 0 4px}
-  .sub{color:#475569;margin:0 0 28px}
-  .candidato{background:#fff;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 1px 2px rgba(15,23,42,.06);
-    padding:28px;margin-bottom:24px}
-  .muestra-grande{display:flex;align-items:center;gap:18px;padding:26px 0 20px;flex-wrap:wrap}
-  .fila-mini{display:flex;align-items:center;gap:24px;border-top:1px solid #e2e8f0;padding-top:16px;flex-wrap:wrap}
-  .rational{font-size:13px;color:#475569;margin:0}
-  .dominio{font-size:12px;color:#94a3b8;font-family:ui-monospace,Consolas,monospace}
-  .encabezado-c{display:flex;align-items:baseline;gap:12px;margin-bottom:2px}
-  .encabezado-c h2{font-size:16px;margin:0}
-  .tagline{font-size:13px;color:#64748b;font-style:italic}
+  :root{
+    --lienzo:#F5F6F1; --superficie:#FFFFFF; --superficie-2:#ECEDE4;
+    --borde:#DEDFD6; --borde-fuerte:#C9CABF;
+    --texto:#141509; --texto-2:#55584C; --texto-3:#9A9C8F;
+    --acento:#C4F000; --acento-vivo:#B4E000; --acento-texto:#5E7300;
+    --radio-c:9px; --radio-t:14px; --radio-full:999px;
+    --sombra-1:0 1px 2px rgba(20,21,9,.06);
+    --sombra-2:0 4px 14px -3px rgba(20,21,9,.12);
+    --sans:"Space Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
+    --mono:ui-monospace,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--lienzo);color:var(--texto);font:15px/1.55 var(--sans);-webkit-font-smoothing:antialiased}
+  main{max-width:940px;margin:0 auto;padding:44px 24px 90px}
+  .eyebrow{font:600 11px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--acento-texto)}
+  h1{font-size:30px;font-weight:700;letter-spacing:-.03em;margin:12px 0 6px}
+  .sub{color:var(--texto-2);margin:0 0 32px;max-width:640px}
 
-  /* ---------- 1. Estrénala: el momento de cortar la cinta ---------- */
-  .wm-estrenala{font-size:46px;font-weight:800;letter-spacing:-.03em;color:#0f172a;position:relative}
-  .wm-estrenala .acento{color:#4f46e5}
-  .wm-estrenala .chispa{position:absolute;top:-6px;right:-20px;font-size:20px}
-  .icono-estrenala{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;font-size:24px;color:#fff;
-    background:linear-gradient(135deg,#4f46e5,#db2777)}
-  .mini-estrenala{display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:15px}
-  .mini-estrenala .s{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font-size:13px;color:#fff;
-    background:linear-gradient(135deg,#4f46e5,#db2777)}
+  .candidato{background:var(--superficie);border:1px solid var(--borde);border-radius:18px;box-shadow:var(--sombra-1);
+    padding:28px;margin-bottom:26px}
+  .candidato.destacado{border-color:var(--borde-fuerte);box-shadow:var(--sombra-2)}
+  .cab-c{display:flex;align-items:center;gap:12px;margin-bottom:4px;flex-wrap:wrap}
+  .cab-c h2{font-size:17px;font-weight:700;margin:0}
+  .dominio{font-size:12px;color:var(--texto-3);font-family:var(--mono)}
+  .principal{font:600 11px var(--sans);color:var(--texto);background:var(--acento);border-radius:var(--radio-full);padding:3px 10px}
+  .tagline{font-size:13.5px;color:var(--texto-2);font-style:italic;margin:0 0 4px}
+  .rational{font-size:13px;color:var(--texto-2);margin:14px 0 0;max-width:620px;text-wrap:pretty}
 
-  /* ---------- 2. WebNace: lo que germina ---------- */
-  .wm-webnace{font-size:46px;font-weight:700;letter-spacing:-.02em;color:#0f172a}
-  .wm-webnace .nace{color:#059669;font-weight:800}
-  .icono-webnace{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;font-size:24px;color:#fff;
-    background:linear-gradient(160deg,#065f46,#10b981)}
-  .mini-webnace{display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:15px}
-  .mini-webnace .s{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font-size:13px;color:#fff;
-    background:linear-gradient(160deg,#065f46,#10b981)}
+  .muestra{display:flex;align-items:center;gap:22px;padding:28px 0 22px;flex-wrap:wrap}
+  .lockups{display:flex;align-items:center;gap:26px;border-top:1px solid var(--borde);padding-top:18px;flex-wrap:wrap}
+  .lock{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+  .lock .cap{font:600 10px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--texto-3)}
+  .swatch-oscuro{background:var(--texto);border-radius:12px;padding:16px 20px;display:inline-flex;align-items:center;gap:10px}
 
-  /* ---------- 3. YaVive: en directo ---------- */
-  .wm-yavive{font-size:46px;font-weight:800;letter-spacing:-.02em;color:#0f172a;display:inline-flex;align-items:center;gap:14px}
-  .wm-yavive .vive{color:#0ea5e9}
-  .pulso{position:relative;width:16px;height:16px}
-  .pulso .nucleo{position:absolute;inset:3px;border-radius:50%;background:#059669}
-  .pulso .onda{position:absolute;inset:0;border-radius:50%;border:2px solid #059669;opacity:.5;animation:latir 1.6s ease-out infinite}
-  @keyframes latir{0%{transform:scale(.6);opacity:.7}100%{transform:scale(1.5);opacity:0}}
-  .icono-yavive{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;color:#fff;
-    background:linear-gradient(135deg,#0369a1,#0ea5e9)}
-  .icono-yavive .p{width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 0 0 4px rgba(255,255,255,.35)}
-  .mini-yavive{display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:15px}
-  .mini-yavive .s{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;
-    background:linear-gradient(135deg,#0369a1,#0ea5e9)}
-  .mini-yavive .s i{width:8px;height:8px;border-radius:50%;background:#fff;display:block}
+  /* ---------- 1 · ESTRÉNALA (destacado) ---------- */
+  /* Símbolo: cuadrado tinta con trazo de rotulador lima (idea de "resaltar/estrenar") */
+  .sim-e{width:58px;height:58px;border-radius:15px;background:var(--texto);position:relative;overflow:hidden;flex:none}
+  .sim-e .barra{position:absolute;left:50%;top:50%;width:30px;height:11px;background:var(--acento);transform:translate(-50%,-50%) rotate(-20deg);border-radius:3px}
+  .sim-e .letra{position:absolute;inset:0;display:grid;place-items:center;color:#fff;font:700 26px var(--sans);z-index:2}
+  .wm-estrenala{font:700 46px/1 var(--sans);letter-spacing:-.035em;color:var(--texto)}
+  .wm-estrenala .hl{background:var(--acento);color:var(--texto);padding:0 6px;border-radius:5px}
+  .mini-e{display:inline-flex;align-items:center;gap:9px;font:700 17px var(--sans);letter-spacing:-.03em}
+  .mini-e .s{width:28px;height:28px;border-radius:8px;background:var(--texto);position:relative;overflow:hidden;flex:none}
+  .mini-e .s .b{position:absolute;left:50%;top:50%;width:15px;height:6px;background:var(--acento);transform:translate(-50%,-50%) rotate(-20deg);border-radius:2px}
+  .fav{width:40px;height:40px;border-radius:10px;background:var(--texto);position:relative;overflow:hidden}
+  .fav .b{position:absolute;left:50%;top:50%;width:21px;height:8px;background:var(--acento);transform:translate(-50%,-50%) rotate(-20deg);border-radius:2px}
+
+  /* ---------- 2 · WEBNACE ---------- */
+  /* Símbolo: cuadrado con punto lima que "brota" hacia arriba */
+  .sim-w{width:58px;height:58px;border-radius:15px;background:var(--superficie-2);border:1px solid var(--borde);position:relative;flex:none}
+  .sim-w .tallo{position:absolute;left:50%;bottom:14px;width:4px;height:20px;background:var(--texto);transform:translateX(-50%);border-radius:2px}
+  .sim-w .brote{position:absolute;left:50%;top:12px;width:14px;height:14px;background:var(--acento);border-radius:50%;transform:translateX(-50%)}
+  .wm-webnace{font:700 46px/1 var(--sans);letter-spacing:-.03em;color:var(--texto)}
+  .wm-webnace .nace{position:relative;z-index:0}
+  .wm-webnace .nace::after{content:"";position:absolute;left:0;right:0;bottom:6px;height:8px;background:var(--acento);z-index:-1;border-radius:3px}
+  .mini-w{display:inline-flex;align-items:center;gap:9px;font:700 17px var(--sans);letter-spacing:-.03em}
+  .mini-w .s{width:28px;height:28px;border-radius:8px;background:var(--superficie-2);border:1px solid var(--borde);position:relative;flex:none}
+  .mini-w .s .d{position:absolute;left:50%;top:6px;width:8px;height:8px;background:var(--acento);border-radius:50%;transform:translateX(-50%)}
+  .mini-w .s .t{position:absolute;left:50%;bottom:6px;width:3px;height:11px;background:var(--texto);transform:translateX(-50%);border-radius:2px}
+
+  /* ---------- 3 · YAVIVE ---------- */
+  /* Símbolo: punto "en directo" con pulso */
+  .sim-y{width:58px;height:58px;border-radius:15px;background:var(--texto);display:grid;place-items:center;position:relative;flex:none}
+  .pulso{position:relative;width:20px;height:20px}
+  .pulso .nucleo{position:absolute;inset:5px;border-radius:50%;background:var(--acento)}
+  .pulso .onda{position:absolute;inset:0;border-radius:50%;border:2px solid var(--acento);opacity:.6;animation:latir 1.8s ease-out infinite}
+  @keyframes latir{0%{transform:scale(.5);opacity:.7}100%{transform:scale(1.6);opacity:0}}
+  .wm-yavive{font:700 46px/1 var(--sans);letter-spacing:-.03em;color:var(--texto);display:inline-flex;align-items:center;gap:14px}
+  .wm-yavive .vive{color:var(--texto)}
+  .wm-yavive .pulso-in{width:16px;height:16px}
+  .mini-y{display:inline-flex;align-items:center;gap:9px;font:700 17px var(--sans);letter-spacing:-.03em}
+  .mini-y .s{width:28px;height:28px;border-radius:8px;background:var(--texto);display:grid;place-items:center;flex:none}
+  .mini-y .s i{width:9px;height:9px;border-radius:50%;background:var(--acento);display:block}
 </style>
 </head>
 <body>
 <main>
+  <div class="eyebrow">Sistema visual · Entregable 8</div>
   <h1>Wordmarks — 3 candidatos</h1>
-  <p class="sub">Entregable 5 (opcional) del design-brief · direcciones tipográficas para ayudar a decidir el nombre.
-    El sistema visual es agnóstico: cualquiera encaja sin tocar tokens.</p>
+  <p class="sub">Dirección <b>1b · Alto Voltaje</b>. Todos en Space Grotesk 700 con el lima como único acento
+  (nunca lima sobre blanco como texto fino). Son <b>direcciones tipográficas</b> con formas simples para ayudarte a
+  decidir; el logo final lo diseñas tú con estos colores. Estrénala va más desarrollado por ser tu favorito.</p>
 
-  <div class="candidato">
-    <div class="encabezado-c"><h2>1 · Estrénala</h2><span class="dominio">estrenala.com</span></div>
+  <!-- ESTRÉNALA -->
+  <div class="candidato destacado">
+    <div class="cab-c"><h2>1 · Estrénala</h2><span class="principal">Tu favorito</span><span class="dominio">estrenala.com</span></div>
     <p class="tagline">«Tu web, estrenada.»</p>
-    <div class="muestra-grande">
-      <div class="icono-estrenala">🎀</div>
-      <div class="wm-estrenala">Estrénal<span class="acento">a</span><span class="chispa">✦</span></div>
+    <div class="muestra">
+      <div class="sim-e"><span class="barra"></span><span class="letra">E</span></div>
+      <div class="wm-estrenala">Estrénal<span class="hl">a</span></div>
     </div>
-    <div class="fila-mini">
-      <span class="mini-estrenala"><span class="s">E</span>Estrénala</span>
-      <p class="rational">La emoción del estreno: cortar la cinta de tu web. Cálido y muy español; funciona
-      genial en verbos de la UI («Estrénala en 2 minutos»). El acento ✦ es el confeti del sistema.</p>
+    <div class="lockups">
+      <div class="lock"><span class="cap">Horizontal · mini</span><span class="mini-e"><span class="s"><span class="b"></span></span>Estrénala</span></div>
+      <div class="lock"><span class="cap">Sobre oscuro</span>
+        <div class="swatch-oscuro"><span class="mini-e" style="color:#fff"><span class="s" style="background:#fff"><span class="b"></span></span>Estrénala</span></div>
+      </div>
+      <div class="lock"><span class="cap">Favicon</span><span class="fav"><span class="b"></span></span></div>
     </div>
+    <p class="rational">El trazo de rotulador lima sobre la tinta es la idea central: <b>resaltar / estrenar</b>, cortar la
+    cinta. Ese mismo trazo es un recurso de sistema (resalta la sílaba «a», subraya palabras clave, marca el estado «en
+    directo»). Muy español y funciona como verbo en toda la UI: «Estrénala en 2 minutos». Es el que mejor casa con la
+    dirección Alto Voltaje.</p>
   </div>
 
+  <!-- WEBNACE -->
   <div class="candidato">
-    <div class="encabezado-c"><h2>2 · WebNace</h2><span class="dominio">webnace.com</span></div>
+    <div class="cab-c"><h2>2 · WebNace</h2><span class="dominio">webnace.com</span></div>
     <p class="tagline">«Donde las webs nacen.»</p>
-    <div class="muestra-grande">
-      <div class="icono-webnace">🌱</div>
+    <div class="muestra">
+      <div class="sim-w"><span class="tallo"></span><span class="brote"></span></div>
       <div class="wm-webnace">Web<span class="nace">Nace</span></div>
     </div>
-    <div class="fila-mini">
-      <span class="mini-webnace"><span class="s">W</span>WebNace</span>
-      <p class="rational">Lo que germina y crece: tu web nace aquí y va creciendo (ediciones, blog, dominio).
-      El verde esmeralda ya es el color de «Publicado»: la marca y el éxito comparten idioma.</p>
-    </div>
-  </div>
-
-  <div class="candidato">
-    <div class="encabezado-c"><h2>3 · YaVive</h2><span class="dominio">yavive.app</span></div>
-    <p class="tagline">«Tu web ya vive.»</p>
-    <div class="muestra-grande">
-      <div class="icono-yavive"><span class="p"></span></div>
-      <div class="wm-yavive">Ya<span class="vive">Vive</span>
-        <span class="pulso"><span class="onda"></span><span class="nucleo"></span></span>
+    <div class="lockups">
+      <div class="lock"><span class="cap">Horizontal · mini</span><span class="mini-w"><span class="s"><span class="d"></span><span class="t"></span></span>WebNace</span></div>
+      <div class="lock"><span class="cap">Sobre oscuro</span>
+        <div class="swatch-oscuro"><span class="mini-w" style="color:#fff"><span class="s" style="background:#232419;border-color:#3D3E32"><span class="d"></span><span class="t" style="background:#fff"></span></span>WebNace</span></div>
       </div>
     </div>
-    <div class="fila-mini">
-      <span class="mini-yavive"><span class="s"><i></i></span>YaVive</span>
-      <p class="rational">El punto verde de «en directo»: tu web está VIVA en internet. El pulso animado es
-      un recurso de sistema (aparece al publicar). El más «producto tech» de los tres; dominio .app.</p>
-    </div>
+    <p class="rational">Lo que germina: tu web nace y va creciendo (ediciones, blog, dominio). Aquí el verde de «éxito» se
+    reconvierte en el lima de marca —el punto que brota— y el subrayado lima refuerza «Nace». Cálido y optimista, aunque
+    el símbolo del brote es algo más literal que el de Estrénala.</p>
   </div>
+
+  <!-- YAVIVE -->
+  <div class="candidato">
+    <div class="cab-c"><h2>3 · YaVive</h2><span class="dominio">yavive.app</span></div>
+    <p class="tagline">«Tu web ya vive.»</p>
+    <div class="muestra">
+      <div class="sim-y"><span class="pulso"><span class="onda"></span><span class="nucleo"></span></span></div>
+      <div class="wm-yavive">Ya<span class="vive">Vive</span><span class="pulso pulso-in"><span class="onda"></span><span class="nucleo"></span></span></div>
+    </div>
+    <div class="lockups">
+      <div class="lock"><span class="cap">Horizontal · mini</span><span class="mini-y"><span class="s"><i></i></span>YaVive</span></div>
+      <div class="lock"><span class="cap">Sobre oscuro</span>
+        <div class="swatch-oscuro"><span class="mini-y" style="color:#fff"><span class="s" style="background:#232419"><i></i></span>YaVive</span></div>
+      </div>
+    </div>
+    <p class="rational">El punto lima «en directo»: tu web está VIVA en internet. El pulso animado es un recurso de
+    sistema (aparece al publicar). El más «producto tech» de los tres y el lima le sienta como un guante; dominio .app.
+    Menos español y cálido que Estrénala.</p>
+  </div>
+
 </main>
 </body>
 </html>
