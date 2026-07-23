@@ -3,7 +3,7 @@ import { getDevContext } from "@/src/auth/dev-stub";
 import { projectStore } from "@/src/repositories/projects";
 import type { ProjectRow } from "@/src/repositories/types";
 import { ImportDropzone } from "./_components/ImportDropzone";
-import { LogoutButton } from "./LogoutButton";
+import { AppHeader } from "./_components/AppHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -21,20 +21,6 @@ function direccionDe(p: ProjectRow): string {
   return `Borrador · ${p.createdAt.slice(0, 10)}`;
 }
 
-function Cabecera() {
-  return (
-    <header className="cabecera">
-      <div className="cab-int">
-        <span className="wordmark">Estrénal<span className="hl">a</span></span>
-        <nav>
-          <Link href="/settings">Configuración</Link>
-          <LogoutButton />
-        </nav>
-      </div>
-    </header>
-  );
-}
-
 export default async function Dashboard() {
   const { orgId } = await getDevContext();
   const proyectos = await projectStore.listProjects(orgId);
@@ -42,7 +28,7 @@ export default async function Dashboard() {
   if (proyectos.length === 0) {
     return (
       <>
-        <Cabecera />
+        <AppHeader />
         <main className="panel-main">
           <div className="vacio">
             <h2>Vamos a poner tu web online.</h2>
@@ -63,7 +49,7 @@ export default async function Dashboard() {
 
   return (
     <>
-      <Cabecera />
+      <AppHeader />
       <main className="panel-main">
         <div className="titulo-fila">
           <h1>Tus webs</h1>

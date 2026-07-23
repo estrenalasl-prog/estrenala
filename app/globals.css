@@ -268,4 +268,92 @@ a:hover { color: var(--color-texto); }
   .pasos .p { display: inline-flex; align-items: center; gap: 6px; }
   .pasos .n { width: 18px; height: 18px; border-radius: 50%; background: var(--color-superficie-2); color: var(--color-texto-2);
     display: grid; place-items: center; font: 700 10px var(--font-sans); }
+
+  /* ---------- Interruptor (toggle) — primitiva reutilizable ---------- */
+  .interruptor { position: relative; width: 36px; height: 20px; border-radius: var(--radius-full);
+    background: var(--color-borde-fuerte); border: 0; cursor: pointer; flex: none; transition: background .12s; }
+  .interruptor::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%;
+    background: #fff; box-shadow: var(--shadow-1); transition: transform .12s; }
+  .interruptor[aria-checked="true"] { background: var(--color-acento); }
+  .interruptor[aria-checked="true"]::after { transform: translateX(16px); }
+
+  /* ---------- "¿Qué es esto?" ---------- */
+  .quees { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%;
+    background: var(--color-superficie-2); color: var(--color-texto-2); font: 700 10px var(--font-sans); cursor: help; border: 1px solid var(--color-borde); }
+
+  /* ---------- Fila de configuración [info + control] — reutilizable ---------- */
+  .fila-conf { display: flex; align-items: center; gap: 14px; padding: 14px 0; border-top: 1px solid var(--color-borde); }
+  .fila-conf:first-child { border-top: 0; }
+  .fila-conf .info { flex: 1; min-width: 0; }
+  .fila-conf .info b { font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 7px; }
+  .fila-conf .info small { display: block; color: var(--color-texto-3); font-size: 12.5px; margin-top: 2px; }
+  .fila-conf .control { flex: none; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+
+  /* =============================================================
+     PANTALLA DE PROYECTO (docs/design/05-proyecto.html)
+     ============================================================= */
+  .proyecto { max-width: 1180px; margin: 0 auto; padding: 22px 24px 90px; }
+  .miga { font-size: 13px; margin-bottom: 8px; }
+  .miga a { color: var(--color-texto-3); }
+  .miga a:hover { color: var(--color-texto-2); }
+  .proj-cabeza { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+  .proj-cabeza h1 { font-size: 25px; font-weight: 700; letter-spacing: -0.02em; margin: 0; }
+
+  .publicar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; background: var(--color-superficie);
+    border: 1px solid var(--color-borde); border-radius: var(--radius-t); box-shadow: var(--shadow-1); padding: 14px 18px; }
+  .pastilla-url .copiar { border: 0; background: var(--color-superficie); color: var(--color-texto); border-radius: var(--radius-full);
+    padding: 5px 11px; font: 600 12px var(--font-sans); cursor: pointer; }
+  .pastilla-url .copiar:hover { background: var(--color-acento); }
+  .publicar .derecha { margin-left: auto; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .aviso-inline { display: inline-flex; gap: 7px; align-items: center; font-size: 13px; color: var(--color-aviso-texto); }
+  .aviso-inline .punto { width: 7px; height: 7px; border-radius: 50%; background: var(--color-aviso); flex: none; }
+  .exito-inline { display: inline-flex; gap: 7px; align-items: center; font-size: 13px; color: var(--color-exito-texto); }
+  .exito-inline .punto { width: 7px; height: 7px; border-radius: 50%; background: var(--color-exito); flex: none; }
+
+  details.direccion { margin-top: 12px; background: var(--color-superficie); border: 1px solid var(--color-borde);
+    border-radius: var(--radius-t); box-shadow: var(--shadow-1); }
+  details.direccion > summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 9px;
+    padding: 13px 18px; font-size: 13.5px; font-weight: 600; color: var(--color-texto-2); }
+  details.direccion > summary::-webkit-details-marker { display: none; }
+  details.direccion > summary .flecha { transition: .15s; color: var(--color-texto-3); }
+  details[open].direccion > summary .flecha { transform: rotate(90deg); }
+  details.direccion > summary .estado-dom { margin-left: auto; font-weight: 500; font-size: 12px; color: var(--color-texto-3); }
+  .direccion-cuerpo { padding: 4px 18px 18px; display: grid; gap: 22px; }
+  .direccion-cuerpo .grupo h4 { font-size: 13.5px; font-weight: 600; margin: 0 0 4px; display: flex; align-items: center; gap: 7px; }
+  .direccion-cuerpo .grupo p { margin: 0 0 11px; font-size: 13px; color: var(--color-texto-2); }
+  .direccion-cuerpo .fila { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .bloque-codigo { max-width: 540px; background: var(--color-superficie-2); border: 1px solid var(--color-borde);
+    border-radius: var(--radius-c); padding: 4px 4px 4px 0; font-family: ui-monospace, Consolas, monospace; font-size: 13px; margin-bottom: 11px; }
+  .bloque-codigo .linea { display: flex; align-items: center; gap: 12px; padding: 8px 8px 8px 14px; }
+  .bloque-codigo .etiqueta-dns { color: var(--color-texto-3); width: 56px; flex: none; }
+  .zona-peligro { border-top: 1px solid var(--color-borde); padding-top: 16px; }
+  .confirm2 { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; background: var(--color-peligro-suave);
+    border: 1px solid var(--color-peligro-borde); border-radius: var(--radius-c); padding: 10px 12px; }
+  .confirm2 .msg { font-size: 13px; color: var(--color-peligro-texto); flex: 1; min-width: 180px; }
+
+  .area { display: grid; grid-template-columns: 1fr 300px; gap: 18px; margin-top: 18px; }
+  @media (max-width: 920px) { .area { grid-template-columns: 1fr; } }
+  .previo { background: var(--color-superficie); border: 1px solid var(--color-borde); border-radius: var(--radius-t);
+    box-shadow: var(--shadow-1); overflow: hidden; }
+  .previo-barra { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 11px 14px; border-bottom: 1px solid var(--color-borde); }
+  .previo-select { height: 32px; font-size: 13px; padding: 0 30px 0 10px; border: 1px solid var(--color-borde); border-radius: var(--radius-c);
+    background-color: var(--color-superficie); color: var(--color-texto); appearance: none; cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' stroke='%2355584C' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center; }
+  .previo-select:focus-visible { outline: none; border-color: var(--color-acento-anillo); box-shadow: var(--anillo-foco); }
+  .conmutador { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--color-texto); cursor: pointer; }
+  .previo-barra .derecha { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .lienzo-web { width: 100%; height: 440px; border: 0; display: block; }
+
+  .historial { background: var(--color-superficie); border: 1px solid var(--color-borde); border-radius: var(--radius-t);
+    box-shadow: var(--shadow-1); align-self: start; }
+  .historial > header { padding: 13px 16px; font-weight: 600; font-size: 13.5px; border-bottom: 1px solid var(--color-borde); display: flex; align-items: center; gap: 8px; }
+  .historial ul { margin: 0; padding: 0; list-style: none; }
+  .historial li { display: flex; align-items: center; gap: 10px; padding: 11px 16px; font-size: 13px; border-bottom: 1px solid var(--color-borde); }
+  .historial li:last-child { border-bottom: 0; }
+  .historial .tipo { width: 8px; height: 8px; border-radius: 50%; background: var(--color-texto-3); flex: none; }
+  .historial .tipo.actual { background: var(--color-exito); box-shadow: 0 0 0 3px var(--color-exito-suave); }
+  .historial .detalle { flex: 1; min-width: 0; }
+  .historial .cuando { color: var(--color-texto-3); font-size: 12px; }
+  .historial .vacio-hist { padding: 16px; font-size: 13px; color: var(--color-texto-3); }
 }

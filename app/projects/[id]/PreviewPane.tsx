@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type EditOp =
@@ -14,6 +14,15 @@ function opKey(op: EditOp): string {
   const extra = op.kind === "style" ? op.property : op.kind === "textNode" ? String(op.index) : "";
   return `${op.page}#${op.nodeId}#${op.kind}#${extra}`;
 }
+
+const NOMBRE_TIPO: Record<string, string> = {
+  import: "Importación inicial",
+  edit: "Edición",
+  restore: "Restauración",
+  publish: "Publicación",
+};
+function etiquetaTipo(t: string): string { return NOMBRE_TIPO[t] ?? t; }
+function cuando(iso: string): string { return iso.slice(0, 16).replace("T", " "); }
 
 export function PreviewPane({
   projectId, entryPath, pages,
@@ -31,6 +40,12 @@ export function PreviewPane({
 
   const relPath = actual === entryPath ? "" : actual;
   const src = `/api/projects/${projectId}/preview/${relPath}${editMode ? "?edit=1" : ""}#${recarga}`;
+
+  const cargarHistorial = useCallback(async () => {
+    const d = await fetch(`/api/projects/${projectId}/snapshots`).then((r) => r.json()).catch(() => ({}));
+    setSnapshots(d.snapshots ?? []);
+  }, [projectId]);
+  useEffect(() => { void cargarHistorial(); }, [cargarHistorial]);
 
   useEffect(() => {
     function onMsg(e: MessageEvent) {
@@ -92,6 +107,7 @@ export function PreviewPane({
 
   function entrarEdicion() { setOps(new Map()); setEditMode(true); }
   function cancelarEdicion() { setOps(new Map()); setEditMode(false); setRecarga((n) => n + 1); }
+  function alternarEdicion() { if (editMode) cancelarEdicion(); else entrarEdicion(); }
 
   async function guardarEdicion() {
     setGuardando(true);
@@ -100,24 +116,20 @@ export function PreviewPane({
         method: "POST", headers: { "content-type": "application/json" },
         body: JSON.stringify({ ops: [...ops.values()] }),
       });
-      if (res.ok) { setOps(new Map()); setEditMode(false); setRecarga((n) => n + 1); setSnapshots(null); router.refresh(); }
+      if (res.ok) { setOps(new Map()); setEditMode(false); setRecarga((n) => n + 1); await cargarHistorial(); router.refresh(); }
       else { const d = await res.json().catch(() => ({})); alert(d.error ?? "Error al guardar"); }
     } finally {
       setGuardando(false);
     }
   }
 
-  async function verHistorial() {
-    const d = await fetch(`/api/projects/${projectId}/snapshots`).then((r) => r.json());
-    setSnapshots(d.snapshots ?? []);
-  }
   async function restaurar(snapshotId: string) {
     await fetch(`/api/projects/${projectId}/snapshots/${snapshotId}/restore`, { method: "POST" });
-    setSnapshots(null); setRecarga((n) => n + 1); router.refresh();
+    setRecarga((n) => n + 1); await cargarHistorial(); router.refresh();
   }
 
   return (
-    <div>
+    <div className="area">
       <input
         ref={fileInputRef}
         type="file"
@@ -125,55 +137,77 @@ export function PreviewPane({
         className="hidden"
         onChange={(e) => void onFileChange(e)}
       />
-      <div className="mb-3 flex flex-wrap items-center gap-3">
-        {!editMode ? (
-          <>
-            <label className="text-sm text-gray-600">Página de entrada:</label>
-            <select value={actual} onChange={(e) => void cambiarEntrada(e.target.value)} className="rounded border px-2 py-1 text-sm">
-              {pages.map((p) => <option key={p} value={p}>{p}</option>)}
-            </select>
-            <button onClick={entrarEdicion} className="rounded bg-indigo-600 px-3 py-1 text-sm text-white">Editar</button>
-            <button onClick={() => void verHistorial()} className="rounded border px-3 py-1 text-sm">Historial</button>
-            {guardando && <span className="text-sm text-gray-400">guardando…</span>}
-          </>
-        ) : (
-          <>
-            <span className="text-sm font-medium text-indigo-700">Modo edición · {ops.size} cambios</span>
-            <button onClick={() => void guardarEdicion()} disabled={ops.size === 0 || guardando} className="rounded bg-indigo-600 px-3 py-1 text-sm text-white disabled:opacity-50">Guardar</button>
-            <button onClick={cancelarEdicion} className="rounded border px-3 py-1 text-sm">Cancelar</button>
-            <span className="text-xs text-gray-400">Texto: click para editar · enlace/color: usa el panel flotante · imagen: «Cambiar imagen»</span>
-          </>
-        )}
+
+      <div className="previo">
+        <div className="previo-barra">
+          <select
+            className="previo-select"
+            value={actual}
+            onChange={(e) => void cambiarEntrada(e.target.value)}
+            disabled={editMode}
+            title={editMode ? "Guarda o descarta los cambios para cambiar de página" : "Página que se muestra"}
+          >
+            {pages.map((p) => <option key={p} value={p}>{p === entryPath ? `${p} (inicio)` : p}</option>)}
+          </select>
+
+          <button
+            type="button"
+            role="switch"
+            aria-checked={editMode}
+            className="interruptor"
+            onClick={alternarEdicion}
+            aria-label="Modo edición"
+          />
+          <span className="conmutador" onClick={alternarEdicion} style={{ userSelect: "none" }}>Modo edición</span>
+
+          <div className="derecha">
+            {editMode ? (
+              <>
+                <span style={{ fontSize: 13, color: "var(--color-texto-2)" }}>{ops.size} {ops.size === 1 ? "cambio" : "cambios"}</span>
+                <button className="btn btn-fantasma btn-sm" onClick={cancelarEdicion} disabled={guardando}>Descartar</button>
+                <button className="btn btn-primario btn-sm" onClick={() => void guardarEdicion()} disabled={ops.size === 0 || guardando}>Guardar cambios</button>
+              </>
+            ) : (
+              guardando && <span style={{ fontSize: 13, color: "var(--color-texto-3)" }}>guardando…</span>
+            )}
+          </div>
+        </div>
+
+        <iframe
+          key={src}
+          ref={iframeRef}
+          src={src}
+          sandbox="allow-scripts"
+          // El sandbox crea un origen opaco (cross-origin): sin delegar autoplay, los
+          // vídeos de fondo de las webs (hero videos) no arrancan dentro del preview.
+          allow="autoplay"
+          className="lienzo-web"
+          title="preview"
+        />
       </div>
 
-      {snapshots && (
-        <div className="mb-3 rounded-lg border p-3">
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-sm font-semibold">Historial</span>
-            <button onClick={() => setSnapshots(null)} className="text-xs text-gray-500">cerrar</button>
-          </div>
-          <ul className="space-y-1">
+      <aside className="historial">
+        <header>Historial</header>
+        {snapshots === null ? (
+          <p className="vacio-hist">Cargando…</p>
+        ) : snapshots.length === 0 ? (
+          <p className="vacio-hist">Aún no hay cambios guardados.</p>
+        ) : (
+          <ul>
             {snapshots.map((s) => (
-              <li key={s.id} className="flex items-center justify-between text-sm">
-                <span>{s.tipo} · {s.createdAt.slice(0, 19).replace("T", " ")} {s.esActual && <em className="text-indigo-600">(actual)</em>}</span>
-                {!s.esActual && <button onClick={() => void restaurar(s.id)} className="rounded border px-2 py-0.5 text-xs">Restaurar</button>}
+              <li key={s.id}>
+                <span className={s.esActual ? "tipo actual" : "tipo"} />
+                <span className="detalle">
+                  {etiquetaTipo(s.tipo)}
+                  <br />
+                  <span className="cuando">{s.esActual ? "actual · " : ""}{cuando(s.createdAt)}</span>
+                </span>
+                {!s.esActual && <button className="btn btn-sec btn-sm" onClick={() => void restaurar(s.id)}>Restaurar</button>}
               </li>
             ))}
           </ul>
-        </div>
-      )}
-
-      <iframe
-        key={src}
-        ref={iframeRef}
-        src={src}
-        sandbox="allow-scripts"
-        // El sandbox crea un origen opaco (cross-origin): sin delegar autoplay, los
-        // vídeos de fondo de las webs (hero videos) no arrancan dentro del preview.
-        allow="autoplay"
-        className="h-[80vh] w-full rounded-lg border"
-        title="preview"
-      />
+        )}
+      </aside>
     </div>
   );
 }

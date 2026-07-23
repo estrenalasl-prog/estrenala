@@ -3,13 +3,21 @@ import { notFound } from "next/navigation";
 import { getDevContext } from "@/src/auth/dev-stub";
 import { getStorage } from "@/src/storage/factory";
 import { projectStore } from "@/src/repositories/projects";
+import type { ProjectRow } from "@/src/repositories/types";
 import { listPages } from "@/src/projects/entry";
+import { AppHeader } from "../../_components/AppHeader";
 import { PublishBar } from "./PublishBar";
 import { PreviewPane } from "./PreviewPane";
 import { ToolsPanel } from "./ToolsPanel";
 import { BlogPanel } from "./BlogPanel";
 
 export const dynamic = "force-dynamic";
+
+function estadoProyecto(p: ProjectRow): { clase: string; texto: string } {
+  if (!p.publishedSnapshotId) return { clase: "badge-neutro", texto: "Sin publicar" };
+  if (p.publishedSnapshotId === p.currentSnapshotId) return { clase: "badge-exito", texto: "Publicado" };
+  return { clase: "badge-aviso", texto: "Cambios sin publicar" };
+}
 
 export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -20,23 +28,31 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
   const platformHost = process.env.PLATFORM_HOST ?? "localhost:3000";
   const sitesBaseDomain = process.env.SITES_BASE_DOMAIN ?? platformHost;
   const dnsTargetIp = process.env.DNS_TARGET_IP ?? "127.0.0.1";
+  const estado = estadoProyecto(project);
 
   return (
-    <main className="mx-auto max-w-5xl p-8">
-      <Link href="/" className="text-sm text-gray-500 hover:underline">← Volver</Link>
-      <h1 className="mb-4 mt-2 text-2xl font-bold">{project.nombre}</h1>
-      <PublishBar
-        projectId={id}
-        subdominio={project.subdominio}
-        dominio={project.dominio}
-        publishedSnapshotId={project.publishedSnapshotId}
-        currentSnapshotId={project.currentSnapshotId}
-        sitesBaseDomain={sitesBaseDomain}
-        dnsTargetIp={dnsTargetIp}
-      />
-      <ToolsPanel projectId={id} />
-      <BlogPanel projectId={id} />
-      <PreviewPane projectId={id} entryPath={project.entryPath} pages={pages} />
-    </main>
+    <>
+      <AppHeader />
+      <main className="proyecto">
+        <p className="miga"><Link href="/">← Tus webs</Link></p>
+        <div className="proj-cabeza">
+          <h1>{project.nombre}</h1>
+          <span className={`badge ${estado.clase}`}><span className="punto" />{estado.texto}</span>
+        </div>
+
+        <PublishBar
+          projectId={id}
+          subdominio={project.subdominio}
+          dominio={project.dominio}
+          publishedSnapshotId={project.publishedSnapshotId}
+          currentSnapshotId={project.currentSnapshotId}
+          sitesBaseDomain={sitesBaseDomain}
+          dnsTargetIp={dnsTargetIp}
+        />
+        <ToolsPanel projectId={id} />
+        <BlogPanel projectId={id} />
+        <PreviewPane projectId={id} entryPath={project.entryPath} pages={pages} />
+      </main>
+    </>
   );
 }
