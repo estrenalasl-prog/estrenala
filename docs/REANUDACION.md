@@ -59,30 +59,35 @@ en `scripts/e2e/` (necesitan dev server + .env.local; se ejecutan con `node`).
 
 ## ⏭️ En qué punto estamos y qué sigue
 
-1. **Marca FIJADA: Estrénala.** El usuario compra `estrenala.com` (2026-07-24).
+1. **ESTRATEGIA (fijada por el usuario el 2026-07-24): terminar TODA la plataforma
+   sin apuros y salir con todo listo de una vez.** Nada de pre-registros por estar
+   a medias; si algún día se hace pre-registro será una acción de marketing
+   deliberada, no un parche. Mientras, se sigue construyendo.
+2. **Marca FIJADA: Estrénala.** El usuario compra `estrenala.com` (2026-07-24).
    Al desplegar: apuntar DNS y configurar `PLATFORM_HOST` / `SITES_BASE_DOMAIN`.
-2. **Landing de marketing → la diseña el usuario en claude.ai** («Claude Design»),
+3. **Landing de marketing → la diseña el usuario en claude.ai** («Claude Design»),
    igual que hizo con la plataforma. El prompt listo y la lista de adjuntos están en
    `docs/design/prompt-landing-para-claude-design.md`. Entregable esperado:
-   `11-landing.html`. CTA de la landing = **acceso anticipado con email** (aún no
-   hay registro público); al volver, integrarla + construir el backend del formulario.
-3. **Decisión de producto (2026-07-24): web primero, nada de app nativa.** La
+   `11-landing.html`. CTA de la landing = **botón al registro real** (cuando salga,
+   la plataforma estará terminada, con cuentas de usuario).
+4. **Decisión de producto (2026-07-24): web primero, nada de app nativa.** La
    plataforma es responsive; si algún día hace falta icono en el móvil, se hace PWA
    (web instalable). App nativa solo se replantearía con usuarios pidiéndola.
-4. **El piloto automático (4g) está SIN estrenar**: el usuario lo probará «cuando
+5. **El piloto automático (4g) está SIN estrenar**: el usuario lo probará «cuando
    salgamos con nuestra propia página». No activarlo por él.
-5. **Idea nueva (2026-07-24): asistente de IA DENTRO de la plataforma**, estilo
+6. **Idea nueva (2026-07-24): asistente de IA DENTRO de la plataforma**, estilo
    «Claude Code pero para tu web»: el usuario conecta su clave (BYOK, como el blog:
    opt-in y con aviso de coste) y un agente edita su web por él usando lo que ya
    existe (snapshots, historial/revertir, editor). Encaja con el Claude Agent SDK.
    Matiz importante: NO se puede «conectar la suscripción de claude.ai» de un
    usuario a una plataforma de terceros; lo que sí se puede es clave de API
    (Anthropic/OpenRouter), el mismo patrón BYOK que ya usamos. Apuntado, NO empezado.
-6. Backlog después: rasterizar portada SVG→PNG (og:image de WhatsApp/X no muestra
-   SVG) — pieza pequeña y previa a salir; edición rich-text; multiusuario/Equipo +
-   Tu cuenta (hoy «Próximamente» en /settings); Plan/facturación (necesita decisiones
-   externas del usuario: Stripe, precios); blog como sección premium (solo al
-   monetizar — apuntado, NO construir).
+7. **Orden de construcción hasta salir** (todo antes del lanzamiento): portada
+   SVG→PNG (og:image de WhatsApp/X no muestra SVG) → multiusuario/Equipo + Tu
+   cuenta (hoy «Próximamente» en /settings) → edición rich-text → integrar la
+   landing cuando vuelva de Claude Design → Plan/facturación (necesita decisiones
+   externas del usuario: Stripe, precios) → asistente IA (punto 6). El blog como
+   sección premium sigue apuntado, NO construir hasta monetizar.
 
 ## ⚠️ Guardas y preferencias (aprendidas a base de sustos)
 

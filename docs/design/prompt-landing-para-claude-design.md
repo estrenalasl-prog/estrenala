@@ -73,10 +73,10 @@ Todo lo anterior EXISTE y funciona. No prometas nada que no esté en esa lista
 - **Usa los tokens «Alto Voltaje» TAL CUAL** (papel/tinta cálido + lima `#C4F000`
   + Space Grotesk). Nada de paletas nuevas. Si necesitas alguna clase nueva que
   no exista en `01-tokens.md`, defínela siguiendo las recetas y documéntala.
-- **CTA principal: «acceso anticipado» con captura de email** (todavía NO hay
-  registro público de usuarios; el formulario apuntará a un backend que haré yo,
-  tú deja el `<form>` semántico con su estado de éxito visible). UN solo botón
-  primario por vista, como siempre.
+- **CTA principal: empezar a usar Estrénala** (cuando esta landing salga, la
+  plataforma estará terminada, con registro de usuarios real): un botón primario
+  que lleva al registro (deja el enlace como `#registro`, yo lo conecto al
+  integrar). UN solo botón primario por vista, como siempre.
 - **Un único archivo HTML autocontenido**: CSS embebido, sin CDN, sin assets
   externos, sin Google Fonts (Space Grotesk se autoaloja con next/font al
   integrar; en el mockup declara `font-family:"Space Grotesk",system-ui,...` y
