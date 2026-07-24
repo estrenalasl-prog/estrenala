@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { firmarSesion, SESSION_COOKIE, SESSION_DURACION_MS } from "./session-cookie";
+import { ORG_COOKIE } from "./contexto";
 
 // Emite la cookie de sesión firmada (v2) para el usuario. Sin atributo Domain
 // (host-only): no se filtra a los subdominios de sitios ni a dominios de clientes.
@@ -10,5 +11,17 @@ export async function iniciarSesion(res: NextResponse, secret: string, userId: s
     secure: process.env.NODE_ENV === "production",
     path: "/",
     maxAge: Math.floor(SESSION_DURACION_MS / 1000),
+  });
+}
+
+// Fija la organización activa (espacio) en su cookie hermana. getContexto la
+// valida siempre contra los memberships, así que ponerla no da acceso por sí sola.
+export function fijarOrgActiva(res: NextResponse, orgId: string): void {
+  res.cookies.set(ORG_COOKIE, orgId, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 400 * 24 * 60 * 60,
   });
 }

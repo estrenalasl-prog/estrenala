@@ -5,9 +5,16 @@ import Link from "next/link";
 import { Logo } from "../_components/Logo";
 import { BotonGoogle } from "../_components/BotonGoogle";
 
+// Solo rutas internas: evita redirigir a otro sitio con ?next=//malo.
+function destinoSeguro(next: string | null): string {
+  return next && next.startsWith("/") && !next.startsWith("//") ? next : "/";
+}
+
 export function LoginForm({ google }: { google: boolean }) {
   const router = useRouter();
-  const errorGoogle = useSearchParams().get("error") === "google";
+  const params = useSearchParams();
+  const errorGoogle = params.get("error") === "google";
+  const destino = destinoSeguro(params.get("next"));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(errorGoogle ? "No se pudo entrar con Google. Prueba de nuevo o usa tu correo." : null);
@@ -23,7 +30,7 @@ export function LoginForm({ google }: { google: boolean }) {
       });
       const d = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) { setError(d.error ?? "Error"); return; }
-      router.push("/");
+      router.push(destino);
       router.refresh();
     } finally {
       setOcupado(false);

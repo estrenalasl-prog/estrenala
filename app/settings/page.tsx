@@ -156,6 +156,104 @@ function SeccionProximamente({ id, titulo, descripcion, porQue }: {
   );
 }
 
+type Miembro = { userId: string; email: string; nombre: string; rol: string };
+type Equipo = { miembros: Miembro[]; rol: string; yo: string; orgNombre: string };
+
+// Sección Equipo: miembros del espacio + invitar/rol/quitar (solo propietario).
+function SeccionEquipo() {
+  const [data, setData] = useState<Equipo | null>(null);
+  const [email, setEmail] = useState("");
+  const [rol, setRol] = useState("editor");
+  const [msg, setMsg] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [ocupado, setOcupado] = useState(false);
+
+  async function cargar() {
+    try { const res = await fetch("/api/equipo"); if (res.ok) setData((await res.json()) as Equipo); } catch { /* silencioso */ }
+  }
+  useEffect(() => { void cargar(); }, []);
+
+  const soyOwner = data?.rol === "owner";
+
+  async function invitar(e: React.FormEvent) {
+    e.preventDefault(); setOcupado(true); setError(null); setMsg(null);
+    try {
+      const res = await fetch("/api/equipo/invitar", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email, rol }),
+      });
+      const d = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) { setError(d.error ?? "Error"); return; }
+      setMsg(`Invitación enviada a ${email}.`); setEmail("");
+    } finally { setOcupado(false); }
+  }
+
+  async function cambiarRol(userId: string, nuevo: string) {
+    setError(null); setMsg(null);
+    const res = await fetch("/api/equipo/miembro", {
+      method: "PATCH", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ userId, rol: nuevo }),
+    });
+    if (!res.ok) { const d = (await res.json().catch(() => ({}))) as { error?: string }; setError(d.error ?? "Error"); }
+    await cargar();
+  }
+
+  async function quitar(userId: string) {
+    setError(null); setMsg(null);
+    const res = await fetch(`/api/equipo/miembro?userId=${encodeURIComponent(userId)}`, { method: "DELETE" });
+    if (!res.ok) { const d = (await res.json().catch(() => ({}))) as { error?: string }; setError(d.error ?? "Error"); }
+    await cargar();
+  }
+
+  return (
+    <section className="card-conf" id="equipo">
+      <header>
+        <div className="tit">
+          <h2>Equipo</h2>
+          <p>Quién puede trabajar en {data?.orgNombre || "tu espacio"}. El editor edita y publica; el propietario además gestiona claves, dirección y equipo.</p>
+        </div>
+      </header>
+      <div className="cuerpo">
+        {error && <div className="aviso-error" role="alert"><span className="ico">!</span><span>{error}</span></div>}
+        {msg && <div className="aviso-ok" style={{ marginBottom: 14 }}>{msg}</div>}
+
+        {soyOwner && (
+          <form onSubmit={invitar} className="fila-conf" style={{ gap: 8, flexWrap: "wrap" }}>
+            <input className="campo" type="email" required placeholder="correo@de-tu-socio.com"
+              value={email} onChange={(e) => setEmail(e.target.value)} style={{ flex: 1, minWidth: 200 }} />
+            <select className="campo select-conf" value={rol} onChange={(e) => setRol(e.target.value)}>
+              <option value="editor">Editor</option>
+              <option value="owner">Propietario</option>
+            </select>
+            <button className="btn btn-primario btn-sm" disabled={ocupado}>{ocupado ? "Enviando…" : "Invitar"}</button>
+          </form>
+        )}
+
+        {(data?.miembros ?? []).map((m) => (
+          <div key={m.userId} className="fila-conf">
+            <div className="info"><b>{m.nombre}{m.userId === data?.yo ? " (tú)" : ""}</b><small>{m.email}</small></div>
+            <div className="control">
+              {soyOwner && m.userId !== data?.yo ? (
+                <>
+                  <select className="campo select-conf" value={m.rol} onChange={(e) => void cambiarRol(m.userId, e.target.value)}>
+                    <option value="owner">Propietario</option>
+                    <option value="editor">Editor</option>
+                  </select>
+                  <button className="btn btn-fantasma btn-sm" onClick={() => void quitar(m.userId)}>Quitar</button>
+                </>
+              ) : (
+                <span className="rol">{m.rol === "owner" ? "Propietario" : "Editor"}</span>
+              )}
+            </div>
+          </div>
+        ))}
+
+        {!soyOwner && <p className="ayuda-campo" style={{ marginTop: 12 }}>Solo el propietario del espacio puede invitar o cambiar roles.</p>}
+      </div>
+    </section>
+  );
+}
+
 export default function SettingsPage() {
   const [estados, setEstados] = useState<EstadoClaves | null>(null);
   const [ocupado, setOcupado] = useState(false);
@@ -284,12 +382,7 @@ export default function SettingsPage() {
               </div>
             </section>
 
-            <SeccionProximamente
-              id="equipo"
-              titulo="Equipo"
-              descripcion="Quién puede editar tus webs: invitar a una agencia o a tu socio, con roles."
-              porQue="Hoy se entra con una sola contraseña. El multiusuario cambia el modelo de acceso (cuentas por correo e invitaciones), así que se construirá aparte y cuando tú lo decidas."
-            />
+            <SeccionEquipo />
             <SeccionProximamente
               id="plan"
               titulo="Plan y uso"

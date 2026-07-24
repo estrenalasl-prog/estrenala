@@ -1,12 +1,17 @@
 "use client";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Logo } from "../_components/Logo";
 import { BotonGoogle } from "../_components/BotonGoogle";
 
-export function RegistroForm({ google }: { google: boolean }) {
+function destinoSeguro(next: string | null): string {
+  return next && next.startsWith("/") && !next.startsWith("//") ? next : "/";
+}
+
+function Formulario({ google }: { google: boolean }) {
   const router = useRouter();
+  const destino = destinoSeguro(useSearchParams().get("next"));
   const [nombre, setNombre] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,7 +28,7 @@ export function RegistroForm({ google }: { google: boolean }) {
       });
       const d = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) { setError(d.error ?? "Error"); return; }
-      router.push("/");
+      router.push(destino);
       router.refresh();
     } finally {
       setOcupado(false);
@@ -91,5 +96,13 @@ export function RegistroForm({ google }: { google: boolean }) {
         </form>
       </div>
     </main>
+  );
+}
+
+export function RegistroForm({ google }: { google: boolean }) {
+  return (
+    <Suspense fallback={null}>
+      <Formulario google={google} />
+    </Suspense>
   );
 }
