@@ -2,8 +2,9 @@ import { hashDeterminista, luminancia } from "./colores";
 
 // Portada SVG 1200×630 (proporción og:image): degradado con los colores del
 // sitio, formas decorativas posicionadas por hash del título (determinista) y
-// el título en grande. Sin dependencias ni fuentes embebidas: el texto usa la
-// pila de sistema del visor.
+// el título en grande. Desde 4f2 es un intermedio: se rasteriza a PNG (png.ts)
+// con la Space Grotesk del repo antes de subirse; la pila de sistema queda de
+// respaldo por si el SVG se abre suelto en un navegador.
 
 const ANCHO = 1200;
 const ALTO = 630;
@@ -66,9 +67,9 @@ export function generarSvgPortada(input: { titulo: string; sitio: string; colore
     `<circle cx="${cx1}" cy="${cy1}" r="280" fill="#ffffff" opacity="0.10"/>` +
     `<circle cx="${cx2}" cy="${cy2}" r="200" fill="#000000" opacity="0.08"/>` +
     `<circle cx="${cx1 - 320}" cy="${cy2 - 60}" r="8" fill="${colorTexto}" opacity="0.35"/>` +
-    `<text font-family="-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" ` +
+    `<text font-family="'Space Grotesk', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" ` +
     `font-size="${tam}" font-weight="700" fill="${colorTexto}">${tspans}</text>` +
-    `<text x="${MARGEN_X}" y="${ALTO - 48}" font-family="-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" ` +
+    `<text x="${MARGEN_X}" y="${ALTO - 48}" font-family="'Space Grotesk', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" ` +
     `font-size="26" font-weight="500" fill="${colorTexto}" opacity="0.85">${escapeXml(input.sitio)}</text>` +
     `</svg>`;
 }

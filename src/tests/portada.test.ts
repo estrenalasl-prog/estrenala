@@ -13,9 +13,13 @@ vi.mock("@/src/config/claves", async (importOriginal) => ({
   ...(await importOriginal<object>()),
   claveOpenRouter: vi.fn(),
 }));
+// El rasterizador real (WASM) tiene su propio test (portada-png.test.ts);
+// aquí se mockea para asegurar el flujo sin pagar el render en cada caso.
+vi.mock("@/src/blog/portada/png", () => ({ rasterizarPortadaPng: vi.fn() }));
 
 import { pedirImagen, OpenRouterError } from "@/src/ia/claude";
 import { claveOpenRouter } from "@/src/config/claves";
+import { rasterizarPortadaPng } from "@/src/blog/portada/png";
 import { generarPortada } from "@/src/blog/portada";
 
 const ORG = "o1";
@@ -57,10 +61,11 @@ const input = (extra: Record<string, unknown> = {}) => ({
 beforeEach(() => {
   vi.mocked(pedirImagen).mockReset().mockResolvedValue({ bytes: Buffer.from("PNGBYTES"), contentType: "image/png" });
   vi.mocked(claveOpenRouter).mockReset().mockResolvedValue("sk-or-v1-test");
+  vi.mocked(rasterizarPortadaPng).mockReset().mockResolvedValue(Buffer.from("PNGRASTER"));
 });
 
 describe("generarPortada modo diseno", () => {
-  it("compone el SVG con los colores del css del sitio y lo guarda como asset", async () => {
+  it("compone el SVG con los colores del css del sitio y guarda el PNG rasterizado como asset", async () => {
     const f = fakes({
       archivos: {
         "p/s1/styles.css": ".a{color:#e11d48}.b{background:#e11d48}.c{border-color:#e11d48}.d{color:#0ea5e9}.e{color:#0ea5e9}",
@@ -69,21 +74,23 @@ describe("generarPortada modo diseno", () => {
     });
     const r = await generarPortada(f.deps, input());
     expect(r.assetId).toBeTruthy();
-    expect(r.url).toBe(`/api/projects/${P}/assets/${r.assetId}.svg`);
+    expect(r.url).toBe(`/api/projects/${P}/assets/${r.assetId}.png`);
     expect(f.guardados).toHaveLength(1);
-    const svg = f.guardados[0].body.toString();
-    expect(f.guardados[0].contentType).toBe("image/svg+xml");
+    expect(f.guardados[0].contentType).toBe("image/png");
+    expect(f.guardados[0].body.toString()).toBe("PNGRASTER");
+    expect(f.assets[0].contentType).toBe("image/png");
+    // El SVG intermedio que se rasteriza lleva los colores del sitio y los textos.
+    const svg = vi.mocked(rasterizarPortadaPng).mock.calls[0][0];
     expect(svg).toContain("#e11d48");
     expect(svg).toContain("#0ea5e9");
     expect(svg).toContain("Automatiza tu pyme");
     expect(svg).toContain("Mi Sitio");
-    expect(f.assets[0].contentType).toBe("image/svg+xml");
   });
 
   it("sin colores útiles en el sitio usa la paleta curada del nombre (determinista)", async () => {
     const f = fakes({ archivos: { "p/s1/styles.css": ".a{color:#fff;background:#333}" } });
     await generarPortada(f.deps, input());
-    const svg = f.guardados[0].body.toString();
+    const svg = vi.mocked(rasterizarPortadaPng).mock.calls[0][0];
     const [c1, c2] = paletaPara("Mi Sitio");
     expect(svg).toContain(c1);
     expect(svg).toContain(c2);
@@ -93,6 +100,16 @@ describe("generarPortada modo diseno", () => {
     const f = fakes();
     await generarPortada(f.deps, input());
     expect(vi.mocked(pedirImagen)).not.toHaveBeenCalled();
+  });
+
+  it("si la rasterización falla → 500 byte-exacto y no sube nada", async () => {
+    vi.mocked(rasterizarPortadaPng).mockRejectedValue(new Error("wasm roto"));
+    const f = fakes();
+    const err = await generarPortada(f.deps, input()).catch((e) => e);
+    expect(err).toBeInstanceOf(EditorError);
+    expect((err as EditorError).status).toBe(500);
+    expect((err as Error).message).toBe("No se pudo generar la portada, vuelve a intentarlo");
+    expect(f.guardados).toHaveLength(0);
   });
 });
 

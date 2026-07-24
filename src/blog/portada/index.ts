@@ -4,6 +4,7 @@ import { pedirImagen, OpenRouterError } from "@/src/ia/claude";
 import { claveOpenRouter } from "@/src/config/claves";
 import { extraerColores, paletaPara } from "./colores";
 import { generarSvgPortada } from "./svg";
+import { rasterizarPortadaPng } from "./png";
 import type { StorageAdapter } from "@/src/storage/types";
 import type { ProjectStore } from "@/src/repositories/types";
 import type { BlogStore } from "@/src/repositories/blog";
@@ -14,7 +15,8 @@ const MAX_CSS = 5; // hojas de estilo que se leen buscando colores
 const EXT_POR_TIPO: Record<string, string> = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" };
 
 // Portada automática: `diseno` compone un SVG con los colores del propio sitio
-// (gratis, determinista); `ia` pide una imagen al modelo de imagen FIJO de la
+// (gratis, determinista) y lo rasteriza a PNG — WhatsApp/X no muestran SVG en
+// og:image (4f2); `ia` pide una imagen al modelo de imagen FIJO de la
 // plataforma (céntimos, nunca el modelo de texto del usuario). En ambos casos
 // el resultado entra por uploadAsset: un asset normal, como si se subiera a mano.
 export async function generarPortada(
@@ -45,9 +47,15 @@ export async function generarPortada(
       : colores.length === 1 ? [colores[0], paletaPara(project.nombre)[1]]
       : paletaPara(project.nombre);
     const svg = generarSvgPortada({ titulo: input.titulo, sitio: project.nombre, colores: pareja });
+    let png: Buffer;
+    try {
+      png = await rasterizarPortadaPng(svg);
+    } catch {
+      throw new EditorError("No se pudo generar la portada, vuelve a intentarlo", 500);
+    }
     const r = await uploadAsset({ store: deps.store, storage: deps.storage }, {
       orgId: input.orgId, projectId: input.projectId,
-      filename: "portada-diseno.svg", bytes: Buffer.from(svg, "utf-8"),
+      filename: "portada-diseno.png", bytes: png,
     });
     return { assetId: r.assetId, url: r.url };
   }
