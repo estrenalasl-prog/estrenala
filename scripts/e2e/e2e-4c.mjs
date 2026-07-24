@@ -1,6 +1,7 @@
 // E2e del incremento 4c (radar de keywords) SIN gastar créditos:
 // sin SERPAPI_KEY el radar debe cortar con el mensaje exacto; las keywords se siembran por SQL.
 import { readFileSync } from "node:fs";
+import { iniciarSesionE2e } from "./lib/sesion.mjs";
 import { createRequire } from "node:module";
 
 const RAIZ = "C:/Users/Sebas/Desktop/Carpeta de Proyectos/Wordclicks";
@@ -10,7 +11,6 @@ const postgres = require("postgres");
 
 const BASE = "http://localhost:3000";
 const env = readFileSync(RAIZ + "/.env.local", "utf8");
-const PASSWORD = env.match(/^PANEL_PASSWORD=(.+)$/m)[1].trim();
 const DB_URL = env.match(/^DATABASE_URL=(.+)$/m)[1].trim();
 if (/^SERPAPI_KEY=.+$/m.test(env)) {
   console.log("AVISO: hay SERPAPI_KEY en .env.local; el check del radar sin clave no aplica.");
@@ -22,12 +22,7 @@ function check(nombre, cond, extra = "") {
   else { FAIL++; console.log(`  FAIL  ${nombre}${extra ? " — " + extra : ""}`); }
 }
 
-const rLogin = await fetch(`${BASE}/api/login`, {
-  method: "POST", headers: { "content-type": "application/json" },
-  body: JSON.stringify({ password: PASSWORD }),
-});
-const cookie = (rLogin.headers.get("set-cookie") ?? "").split(";")[0];
-check("login devuelve cookie", rLogin.ok && cookie.length > 5);
+const cookie = await iniciarSesionE2e(BASE);
 const H = { cookie };
 const HJ = { cookie, "content-type": "application/json" };
 

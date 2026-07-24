@@ -2,6 +2,7 @@
 // SIN tocar org_settings (claves reales del usuario — guarda del 2026-07-15).
 // La plantilla se PUTea a mano (no se genera con IA) y la imagen es un PNG 1x1.
 import { readFileSync } from "node:fs";
+import { iniciarSesionE2e } from "./lib/sesion.mjs";
 import { createRequire } from "node:module";
 
 const RAIZ = "C:/Users/Sebas/Desktop/Carpeta de Proyectos/Wordclicks";
@@ -11,7 +12,6 @@ const postgres = require("postgres");
 
 const BASE = "http://localhost:3000";
 const env = readFileSync(RAIZ + "/.env.local", "utf8");
-const PASSWORD = env.match(/^PANEL_PASSWORD=(.+)$/m)[1].trim();
 const DB_URL = env.match(/^DATABASE_URL=(.+)$/m)[1].trim();
 
 let PASS = 0, FAIL = 0;
@@ -20,12 +20,7 @@ function check(nombre, cond, extra = "") {
   else { FAIL++; console.log(`  FAIL  ${nombre}${extra ? " — " + extra : ""}`); }
 }
 
-const rLogin = await fetch(`${BASE}/api/login`, {
-  method: "POST", headers: { "content-type": "application/json" },
-  body: JSON.stringify({ password: PASSWORD }),
-});
-const cookie = (rLogin.headers.get("set-cookie") ?? "").split(";")[0];
-check("login devuelve cookie", rLogin.ok && cookie.length > 5);
+const cookie = await iniciarSesionE2e(BASE);
 const H = { cookie };
 const HJ = { cookie, "content-type": "application/json" };
 

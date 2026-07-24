@@ -9,8 +9,9 @@ NO sobrevive a los formateos.
 1. **Copia LA CARPETA ENTERA** `Desktop\Carpeta de Proyectos\Wordclicks` a un USB o
    nube. El repo NO tiene remoto: este disco es la única copia. La carpeta incluye
    tres cosas que NO están en git y son irrecuperables:
-   - `.env.local` — las claves (DATABASE_URL, PANEL_PASSWORD, SESSION_SECRET,
-     OPENROUTER_API_KEY, OPENROUTER_MODEL). **La joya de la corona.**
+   - `.env.local` — las claves (DATABASE_URL, SESSION_SECRET, OPENROUTER_API_KEY,
+     OPENROUTER_MODEL). **La joya de la corona.** (PANEL_PASSWORD ya no existe:
+     desde el incremento 6 el acceso es por cuenta de usuario.)
    - `data/storage/` — los archivos de las webs subidas en dev (snapshots, imágenes).
      Sin esto, los proyectos de la BD apuntan a archivos que no existen.
    - `Creador de Blog/` — el proyecto hermano fuente de los portes (ignorado por git).
@@ -53,6 +54,7 @@ Drizzle/Postgres en Supabase, vitest). Flujo de trabajo: spec → plan (docs/sup
 | 4g | **Piloto automático**: radar→redacta→portada→programa, solo; OFF por defecto |
 | 5a | Sistema visual v1 en `docs/design/` (tokens, 4 pantallas, componentes, 404, wordmarks) |
 | 4f2 | Portada «diseño» rasterizada a **PNG real 1200×630** (resvg-wasm + Space Grotesk del repo en `src/blog/portada/fuentes/`): og:image visible en WhatsApp/X. GOTCHAs: el paquete va en `serverExternalPackages` y el `.wasm` se lee por ruta de `process.cwd()` (nunca `require.resolve`, Turbopack casca); fuentes+wasm declarados en `outputFileTracingIncludes` por el standalone |
+| 6a | **Cuentas de usuario reales** (registro/login email+contraseña, scrypt, cookie de sesión v2 con userId, rate-limit). `getDevContext` (stub) eliminado → `getContexto()` (cookie) en todas las rutas del panel; preview/assets públicos resuelven el org por UUID del proyecto. Claves BYOK de trabajos de fondo vía **org-context** (AsyncLocalStorage). Tras registrarte: `node scripts/migrar-org-dev.mjs <email>` engancha tu cuenta a la org de dev (proyectos + claves). Base para Google/Equipo/Cuenta (6b–6e) |
 | 5b | **Diseño v2 «Alto Voltaje» INTEGRADO en toda la app** (lima `#C4F000` + papel/tinta + Space Grotesk): login, panel, proyecto (+ botón Expandir del preview), popover del editor, blog, taller IA, Configuración con secciones, 404 pública y logo real (`public/brand/`, servido `unoptimized` y con `/brand` en rutas públicas del middleware — NO tocar, ver memoria) |
 
 Detalles finos por incremento: specs y planes en `docs/superpowers/`. E2e regenerables

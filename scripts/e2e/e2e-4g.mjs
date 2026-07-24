@@ -2,6 +2,7 @@
 // solo superficie de config; JAMÁS se deja piloto_activo=true (hay claves
 // reales y el tick del servidor ejecutaría el piloto de verdad).
 import { readFileSync } from "node:fs";
+import { iniciarSesionE2e } from "./lib/sesion.mjs";
 import { createRequire } from "node:module";
 
 const RAIZ = "C:/Users/Sebas/Desktop/Carpeta de Proyectos/Wordclicks";
@@ -11,7 +12,6 @@ const postgres = require("postgres");
 
 const BASE = "http://localhost:3000";
 const env = readFileSync(RAIZ + "/.env.local", "utf8");
-const PASSWORD = env.match(/^PANEL_PASSWORD=(.+)$/m)[1].trim();
 const DB_URL = env.match(/^DATABASE_URL=(.+)$/m)[1].trim();
 
 let PASS = 0, FAIL = 0;
@@ -35,12 +35,7 @@ if (activosAntes > 0) {
   process.exit(2);
 }
 
-const rLogin = await fetch(`${BASE}/api/login`, {
-  method: "POST", headers: { "content-type": "application/json" },
-  body: JSON.stringify({ password: PASSWORD }),
-});
-const cookie = (rLogin.headers.get("set-cookie") ?? "").split(";")[0];
-check("login devuelve cookie", rLogin.ok && cookie.length > 5);
+const cookie = await iniciarSesionE2e(BASE);
 const H = { cookie };
 const HJ = { cookie, "content-type": "application/json" };
 

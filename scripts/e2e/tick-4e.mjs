@@ -2,6 +2,7 @@
 // el proyecto E2E ya existente, vence la fila por SQL y espera a que el
 // SERVIDOR la publique solo (sin llamar al cron). No gasta IA ni SerpAPI.
 import { readFileSync } from "node:fs";
+import { iniciarSesionE2e } from "./lib/sesion.mjs";
 import { createRequire } from "node:module";
 
 const RAIZ = "C:/Users/Sebas/Desktop/Carpeta de Proyectos/Wordclicks";
@@ -10,17 +11,12 @@ const postgres = require("postgres");
 
 const BASE = "http://localhost:3000";
 const env = readFileSync(RAIZ + "/.env.local", "utf8");
-const PASSWORD = env.match(/^PANEL_PASSWORD=(.+)$/m)[1].trim();
 const DB_URL = env.match(/^DATABASE_URL=(.+)$/m)[1].trim();
 
 const PROJECT_ID = process.argv[2];
 if (!PROJECT_ID) { console.error("uso: node tick-4e.mjs <projectId>"); process.exit(2); }
 
-const rLogin = await fetch(`${BASE}/api/login`, {
-  method: "POST", headers: { "content-type": "application/json" },
-  body: JSON.stringify({ password: PASSWORD }),
-});
-const cookie = (rLogin.headers.get("set-cookie") ?? "").split(";")[0];
+const cookie = await iniciarSesionE2e(BASE);
 const H = { cookie };
 const HJ = { cookie, "content-type": "application/json" };
 const API = `${BASE}/api/projects/${PROJECT_ID}`;
