@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getContexto } from "@/src/auth/contexto";
+import { exigirOwner } from "@/src/auth/roles";
 import { orgSettingsStore, type OrgSettings } from "@/src/repositories/org-settings";
 import { EditorError } from "@/src/editor/errors";
 
@@ -32,9 +33,10 @@ export async function GET() {
 }
 
 export async function PUT(req: Request) {
-  const { orgId } = await getContexto();
+  const { orgId, rol } = await getContexto();
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   try {
+    exigirOwner(rol); // las claves del espacio solo las toca el propietario
     const patch: Partial<OrgSettings> = {};
     for (const [campo, valor] of [["openrouterKey", body.openrouterKey], ["serpapiKey", body.serpapiKey]] as const) {
       if (typeof valor !== "string") continue; // ausente = no tocar

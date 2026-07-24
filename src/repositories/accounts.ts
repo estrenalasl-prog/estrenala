@@ -12,6 +12,8 @@ export type UserRow = {
 };
 
 export type MembershipInfo = { orgId: string; rol: string };
+export type MiembroRow = { userId: string; email: string; nombre: string; rol: string };
+export type OrgResumen = { orgId: string; nombre: string; rol: string };
 
 export type TokenRow = {
   id: string;
@@ -28,6 +30,8 @@ export interface AccountStore {
   getUserById(userId: string): Promise<UserRow | null>;
   getUserByGoogleSub(googleSub: string): Promise<UserRow | null>;
   getMembershipByUser(userId: string): Promise<MembershipInfo | null>;
+  // Rol del usuario en UNA organización concreta (para validar la org activa).
+  getMembership(orgId: string, userId: string): Promise<MembershipInfo | null>;
   // Alta atómica: usuario + su propia organización + membership de propietario.
   crearCuenta(input: {
     nombre: string; email: string; passwordHash: string; orgNombre: string;
@@ -86,6 +90,62 @@ export class DrizzleAccountStore implements AccountStore {
       .where(eq(memberships.userId, userId))
       .limit(1);
     return r[0] ?? null;
+  }
+
+  async getMembership(orgId: string, userId: string): Promise<MembershipInfo | null> {
+    const r = await db
+      .select({ orgId: memberships.orgId, rol: memberships.rol })
+      .from(memberships)
+      .where(and(eq(memberships.orgId, orgId), eq(memberships.userId, userId)))
+      .limit(1);
+    return r[0] ?? null;
+  }
+
+  // ---- Equipo (fuera del interfaz AccountStore; las rutas usan el singleton) ----
+
+  async getOrg(orgId: string): Promise<{ id: string; nombre: string } | null> {
+    const r = await db.select({ id: organizations.id, nombre: organizations.nombre })
+      .from(organizations).where(eq(organizations.id, orgId)).limit(1);
+    return r[0] ?? null;
+  }
+
+  async listOrgsDeUsuario(userId: string): Promise<OrgResumen[]> {
+    return db
+      .select({ orgId: organizations.id, nombre: organizations.nombre, rol: memberships.rol })
+      .from(memberships)
+      .innerJoin(organizations, eq(memberships.orgId, organizations.id))
+      .where(eq(memberships.userId, userId))
+      .orderBy(organizations.createdAt);
+  }
+
+  async listMiembros(orgId: string): Promise<MiembroRow[]> {
+    return db
+      .select({ userId: users.id, email: users.email, nombre: users.nombre, rol: memberships.rol })
+      .from(memberships)
+      .innerJoin(users, eq(memberships.userId, users.id))
+      .where(eq(memberships.orgId, orgId))
+      .orderBy(users.nombre);
+  }
+
+  async crearMembership(orgId: string, userId: string, rol: string): Promise<void> {
+    await db.insert(memberships).values({ orgId, userId, rol }).onConflictDoNothing();
+  }
+
+  async cambiarRol(orgId: string, userId: string, rol: string): Promise<void> {
+    await db.update(memberships).set({ rol })
+      .where(and(eq(memberships.orgId, orgId), eq(memberships.userId, userId)));
+  }
+
+  async quitarMiembro(orgId: string, userId: string): Promise<void> {
+    await db.delete(memberships)
+      .where(and(eq(memberships.orgId, orgId), eq(memberships.userId, userId)));
+  }
+
+  async contarPropietarios(orgId: string): Promise<number> {
+    const r = await db.select({ userId: memberships.userId })
+      .from(memberships)
+      .where(and(eq(memberships.orgId, orgId), eq(memberships.rol, "owner")));
+    return r.length;
   }
 
   async crearCuenta(input: {
@@ -161,4 +221,6 @@ export class DrizzleAccountStore implements AccountStore {
   }
 }
 
-export const accountStore: AccountStore = new DrizzleAccountStore();
+// Tipo concreto (no el interfaz): así las rutas de equipo ven también los
+// métodos que quedan fuera de AccountStore (listMiembros, invitaciones, etc.).
+export const accountStore = new DrizzleAccountStore();

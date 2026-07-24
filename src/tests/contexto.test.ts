@@ -13,6 +13,7 @@ const USER = "11111111-2222-4333-8444-555555555555";
 function fakeStore(membership: MembershipInfo | null): AccountStore {
   return {
     getMembershipByUser: async () => membership,
+    getMembership: async () => null,
     getUserByEmail: async () => null,
     getUserById: async () => null,
     getUserByGoogleSub: async () => null,
@@ -29,8 +30,10 @@ function fakeStore(membership: MembershipInfo | null): AccountStore {
 }
 
 function ponerCookie(value: string | undefined) {
+  // Solo responde a la cookie de sesión (wc_session); wc_org no está puesta en
+  // estas pruebas, así que el contexto usa el primer membership del usuario.
   vi.mocked(cookies).mockResolvedValue(
-    { get: () => (value ? { value } : undefined) } as unknown as Awaited<ReturnType<typeof cookies>>
+    { get: (name: string) => (name === "wc_session" && value ? { value } : undefined) } as unknown as Awaited<ReturnType<typeof cookies>>
   );
 }
 

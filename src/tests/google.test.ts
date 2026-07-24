@@ -10,6 +10,7 @@ function memStore() {
     async getUserById(id) { return users.find((u) => u.id === id) ?? null; },
     async getUserByGoogleSub(sub) { return users.find((u) => u.googleSub === sub) ?? null; },
     async getMembershipByUser() { return null; },
+    async getMembership() { return null; },
     async crearCuenta() { return { userId: "x", orgId: "y" }; },
     async crearCuentaGoogle(i) {
       const id = crypto.randomUUID();
