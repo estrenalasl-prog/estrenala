@@ -393,4 +393,37 @@ a:hover { color: var(--color-texto); }
   .card-piloto .interruptor[aria-checked="true"] { background: var(--color-acento); }
   .card-piloto .ultima { position: relative; margin-top: 12px; background: rgba(255,255,255,.06);
     border-radius: 10px; padding: 9px 11px; font-size: 12px; color: #C7C8BC; }
+
+  /* =============================================================
+     CONFIGURACIÓN (docs/design/10-configuracion.html)
+     ============================================================= */
+  .conf { max-width: 1100px; margin: 0 auto; padding: 26px 24px 90px; }
+  .conf h1 { font-size: 25px; font-weight: 700; letter-spacing: -0.02em; margin: 0 0 2px; }
+  .conf .lead { color: var(--color-texto-2); font-size: 14px; margin: 0 0 24px; }
+
+  .conf-zona { display: grid; grid-template-columns: 220px 1fr; gap: 26px; align-items: start; }
+  @media (max-width: 820px) {
+    .conf-zona { grid-template-columns: 1fr; }
+    .nav-sec { flex-direction: row; overflow-x: auto; position: static; }
+  }
+  .nav-sec { display: flex; flex-direction: column; gap: 2px; position: sticky; top: 70px; }
+  .nav-sec a { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: var(--radius-c);
+    color: var(--color-texto-2); font-size: 13.5px; font-weight: 500; white-space: nowrap; }
+  .nav-sec a:hover { background: var(--color-superficie-2); color: var(--color-texto); }
+  .nav-sec a.activa { background: var(--color-texto); color: #F3F4EC; }
+  .nav-sec a .ic { width: 16px; text-align: center; opacity: .8; }
+
+  .conf-panel { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
+  .card-conf { background: var(--color-superficie); border: 1px solid var(--color-borde);
+    border-radius: var(--radius-t); box-shadow: var(--shadow-1); overflow: hidden; }
+  .card-conf > header { padding: 16px 20px; border-bottom: 1px solid var(--color-borde);
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .card-conf > header .tit { flex: 1; min-width: 0; }
+  .card-conf > header h2 { font-size: 16px; font-weight: 600; margin: 0; display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+  .card-conf > header p { margin: 3px 0 0; color: var(--color-texto-2); font-size: 13px; }
+  .card-conf .cuerpo { padding: 8px 20px 18px; }
+  .card-conf.peligro { border-color: var(--color-peligro-borde); }
+  .card-conf.peligro > header { border-bottom-color: var(--color-peligro-borde); }
+  .card-conf.peligro > header h2 { color: var(--color-peligro-texto); }
+  .card-conf.proximamente .cuerpo { opacity: .65; }
 }

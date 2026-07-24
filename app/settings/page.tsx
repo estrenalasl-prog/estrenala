@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { AppHeader } from "../_components/AppHeader";
 import { MODELOS, nombreModelo } from "../_components/modelos";
 
 type EstadoClave = { origen: "ui" | "env" | null; sufijo: string };
@@ -10,6 +11,13 @@ function textoEstado(e: EstadoClave): string {
   if (e.origen === "ui") return `Usando tu clave (…${e.sufijo})`;
   if (e.origen === "env") return `Usando la del servidor (…${e.sufijo})`;
   return "Sin configurar";
+}
+
+function BadgeClave({ estado }: { estado: EstadoClave | null }) {
+  if (!estado) return <span className="badge badge-neutro"><span className="punto" />cargando…</span>;
+  if (estado.origen === "ui") return <span className="badge badge-exito"><span className="punto" />{textoEstado(estado)}</span>;
+  if (estado.origen === "env") return <span className="badge badge-aviso"><span className="punto" />{textoEstado(estado)}</span>;
+  return <span className="badge badge-neutro"><span className="punto" />{textoEstado(estado)}</span>;
 }
 
 // Tarjeta del modelo de IA con el que se redacta (lista curada + slug libre).
@@ -36,31 +44,29 @@ function TarjetaModelo({ modeloActual, ocupado, onGuardar }: {
   }
 
   return (
-    <div className="rounded-lg border bg-white p-4">
-      <div className="flex items-center justify-between">
-        <p className="font-medium">Modelo de IA para redactar</p>
-        <span className="text-xs text-gray-500">Actual: {nombreModelo(modeloActual)}</span>
+    <div className="fila-conf" style={{ display: "block" }}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <b style={{ fontWeight: 600, fontSize: 14 }}>Modelo de IA para redactar</b>
+        <span className="badge badge-neutro"><span className="punto" />Actual: {nombreModelo(modeloActual)}</span>
       </div>
-      <p className="mt-1 text-sm text-gray-500">
+      <p className="ayuda-campo">
         Con este modelo se redactan los artículos del blog. Los económicos gastan menos crédito
         (los «:free» nada); si uno da error al generar, prueba otro. La puntuación del radar de temas
         usa siempre el modelo por defecto de la plataforma (es 1 llamada al día y necesita criterio fino).
       </p>
-      <div className="mt-2 flex items-center gap-2">
-        <select value={sel} onChange={(e) => { setSel(e.target.value); setMsg(null); }}
-          className="rounded border px-2 py-1 text-sm">
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <select value={sel} onChange={(e) => { setSel(e.target.value); setMsg(null); }} className="campo">
           {MODELOS.map((m) => <option key={m.valor} value={m.valor}>{m.nombre}</option>)}
           <option value="otro">Otro…</option>
         </select>
         {sel === "otro" && (
           <input value={custom} placeholder="identificador de openrouter.ai/models, p. ej. deepseek/deepseek-chat:free"
             onChange={(e) => { setCustom(e.target.value); setMsg(null); }}
-            className="w-full rounded border px-2 py-1 text-sm" />
+            className="campo" style={{ maxWidth: 380 }} />
         )}
-        <button onClick={() => void guardar()} disabled={ocupado}
-          className="shrink-0 rounded bg-indigo-600 px-3 py-1 text-sm text-white disabled:opacity-50">Guardar</button>
+        <button onClick={() => void guardar()} disabled={ocupado} className="btn btn-sec btn-sm">Guardar</button>
       </div>
-      {msg && <p className="mt-1 text-xs text-green-700">{msg}</p>}
+      {msg && <p className="ayuda-campo" style={{ color: "var(--color-exito-texto)" }}>{msg}</p>}
     </div>
   );
 }
@@ -104,29 +110,49 @@ function TarjetaServicio({ titulo, descripcion, enlace, estado, ocupado, onGuard
   }
 
   return (
-    <div className="rounded-lg border bg-white p-4">
-      <div className="flex items-center justify-between">
-        <p className="font-medium">{titulo}</p>
-        <span className="text-xs text-gray-500">{estado ? textoEstado(estado) : "cargando…"}</span>
+    <div className="fila-conf" style={{ display: "block" }}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <b style={{ fontWeight: 600, fontSize: 14 }}>{titulo}</b>
+        <BadgeClave estado={estado} />
       </div>
-      <p className="mt-1 text-sm text-gray-500">{descripcion}{" "}
-        <a href={enlace.href} target="_blank" rel="noreferrer" className="text-indigo-600 underline">{enlace.texto}</a>
+      <p className="ayuda-campo">
+        {descripcion}{" "}
+        <a href={enlace.href} target="_blank" rel="noreferrer">{enlace.texto}</a>
       </p>
-      <div className="mt-2 flex items-center gap-2">
+      <div className="mt-3 flex flex-wrap items-center gap-2">
         <input type="password" value={clave} placeholder="Pega aquí tu clave"
           onChange={(e) => { setClave(e.target.value); setMsg(null); }}
-          className="w-full rounded border px-2 py-1 text-sm" />
-        <button onClick={() => void guardar()} disabled={ocupado || !clave.trim()}
-          className="shrink-0 rounded bg-indigo-600 px-3 py-1 text-sm text-white disabled:opacity-50">Guardar</button>
-        <button onClick={() => void probar()} disabled={ocupado || estado?.origen == null}
-          className="shrink-0 rounded border px-2 py-1 text-xs disabled:opacity-50">Probar conexión</button>
+          className="campo" style={{ maxWidth: 320 }} />
+        <button onClick={() => void guardar()} disabled={ocupado || !clave.trim()} className="btn btn-sec btn-sm">Guardar</button>
+        <button onClick={() => void probar()} disabled={ocupado || estado?.origen == null} className="btn btn-sec btn-sm">Probar conexión</button>
         {estado?.origen === "ui" && (
-          <button onClick={() => void quitar()} disabled={ocupado}
-            className="shrink-0 text-xs text-gray-500 underline">Quitar</button>
+          <button onClick={() => void quitar()} disabled={ocupado} className="btn btn-fantasma btn-sm">Quitar</button>
         )}
       </div>
-      {msg && <p className={`mt-1 text-xs ${msgError ? "text-red-600" : "text-green-700"}`}>{msg}</p>}
+      {msg && (
+        <p className="ayuda-campo" style={msgError ? { color: "var(--color-peligro-texto)" } : { color: "var(--color-exito-texto)" }}>{msg}</p>
+      )}
     </div>
+  );
+}
+
+// Sección diseñada pero aún no construida: se ve para saber adónde vamos, sin fingir
+// que funciona. Multiusuario y facturación son un salto de arquitectura aparte.
+function SeccionProximamente({ id, titulo, descripcion, porQue }: {
+  id: string; titulo: string; descripcion: string; porQue: string;
+}) {
+  return (
+    <section className="card-conf proximamente" id={id}>
+      <header>
+        <div className="tit">
+          <h2>{titulo} <span className="badge badge-neutro"><span className="punto" />Próximamente</span></h2>
+          <p>{descripcion}</p>
+        </div>
+      </header>
+      <div className="cuerpo">
+        <p className="ayuda-campo" style={{ marginTop: 10 }}>{porQue}</p>
+      </div>
+    </section>
   );
 }
 
@@ -173,60 +199,130 @@ export default function SettingsPage() {
   }
 
   return (
-    <main className="mx-auto max-w-2xl p-8">
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Configuración</h1>
-        <Link href="/" className="text-sm text-gray-500 hover:underline">← Volver</Link>
-      </div>
+    <>
+      <AppHeader />
+      <main className="conf">
+        <p className="miga"><Link href="/">← Tus webs</Link></p>
+        <h1>Configuración</h1>
+        <p className="lead">Ajustes de tu cuenta y de la plataforma.</p>
 
-      <h2 className="mb-1 text-lg font-semibold">APIs y conexiones</h2>
-      <p className="mb-4 text-sm text-gray-500">
-        Con tus propias claves, todo lo que genera la plataforma (artículos, plantillas, radar de temas)
-        corre a tu cuenta. Si dejas una vacía, se usa la del servidor cuando exista.
-      </p>
+        <div className="conf-zona">
+          <nav className="nav-sec">
+            <a href="#claves" className="activa"><span className="ic">◉</span> Conexiones y claves</a>
+            <a href="#herramientas"><span className="ic">⚙</span> Herramientas del sitio</a>
+            <a href="#equipo"><span className="ic">◑</span> Equipo</a>
+            <a href="#plan"><span className="ic">◈</span> Plan y uso</a>
+            <a href="#cuenta"><span className="ic">◐</span> Tu cuenta</a>
+            <a href="#peligro" style={{ color: "var(--color-peligro-texto)" }}><span className="ic">△</span> Zona de peligro</a>
+          </nav>
 
-      <div className="space-y-4">
-        <TarjetaModelo
-          modeloActual={estados?.modeloIa ?? ""}
-          ocupado={ocupado}
-          onGuardar={async (modelo) => {
-            setOcupado(true); setError(null);
-            try {
-              const res = await fetch("/api/settings", {
-                method: "PUT", headers: { "content-type": "application/json" },
-                body: JSON.stringify({ modeloIa: modelo }),
-              });
-              const d = (await res.json().catch(() => ({}))) as { error?: string };
-              if (!res.ok) { setError(d.error ?? "Error"); return false; }
-              await cargar();
-              return true;
-            } catch { setError("Error de conexión"); return false; }
-            finally { setOcupado(false); }
-          }}
-        />
-        <TarjetaServicio
-          titulo="OpenRouter (IA)"
-          descripcion="Redacta los artículos del blog y genera las plantillas. Crea tu clave en"
-          enlace={{ href: "https://openrouter.ai/keys", texto: "openrouter.ai/keys" }}
-          estado={estados?.openrouter ?? null}
-          ocupado={ocupado}
-          onGuardar={(c) => guardar("openrouterKey", c)}
-          onProbar={() => probar("openrouter")}
-          onQuitar={() => guardar("openrouterKey", "")}
-        />
-        <TarjetaServicio
-          titulo="SerpAPI (Google Trends)"
-          descripcion="Alimenta el radar de temas en tendencia del blog. Clave gratuita (100 búsquedas/mes) en"
-          enlace={{ href: "https://serpapi.com", texto: "serpapi.com" }}
-          estado={estados?.serpapi ?? null}
-          ocupado={ocupado}
-          onGuardar={(c) => guardar("serpapiKey", c)}
-          onProbar={() => probar("serpapi")}
-          onQuitar={() => guardar("serpapiKey", "")}
-        />
-      </div>
+          <div className="conf-panel">
+            <section className="card-conf" id="claves">
+              <header>
+                <div className="tit">
+                  <h2>Conexiones y claves</h2>
+                  <p>
+                    Con tus propias claves, todo lo que genera la plataforma (artículos, plantillas, radar de temas)
+                    corre a tu cuenta. Si dejas una vacía, se usa la del servidor cuando exista.
+                  </p>
+                </div>
+              </header>
+              <div className="cuerpo">
+                <TarjetaModelo
+                  modeloActual={estados?.modeloIa ?? ""}
+                  ocupado={ocupado}
+                  onGuardar={async (modelo) => {
+                    setOcupado(true); setError(null);
+                    try {
+                      const res = await fetch("/api/settings", {
+                        method: "PUT", headers: { "content-type": "application/json" },
+                        body: JSON.stringify({ modeloIa: modelo }),
+                      });
+                      const d = (await res.json().catch(() => ({}))) as { error?: string };
+                      if (!res.ok) { setError(d.error ?? "Error"); return false; }
+                      await cargar();
+                      return true;
+                    } catch { setError("Error de conexión"); return false; }
+                    finally { setOcupado(false); }
+                  }}
+                />
+                <TarjetaServicio
+                  titulo="OpenRouter (IA)"
+                  descripcion="Redacta los artículos del blog y genera las plantillas. Crea tu clave en"
+                  enlace={{ href: "https://openrouter.ai/keys", texto: "openrouter.ai/keys" }}
+                  estado={estados?.openrouter ?? null}
+                  ocupado={ocupado}
+                  onGuardar={(c) => guardar("openrouterKey", c)}
+                  onProbar={() => probar("openrouter")}
+                  onQuitar={() => guardar("openrouterKey", "")}
+                />
+                <TarjetaServicio
+                  titulo="SerpAPI (Google Trends)"
+                  descripcion="Alimenta el radar de temas en tendencia del blog. Clave gratuita (100 búsquedas/mes) en"
+                  enlace={{ href: "https://serpapi.com", texto: "serpapi.com" }}
+                  estado={estados?.serpapi ?? null}
+                  ocupado={ocupado}
+                  onGuardar={(c) => guardar("serpapiKey", c)}
+                  onProbar={() => probar("serpapi")}
+                  onQuitar={() => guardar("serpapiKey", "")}
+                />
+              </div>
+            </section>
 
-      {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
-    </main>
+            <section className="card-conf" id="herramientas">
+              <header>
+                <div className="tit">
+                  <h2>Herramientas del sitio</h2>
+                  <p>Favicon, imagen al compartir, Google Search Console y analítica de visitas.</p>
+                </div>
+              </header>
+              <div className="cuerpo">
+                <p className="ayuda-campo" style={{ marginTop: 10 }}>
+                  Estas herramientas son <b>de cada web</b>, no de la cuenta: se configuran dentro del proyecto,
+                  en el desplegable «Herramientas del sitio». Abre una de <Link href="/">tus webs</Link> para ajustarlas.
+                </p>
+              </div>
+            </section>
+
+            <SeccionProximamente
+              id="equipo"
+              titulo="Equipo"
+              descripcion="Quién puede editar tus webs: invitar a una agencia o a tu socio, con roles."
+              porQue="Hoy se entra con una sola contraseña. El multiusuario cambia el modelo de acceso (cuentas por correo e invitaciones), así que se construirá aparte y cuando tú lo decidas."
+            />
+            <SeccionProximamente
+              id="plan"
+              titulo="Plan y uso"
+              descripcion="Tu plan y el consumo de IA del mes, con facturas."
+              porQue="Llegará cuando la plataforma se monetice. Mientras tanto, el gasto de IA va con tus propias claves y lo controlas desde «Conexiones y claves»."
+            />
+            <SeccionProximamente
+              id="cuenta"
+              titulo="Tu cuenta"
+              descripcion="Correo, contraseña y avisos por correo cuando el piloto publica."
+              porQue="Depende de que existan cuentas de usuario reales; hoy el acceso es una contraseña única del panel."
+            />
+
+            <section className="card-conf peligro" id="peligro">
+              <header>
+                <div className="tit">
+                  <h2>Zona de peligro <span className="badge badge-neutro"><span className="punto" />Próximamente</span></h2>
+                  <p>Acciones que no se pueden deshacer.</p>
+                </div>
+              </header>
+              <div className="cuerpo">
+                <p className="ayuda-campo" style={{ marginTop: 10 }}>
+                  Eliminar una web (con su historial y su blog) es una acción de cada proyecto, no de la cuenta.
+                  Aún no está construida: al ser destructiva y sin vuelta atrás, prefiero hacerla con su
+                  confirmación en dos pasos y sus pruebas antes de darte el botón.
+                </p>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        {error && <p className="error-campo">{error}</p>}
+      </main>
+    </>
   );
 }
