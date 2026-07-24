@@ -89,12 +89,15 @@ en `scripts/e2e/` (necesitan dev server + .env.local; se ejecutan con `node`).
    Matiz importante: NO se puede «conectar la suscripción de claude.ai» de un
    usuario a una plataforma de terceros; lo que sí se puede es clave de API
    (Anthropic/OpenRouter), el mismo patrón BYOK que ya usamos. Apuntado, NO empezado.
-7. **Orden de construcción hasta salir** (todo antes del lanzamiento): portada
-   SVG→PNG (og:image de WhatsApp/X no muestra SVG) → multiusuario/Equipo + Tu
-   cuenta (hoy «Próximamente» en /settings) → edición rich-text → integrar la
-   landing cuando vuelva de Claude Design → Plan/facturación (necesita decisiones
-   externas del usuario: Stripe, precios) → asistente IA (punto 6). El blog como
+7. **Orden de construcción hasta salir** (lo tachado = HECHO): ~~portada SVG→PNG~~ ✅
+   (4f2) → ~~multiusuario/Equipo + Tu cuenta~~ ✅ (incremento 6 completo: cuentas,
+   correos, Google, equipo/roles, Tu cuenta) → **siguiente: edición rich-text** →
+   integrar la landing cuando vuelva de Claude Design → Plan/facturación (necesita
+   decisiones externas del usuario: Stripe, precios; el esqueleto ya está: la tabla
+   de organizaciones tiene `plan`/`usoJson`) → asistente IA (punto 6). El blog como
    sección premium sigue apuntado, NO construir hasta monetizar.
+   Al desplegar, para activar los correos/Google reales: `RESEND_API_KEY`,
+   `EMAIL_FROM`, `PLATFORM_HOST`, `GOOGLE_CLIENT_ID`/`SECRET` (ver `.env.example`).
 
 ## ⚠️ Guardas y preferencias (aprendidas a base de sustos)
 
