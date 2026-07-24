@@ -68,9 +68,12 @@ en `scripts/e2e/` (necesitan dev server + .env.local; se ejecutan con `node`).
    direcciones en `docs/design/08-wordmarks.html`). El sistema es agnóstico.
 3. **El piloto automático (4g) está SIN estrenar**: el usuario lo probará «cuando
    salgamos con nuestra propia página» (2026-07-17). No activarlo por él.
-4. Backlog después: edición rich-text, multiusuario/claves por usuario, rasterizar
-   portada SVG→PNG (og:image de WhatsApp/X no muestra SVG), landing de marketing,
-   blog como sección premium (solo al monetizar — apuntado, NO construir).
+4. Backlog después: **botón para expandir la vista previa a pantalla completa** (sobre
+   todo en modo edición: el iframe se queda en 440 px y editar ahí dentro es lioso
+   cuando hay mucho que tocar — pedido por el usuario el 2026-07-24), edición
+   rich-text, multiusuario/claves por usuario, rasterizar portada SVG→PNG (og:image de
+   WhatsApp/X no muestra SVG), landing de marketing, blog como sección premium (solo al
+   monetizar — apuntado, NO construir).
 
 ## ⚠️ Guardas y preferencias (aprendidas a base de sustos)
 
