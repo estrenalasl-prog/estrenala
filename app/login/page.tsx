@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Logo } from "../_components/Logo";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -30,7 +31,7 @@ export default function LoginPage() {
       <div className="split">
         <aside className="marca-panel">
           <div className="grano" />
-          <div className="wordmark">Estrénal<span className="hl">a</span></div>
+          <Logo tono="oscuro" alto={34} />
           <p className="claim">Tu web hecha con IA, por fin en directo.</p>
           <p className="sub">Súbela online, edítala con un clic y deja que el blog escriba solo.</p>
         </aside>

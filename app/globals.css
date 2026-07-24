@@ -75,6 +75,13 @@ a:hover { color: var(--color-texto); }
 }
 
 @keyframes wc-spin { to { transform: rotate(360deg); } }
+@keyframes logo-entrada { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: none; } }
+@keyframes logo-corte {
+  0%   { left: -6px; opacity: 0; }
+  12%  { opacity: .9; }
+  88%  { opacity: .9; }
+  100% { left: 100%; opacity: 0; }
+}
 
 /* =====================================================================
    PRIMITIVAS (reutilizables — recetas de 01-tokens.md §7)
@@ -152,7 +159,17 @@ a:hover { color: var(--color-texto); }
     padding: 6px 10px; font-size: 12px;
   }
 
-  /* ---------- Wordmark ---------- */
+  /* ---------- Logo de marca (imagen real, 2 variantes segun el fondo) ---------- */
+  .logo { position: relative; display: inline-flex; align-items: center; overflow: hidden;
+    animation: logo-entrada .55s cubic-bezier(.2,.8,.2,1) both; }
+  .logo img { display: block; height: 100%; width: auto; transition: transform .18s cubic-bezier(.2,.8,.2,1); }
+  .logo:hover img { transform: scale(1.04); }
+  /* Barrido lima al entrar: guiño a las tijeras cortando la cinta */
+  .logo::after { content: ""; position: absolute; top: 0; bottom: 0; left: -6px; width: 2px;
+    background: var(--color-acento); opacity: 0; pointer-events: none;
+    animation: logo-corte 1s cubic-bezier(.2,.8,.2,1) .3s both; }
+
+  /* ---------- Wordmark (tipografico, fallback) ---------- */
   .wordmark { font: 700 19px/1 var(--font-sans); letter-spacing: -0.03em; color: var(--color-texto); }
   .wordmark .hl { background: var(--color-acento); color: var(--color-texto); padding: 0 4px; border-radius: 4px; }
 
