@@ -10,6 +10,7 @@
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
+    "@resvg/resvg-wasm": "^2.6.2",
     "@supabase/supabase-js": "^2.110.0",
     "drizzle-orm": "^0.45.2",
     "fflate": "^0.8.2",
