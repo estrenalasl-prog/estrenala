@@ -21,6 +21,9 @@ data/
 next-env.d.ts
 *.tsbuildinfo
 
+# Estado local de Claude Code (permisos por máquina, no versionar)
+.claude/
+
 # Sistema
 .DS_Store
 Thumbs.db
