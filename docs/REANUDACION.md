@@ -1,8 +1,8 @@
 # Reanudación tras formateo — léeme primero
 
-Actualizado: 2026-07-17 (el usuario formatea el PC por urgencia; segundo formateo,
-el anterior fue el 2026-07-10). Este documento es la fuente de verdad para retomar:
-la memoria de Claude en `C:\Users\Sebas\.claude` NO sobrevive a los formateos.
+Actualizado: 2026-07-24 (tras mergear el incremento 5b a master). Este documento es
+la fuente de verdad para retomar: la memoria de Claude en `C:\Users\Sebas\.claude`
+NO sobrevive a los formateos.
 
 ## ✅ Checklist ANTES de formatear (para Sebas)
 
@@ -52,25 +52,37 @@ Drizzle/Postgres en Supabase, vitest). Flujo de trabajo: spec → plan (docs/sup
 | 4f | Portada automática: SVG con colores del sitio (gratis) o imagen IA (modelo fijo) |
 | 4g | **Piloto automático**: radar→redacta→portada→programa, solo; OFF por defecto |
 | 5a | Sistema visual v1 en `docs/design/` (tokens, 4 pantallas, componentes, 404, wordmarks) |
+| 5b | **Diseño v2 «Alto Voltaje» INTEGRADO en toda la app** (lima `#C4F000` + papel/tinta + Space Grotesk): login, panel, proyecto (+ botón Expandir del preview), popover del editor, blog, taller IA, Configuración con secciones, 404 pública y logo real (`public/brand/`, servido `unoptimized` y con `/brand` en rutas públicas del middleware — NO tocar, ver memoria) |
 
 Detalles finos por incremento: specs y planes en `docs/superpowers/`. E2e regenerables
 en `scripts/e2e/` (necesitan dev server + .env.local; se ejecutan con `node`).
 
 ## ⏭️ En qué punto estamos y qué sigue
 
-1. **El usuario está haciendo la sesión de diseño ÉL MISMO en claude.ai** («Claude
-   Design») partiendo de la base v1: el prompt listo y la lista de adjuntos están en
-   `docs/design/prompt-para-claude-design.md`. Cuando vuelva con los archivos
-   mejorados (mismos nombres 01–08 + README): sobreescribir `docs/design/` y arrancar
-   la **integración por fases** (5b tokens+login+panel · 5c proyecto · 5d popover ·
-   5e 404+BlogPanel — mapa en `docs/design/README.md`). NO integrar la v1 sin su OK.
-2. **Decisión pendiente del usuario: el nombre** (Estrénala / WebNace / YaVive —
-   direcciones en `docs/design/08-wordmarks.html`). El sistema es agnóstico.
-3. **El piloto automático (4g) está SIN estrenar**: el usuario lo probará «cuando
-   salgamos con nuestra propia página» (2026-07-17). No activarlo por él.
-4. Backlog después: edición rich-text, multiusuario/claves por usuario, rasterizar
-   portada SVG→PNG (og:image de WhatsApp/X no muestra SVG), landing de marketing,
-   blog como sección premium (solo al monetizar — apuntado, NO construir).
+1. **Marca FIJADA: Estrénala.** El usuario compra `estrenala.com` (2026-07-24).
+   Al desplegar: apuntar DNS y configurar `PLATFORM_HOST` / `SITES_BASE_DOMAIN`.
+2. **Landing de marketing → la diseña el usuario en claude.ai** («Claude Design»),
+   igual que hizo con la plataforma. El prompt listo y la lista de adjuntos están en
+   `docs/design/prompt-landing-para-claude-design.md`. Entregable esperado:
+   `11-landing.html`. CTA de la landing = **acceso anticipado con email** (aún no
+   hay registro público); al volver, integrarla + construir el backend del formulario.
+3. **Decisión de producto (2026-07-24): web primero, nada de app nativa.** La
+   plataforma es responsive; si algún día hace falta icono en el móvil, se hace PWA
+   (web instalable). App nativa solo se replantearía con usuarios pidiéndola.
+4. **El piloto automático (4g) está SIN estrenar**: el usuario lo probará «cuando
+   salgamos con nuestra propia página». No activarlo por él.
+5. **Idea nueva (2026-07-24): asistente de IA DENTRO de la plataforma**, estilo
+   «Claude Code pero para tu web»: el usuario conecta su clave (BYOK, como el blog:
+   opt-in y con aviso de coste) y un agente edita su web por él usando lo que ya
+   existe (snapshots, historial/revertir, editor). Encaja con el Claude Agent SDK.
+   Matiz importante: NO se puede «conectar la suscripción de claude.ai» de un
+   usuario a una plataforma de terceros; lo que sí se puede es clave de API
+   (Anthropic/OpenRouter), el mismo patrón BYOK que ya usamos. Apuntado, NO empezado.
+6. Backlog después: rasterizar portada SVG→PNG (og:image de WhatsApp/X no muestra
+   SVG) — pieza pequeña y previa a salir; edición rich-text; multiusuario/Equipo +
+   Tu cuenta (hoy «Próximamente» en /settings); Plan/facturación (necesita decisiones
+   externas del usuario: Stripe, precios); blog como sección premium (solo al
+   monetizar — apuntado, NO construir).
 
 ## ⚠️ Guardas y preferencias (aprendidas a base de sustos)
 
