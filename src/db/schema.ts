@@ -12,6 +12,23 @@ export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   email: text("email").notNull().unique(),
   nombre: text("nombre").notNull(),
+  passwordHash: text("password_hash").notNull().default(""), // '' = sin contraseña (p. ej. alta por Google)
+  googleSub: text("google_sub").unique(), // id de cuenta Google vinculada (6c)
+  emailVerificadoAt: timestamp("email_verificado_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// Tokens de un solo uso (verificación de email, reset de contraseña, invitaciones).
+// SIEMPRE se guarda el hash SHA-256 del token, nunca el token en claro.
+export const authTokens = pgTable("auth_tokens", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  email: text("email").notNull(),
+  userId: uuid("user_id").references(() => users.id),
+  tipo: text("tipo").notNull(), // verificacion | reset | invitacion
+  tokenHash: text("token_hash").notNull().unique(),
+  payloadJson: jsonb("payload_json"), // p. ej. { orgId, rol } en invitaciones
+  expiraAt: timestamp("expira_at", { withTimezone: true }).notNull(),
+  usadoAt: timestamp("usado_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
