@@ -37,14 +37,16 @@ function estadoProgramadoLegible(estado: string): string {
 }
 
 function BadgeRelevancia({ relevancia }: { relevancia: number }) {
-  const color = relevancia >= 70 ? "bg-green-100 text-green-800"
-    : relevancia >= 40 ? "bg-amber-100 text-amber-800"
-    : "bg-gray-100 text-gray-600";
-  return <span className={`rounded px-1.5 py-0.5 text-xs ${color}`} title="Relevancia para tu nicho (0-100)">{relevancia}</span>;
+  const clase = relevancia >= 70 ? "badge-exito" : relevancia >= 40 ? "badge-aviso" : "badge-neutro";
+  return (
+    <span className={`badge ${clase}`} title="Relevancia para tu nicho (0-100)">
+      <span className="punto" />{relevancia}
+    </span>
+  );
 }
 
 function IframePreview({ html }: { html: string }) {
-  return <iframe srcDoc={html} sandbox="" className="h-96 w-full rounded border bg-white" title="vista previa" />;
+  return <iframe srcDoc={html} sandbox="" className="h-96 w-full rounded-c border border-borde bg-superficie" title="vista previa" />;
 }
 
 export function BlogPanel({ projectId }: { projectId: string }) {
@@ -344,68 +346,66 @@ export function BlogPanel({ projectId }: { projectId: string }) {
   }
 
   return (
-    <div className="mb-3 rounded-lg border bg-gray-50 px-3 py-2">
-      <button onClick={() => setAbierto(!abierto)} className="text-sm font-medium">
-        {abierto ? "▾" : "▸"} Blog
-      </button>
+    <details className="direccion" onToggle={(e) => { if (e.currentTarget.open) setAbierto(true); }}>
+      <summary><span className="flecha">▸</span> Blog</summary>
       {abierto && (
-        <div className="mt-2">
-          <p className="mb-2 text-xs text-gray-500">{AVISO}</p>
+        <div className="direccion-cuerpo" style={{ display: "block" }}>
+          <p className="ayuda-campo" style={{ marginBottom: 12 }}>{AVISO}</p>
 
           {vista === "lista" && (
             <div>
               {estado && !estado.tienePlantilla ? (
-                <div className="rounded-lg border bg-white p-3">
+                <div className="tarjeta p-3">
                   <p className="text-sm font-medium">El blog de tu web</p>
-                  <p className="mb-2 text-xs text-gray-500">Artículos con tu diseño, índice y sitemap automáticos. Primero crea la plantilla: la IA lee tu portada y propone el diseño del blog.</p>
+                  <p className="mb-2 text-xs text-texto-2">Artículos con tu diseño, índice y sitemap automáticos. Primero crea la plantilla: la IA lee tu portada y propone el diseño del blog.</p>
                   <button onClick={() => { setVista("plantillas"); void generarPlantillas(); }} disabled={ocupado}
-                    className="rounded bg-indigo-600 px-3 py-1 text-sm text-white disabled:opacity-50">Crear la plantilla del blog con IA</button>
+                    className="btn btn-primario btn-sm">Crear la plantilla del blog con IA</button>
                 </div>
               ) : (
                 <div>
-                  <div className="mb-2 rounded-lg border bg-white p-3">
+                  <div className="tarjeta p-3 mb-2">
                     <p className="text-sm font-medium">Escribir con IA</p>
-                    <label className="mt-1 block text-xs text-gray-500">De qué va tu blog (la IA lo usa para enfocar los artículos)</label>
+                    <label className="mt-1 block text-xs text-texto-2">De qué va tu blog (la IA lo usa para enfocar los artículos)</label>
                     <textarea value={nicho} rows={2}
                       placeholder="p. ej.: Automatización e IA para pymes: agentes, herramientas y casos prácticos"
                       onChange={(e) => { setNicho(e.target.value); setNichoMsg(null); }}
-                      className="mt-1 w-full rounded border p-2 text-xs" />
-                    <label className="mt-1 block text-xs text-gray-500">Keywords semilla (separadas por comas; ayudan al radar a buscar temas de tu nicho)</label>
+                      className="campo mt-1" />
+                    <label className="mt-1 block text-xs text-texto-2">Keywords semilla (separadas por comas; ayudan al radar a buscar temas de tu nicho)</label>
                     <input value={semillas}
                       placeholder="p. ej.: agentes ia, automatización pymes, chatbots"
                       onChange={(e) => { setSemillas(e.target.value); setNichoMsg(null); }}
-                      className="mt-1 w-full rounded border px-2 py-1 text-xs" />
+                      className="campo mt-1" />
                     <div className="mt-2 flex items-center gap-2">
                       <button onClick={() => void guardarConfig()} disabled={ocupado}
-                        className="rounded border px-2 py-1 text-xs disabled:opacity-50">Guardar configuración</button>
-                      {nichoMsg && <span className="text-xs text-green-700">{nichoMsg}</span>}
+                        className="btn btn-sec btn-sm">Guardar configuración</button>
+                      {nichoMsg && <span className="text-xs text-exito-texto">{nichoMsg}</span>}
                     </div>
-                    <p className="mt-1 text-xs text-gray-400">
+                    <p className="mt-1 text-xs text-texto-3">
                       Modelo de IA: {nombreModelo(modeloOrg)} — se cambia en <a href="/settings" className="underline">Configuración</a>.
                     </p>
                     {!mostrarKw ? (
                       <button onClick={() => setMostrarKw(true)} disabled={ocupado}
-                        className="mt-2 rounded bg-indigo-600 px-3 py-1 text-sm text-white disabled:opacity-50">Escribir artículo con IA</button>
+                        className="btn btn-primario btn-sm mt-2">Escribir artículo con IA</button>
                     ) : (
                       <div className="mt-2 flex items-center gap-2">
                         <input value={kw} placeholder="Keyword o tema del artículo"
-                          onChange={(e) => setKw(e.target.value)} className="w-full rounded border px-2 py-1 text-sm" />
+                          onChange={(e) => setKw(e.target.value)} className="campo" />
                         <button onClick={() => void crearBorrador()} disabled={ocupado}
-                          className="shrink-0 rounded bg-indigo-600 px-3 py-1 text-sm text-white disabled:opacity-50">Crear borrador</button>
+                          className="btn btn-primario btn-sm shrink-0">Crear borrador</button>
                         <button onClick={() => { setMostrarKw(false); setKw(""); }}
-                          className="shrink-0 rounded border px-2 py-1 text-xs">Cancelar</button>
+                          className="btn btn-sec btn-sm shrink-0">Cancelar</button>
                       </div>
                     )}
                     {borradores.length > 0 && (
-                      <ul className="mt-2 space-y-1">
+                      <ul className="lista mt-2">
                         {borradores.map((b) => (
-                          <li key={b.id} className="flex items-center justify-between rounded border bg-gray-50 px-2 py-1 text-sm">
-                            <span>{b.titulo ?? b.keyword} <span className="text-xs text-gray-400">· {estadoLegible(b.estado)}</span></span>
+                          <li key={b.id} className="item justify-between">
+                            <span>{b.titulo ?? b.keyword} <span className="text-xs text-texto-3">· {estadoLegible(b.estado)}</span></span>
                             <span className="flex gap-2">
                               <button onClick={() => { setDraftId(b.id); setVista("ia"); }} disabled={ocupado}
-                                className="rounded border px-2 py-0.5 text-xs">Abrir</button>
+                                className="btn btn-sec btn-sm">Abrir</button>
                               <button onClick={() => void borrarBorrador(b.id, b.keyword)} disabled={ocupado}
-                                className="text-xs text-gray-500 underline">borrar</button>
+                                className="btn btn-fantasma btn-sm">borrar</button>
                             </span>
                           </li>
                         ))}
@@ -416,31 +416,31 @@ export function BlogPanel({ projectId }: { projectId: string }) {
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-medium">Temas en tendencia</p>
                         <button onClick={() => void buscarTemas(false)} disabled={ocupado}
-                          className="rounded border px-2 py-0.5 text-xs disabled:opacity-50">🔍 Buscar temas de hoy</button>
+                          className="btn btn-sec btn-sm">🔍 Buscar temas de hoy</button>
                         {radarMsg?.startsWith("El radar ya") && (
                           <button onClick={() => void buscarTemas(true)} disabled={ocupado}
-                            className="text-xs text-gray-500 underline">Forzar</button>
+                            className="btn btn-fantasma btn-sm">Forzar</button>
                         )}
                       </div>
-                      <p className="mt-0.5 text-xs text-gray-400">Busca lo que sube hoy en Google (España), lo cruza con tu nicho y te propone temas. Gasta hasta 4 créditos de SerpAPI + 1 llamada de IA; una vez al día.</p>
-                      {radarMsg && <p className="mt-1 text-xs text-gray-600">{radarMsg}</p>}
+                      <p className="mt-0.5 text-xs text-texto-3">Busca lo que sube hoy en Google (España), lo cruza con tu nicho y te propone temas. Gasta hasta 4 créditos de SerpAPI + 1 llamada de IA; una vez al día.</p>
+                      {radarMsg && <p className="mt-1 text-xs text-texto-2">{radarMsg}</p>}
                       {temas.filter((t) => t.estado === "nueva").length > 0 && (
-                        <ul className="mt-2 space-y-1">
+                        <ul className="lista mt-2">
                           {temas.filter((t) => t.estado === "nueva").map((t) => (
-                            <li key={t.id} className="flex items-center justify-between rounded border bg-gray-50 px-2 py-1 text-sm">
+                            <li key={t.id} className="item justify-between">
                               <span className="flex items-center gap-2">
                                 <BadgeRelevancia relevancia={t.relevancia} />
                                 {t.keyword}
-                                <span className="text-xs text-gray-400">
+                                <span className="text-xs text-texto-3">
                                   {t.crecimientoPct != null ? `+${t.crecimientoPct}% ` : ""}
                                   {t.fuente === "trends" ? "· tendencia de hoy" : "· relacionada con tus semillas"}
                                 </span>
                               </span>
                               <span className="flex shrink-0 gap-2">
                                 <button onClick={() => void escribirDesdeTema(t)} disabled={ocupado}
-                                  className="rounded bg-indigo-600 px-2 py-0.5 text-xs text-white disabled:opacity-50">Escribir artículo</button>
+                                  className="btn btn-primario btn-sm">Escribir artículo</button>
                                 <button onClick={() => void descartarTema(t)} disabled={ocupado}
-                                  className="text-xs text-gray-500 underline">descartar</button>
+                                  className="btn btn-fantasma btn-sm">descartar</button>
                               </span>
                             </li>
                           ))}
@@ -449,72 +449,71 @@ export function BlogPanel({ projectId }: { projectId: string }) {
                     </div>
                   </div>
                   {piloto && (
-                    <div className="mb-2 rounded-lg border bg-white p-3">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium">Piloto automático {piloto.activo ? "🟢" : "⚪"}</p>
-                        <label className="flex items-center gap-1 text-xs">
-                          <input type="checkbox" checked={piloto.activo}
-                            onChange={(e) => { setPiloto({ ...piloto, activo: e.target.checked }); setPilotoMsg(null); }} />
-                          Activo
-                        </label>
+                    <div className="card-piloto mb-2">
+                      <div className="grano" />
+                      <div className="top">
+                        <h3>Piloto automático</h3>
+                        <button type="button" role="switch" aria-checked={piloto.activo} className="interruptor"
+                          aria-label="Piloto automático"
+                          onClick={() => { setPiloto({ ...piloto, activo: !piloto.activo }); setPilotoMsg(null); }} />
                       </div>
-                      <p className="mt-1 text-xs text-gray-500">
+                      <p>
                         El blog se escribe solo: el radar busca el tema del día, la IA redacta con tu modelo,
                         se genera la portada y la publicación se programa automáticamente. Solo escribe si hay
                         un tema con relevancia &gt; 60 (si no, ese día no gasta nada en redactar). Gasto por
                         artículo: las llamadas de IA de tu modelo + el radar (hasta 4 créditos de SerpAPI al día).
                       </p>
-                      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                      <div className="relative mt-3 flex flex-wrap items-center gap-2 text-xs">
                         <select value={piloto.cadaDias} onChange={(e) => { setPiloto({ ...piloto, cadaDias: Number(e.target.value) }); setPilotoMsg(null); }}
-                          className="rounded border px-2 py-1">
+                          className="campo">
                           <option value={1}>Cada día</option>
                           <option value={3}>Cada 3 días</option>
                           <option value={7}>Cada semana</option>
                         </select>
                         <select value={piloto.hora} onChange={(e) => { setPiloto({ ...piloto, hora: Number(e.target.value) }); setPilotoMsg(null); }}
-                          className="rounded border px-2 py-1">
+                          className="campo">
                           {Array.from({ length: 24 }, (_, h) => (
                             <option key={h} value={h}>a partir de las {h}:00</option>
                           ))}
                         </select>
                         <select value={piloto.portada} onChange={(e) => { setPiloto({ ...piloto, portada: e.target.value }); setPilotoMsg(null); }}
-                          className="rounded border px-2 py-1">
+                          className="campo">
                           <option value="diseno">Portada: diseño (gratis)</option>
                           <option value="ia">Portada: imagen con IA (céntimos)</option>
                         </select>
                         <button onClick={() => void guardarPiloto()} disabled={ocupado}
-                          className="rounded bg-indigo-600 px-3 py-1 text-white disabled:opacity-50">Guardar</button>
-                        {pilotoMsg && <span className="text-green-700">{pilotoMsg}</span>}
+                          className="btn btn-primario btn-sm">Guardar</button>
+                        {pilotoMsg && <span style={{ color: "#9BE0AC" }}>{pilotoMsg}</span>}
                       </div>
                       {piloto.ultimoMsg && (
-                        <p className="mt-2 rounded bg-gray-50 px-2 py-1 text-xs text-gray-600">
+                        <p className="ultima">
                           Última ejecución{piloto.ultimoDia ? ` (${piloto.ultimoDia})` : ""}: {piloto.ultimoMsg}
                         </p>
                       )}
                     </div>
                   )}
                   {(programados.length > 0 || progMsg) && (
-                    <div className="mb-2 rounded-lg border bg-white p-3">
+                    <div className="tarjeta p-3 mb-2">
                       <p className="text-sm font-medium">Programados</p>
-                      {progMsg && <p className="mt-1 text-xs text-green-700">{progMsg}</p>}
-                      <ul className="mt-1 space-y-1">
+                      {progMsg && <p className="mt-1 text-xs text-exito-texto">{progMsg}</p>}
+                      <ul className="lista mt-1">
                         {programados.map((p) => (
-                          <li key={p.id} className="flex items-center justify-between rounded border bg-gray-50 px-2 py-1 text-sm">
+                          <li key={p.id} className="item justify-between">
                             <span>
                               {p.titulo}{" "}
-                              <span className="text-xs text-gray-400">· {new Date(p.publicarEn).toLocaleString()} · {estadoProgramadoLegible(p.estado)}</span>
-                              {p.estado === "error" && p.errorMsg && <span className="text-xs text-red-600"> — {p.errorMsg}</span>}
+                              <span className="text-xs text-texto-3">· {new Date(p.publicarEn).toLocaleString()} · {estadoProgramadoLegible(p.estado)}</span>
+                              {p.estado === "error" && p.errorMsg && <span className="text-xs text-peligro-texto"> — {p.errorMsg}</span>}
                             </span>
                             <span className="flex shrink-0 gap-2">
                               {(p.estado === "pendiente" || p.estado === "error") && (
                                 <button onClick={() => void editarProgramado(p)} disabled={ocupado}
                                   title="Recupera el contenido al editor y quita la programación (reprograma desde ahí)"
-                                  className="rounded border px-2 py-0.5 text-xs">Editar</button>
+                                  className="btn btn-sec btn-sm">Editar</button>
                               )}
                               {p.estado === "publicado" && (
                                 <button onClick={() => void ocultarProgramado(p.id)} disabled={ocupado}
                                   title="Quita esta fila; el artículo ya está en la lista de abajo"
-                                  className="text-xs text-gray-500 underline">Ocultar</button>
+                                  className="btn btn-fantasma btn-sm">Ocultar</button>
                               )}
                             </span>
                           </li>
@@ -523,17 +522,17 @@ export function BlogPanel({ projectId }: { projectId: string }) {
                     </div>
                   )}
                   <div className="mb-2 flex items-center gap-2">
-                    <button onClick={nuevoArticulo} className="rounded bg-indigo-600 px-3 py-1 text-sm text-white">Nuevo artículo</button>
-                    <button onClick={() => void abrirPlantillas()} className="text-xs text-gray-500 underline">Editar plantillas</button>
-                    {ocupado && <span className="text-sm text-gray-400">cargando…</span>}
+                    <button onClick={nuevoArticulo} className="btn btn-primario btn-sm">Nuevo artículo</button>
+                    <button onClick={() => void abrirPlantillas()} className="btn btn-fantasma btn-sm">Editar plantillas</button>
+                    {ocupado && <span className="text-sm text-texto-3">cargando…</span>}
                   </div>
-                  <ul className="space-y-1">
+                  <ul className="lista">
                     {(estado?.posts ?? []).map((p) => (
-                      <li key={p.id} className="flex items-center justify-between rounded border bg-white px-2 py-1 text-sm">
-                        <span>{p.titulo} <span className="text-xs text-gray-400">· {p.fecha} · /blog/{p.slug}.html</span></span>
+                      <li key={p.id} className="item justify-between">
+                        <span>{p.titulo} <span className="text-xs text-texto-3">· {p.fecha} · /blog/{p.slug}.html</span></span>
                         <span className="flex gap-2">
-                          <button onClick={() => void editarArticulo(p.id)} disabled={ocupado} className="rounded border px-2 py-0.5 text-xs">Editar</button>
-                          <button onClick={() => void borrarArticulo(p.id, p.titulo)} disabled={ocupado} className="text-xs text-gray-500 underline">borrar</button>
+                          <button onClick={() => void editarArticulo(p.id)} disabled={ocupado} className="btn btn-sec btn-sm">Editar</button>
+                          <button onClick={() => void borrarArticulo(p.id, p.titulo)} disabled={ocupado} className="btn btn-fantasma btn-sm">borrar</button>
                         </span>
                       </li>
                     ))}
@@ -555,19 +554,19 @@ export function BlogPanel({ projectId }: { projectId: string }) {
 
           {vista === "plantillas" && (
             <div className="space-y-2">
-              {ocupado && !tplPost && <p className="text-sm text-gray-500">Generando la plantilla con IA (puede tardar un minuto)…</p>}
+              {ocupado && !tplPost && <p className="text-sm text-texto-2">Generando la plantilla con IA (puede tardar un minuto)…</p>}
               {tplPost && (
                 <>
                   <label className="block text-xs font-medium">Plantilla de artículo</label>
-                  <textarea value={tplPost} onChange={(e) => setTplPost(e.target.value)} rows={8} className="w-full rounded border p-2 font-mono text-xs" />
+                  <textarea value={tplPost} onChange={(e) => setTplPost(e.target.value)} rows={8} className="campo font-mono" />
                   <label className="block text-xs font-medium">Plantilla del índice</label>
-                  <textarea value={tplIndex} onChange={(e) => setTplIndex(e.target.value)} rows={8} className="w-full rounded border p-2 font-mono text-xs" />
+                  <textarea value={tplIndex} onChange={(e) => setTplIndex(e.target.value)} rows={8} className="campo font-mono" />
                   <div className="flex flex-wrap gap-2">
-                    <button onClick={() => void guardarPlantillas()} disabled={ocupado} className="rounded bg-indigo-600 px-3 py-1 text-sm text-white disabled:opacity-50">Guardar plantillas</button>
-                    <button onClick={() => void verPreview("post")} disabled={ocupado} className="rounded border px-2 py-1 text-xs">Vista previa artículo</button>
-                    <button onClick={() => void verPreview("index")} disabled={ocupado} className="rounded border px-2 py-1 text-xs">Vista previa índice</button>
-                    <button onClick={() => void generarPlantillas()} disabled={ocupado} className="rounded border px-2 py-1 text-xs">Volver a generar</button>
-                    <button onClick={() => setVista("lista")} className="rounded border px-2 py-1 text-xs">Cancelar</button>
+                    <button onClick={() => void guardarPlantillas()} disabled={ocupado} className="btn btn-primario btn-sm">Guardar plantillas</button>
+                    <button onClick={() => void verPreview("post")} disabled={ocupado} className="btn btn-sec btn-sm">Vista previa artículo</button>
+                    <button onClick={() => void verPreview("index")} disabled={ocupado} className="btn btn-sec btn-sm">Vista previa índice</button>
+                    <button onClick={() => void generarPlantillas()} disabled={ocupado} className="btn btn-sec btn-sm">Volver a generar</button>
+                    <button onClick={() => setVista("lista")} className="btn btn-sec btn-sm">Cancelar</button>
                   </div>
                   {previewTpl && <IframePreview html={previewTpl} />}
                 </>
@@ -579,54 +578,54 @@ export function BlogPanel({ projectId }: { projectId: string }) {
             <div className="space-y-2">
               <input value={titulo} placeholder="Título del artículo"
                 onChange={(e) => { setTitulo(e.target.value); if (!slugTocado) setSlug(slugify(e.target.value)); }}
-                className="w-full rounded border px-2 py-1 text-sm" />
+                className="campo" />
               <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-500">/blog/</span>
+                <span className="text-xs text-texto-2">/blog/</span>
                 <input value={slug} onChange={(e) => { setSlug(e.target.value); setSlugTocado(true); }}
-                  className="w-64 rounded border px-2 py-1 text-xs" />
-                <span className="text-xs text-gray-500">.html</span>
+                  className="campo w-64" />
+                <span className="text-xs text-texto-2">.html</span>
               </div>
               <div>
                 <input value={meta} placeholder="Meta descripción (para Google)"
-                  onChange={(e) => setMeta(e.target.value)} className="w-full rounded border px-2 py-1 text-sm" />
-                <span className={"text-xs " + (meta.length > 160 ? "text-red-600" : "text-gray-400")}>{meta.length}/160</span>
+                  onChange={(e) => setMeta(e.target.value)} className="campo" />
+                <span className={"text-xs " + (meta.length > 160 ? "text-peligro-texto" : "text-texto-3")}>{meta.length}/160</span>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs text-gray-500">Imagen de portada:</span>
+                <span className="text-xs text-texto-2">Imagen de portada:</span>
                 {imagenUrl && <img src={imagenUrl} alt="" className="h-8 w-14 rounded object-cover" />}
                 <button onClick={() => void generarPortadaAuto("diseno")} disabled={ocupado || !titulo.trim()}
                   title="Gratis: un diseño con el título y los colores de tu web"
-                  className="rounded border px-2 py-1 text-xs disabled:opacity-50">Generar diseño</button>
+                  className="btn btn-sec btn-sm">Generar diseño</button>
                 <button onClick={() => void generarPortadaAuto("ia")} disabled={ocupado || !titulo.trim()}
                   title="Imagen generada con IA (céntimos por imagen, a tu cuenta de OpenRouter)"
-                  className="rounded border px-2 py-1 text-xs disabled:opacity-50">Generar con IA</button>
+                  className="btn btn-sec btn-sm">Generar con IA</button>
                 <BotonSubir texto={imagenAssetId ? "Cambiar imagen" : "Subir imagen"} ocupado={ocupado} onFile={(f) => void subirPortada(f)} />
-                {!titulo.trim() && <span className="text-xs text-gray-400">(escribe el título para generarla)</span>}
+                {!titulo.trim() && <span className="text-xs text-texto-3">(escribe el título para generarla)</span>}
               </div>
               <textarea value={md} onChange={(e) => setMd(e.target.value)} rows={14}
                 placeholder="Escribe o pega aquí el artículo en markdown (por ejemplo, el que te escribió tu IA)…"
-                className="w-full rounded border p-2 font-mono text-xs" />
+                className="campo font-mono" />
               <div className="flex gap-2">
-                <button onClick={() => void guardarArticulo()} disabled={ocupado} className="rounded bg-indigo-600 px-3 py-1 text-sm text-white disabled:opacity-50">Guardar artículo</button>
-                <button onClick={() => void verPreviewArticulo()} disabled={ocupado} className="rounded border px-2 py-1 text-xs">Vista previa</button>
-                <button onClick={() => setVista("lista")} className="rounded border px-2 py-1 text-xs">Cancelar</button>
+                <button onClick={() => void guardarArticulo()} disabled={ocupado} className="btn btn-primario btn-sm">Guardar artículo</button>
+                <button onClick={() => void verPreviewArticulo()} disabled={ocupado} className="btn btn-sec btn-sm">Vista previa</button>
+                <button onClick={() => setVista("lista")} className="btn btn-sec btn-sm">Cancelar</button>
               </div>
               {!postId && (
                 <div className="flex flex-wrap items-center gap-2 border-t pt-2">
-                  <span className="text-xs text-gray-500">O deja que se publique solo (artículo y sitio):</span>
+                  <span className="text-xs text-texto-2">O deja que se publique solo (artículo y sitio):</span>
                   <input type="datetime-local" value={progFecha} onChange={(e) => setProgFecha(e.target.value)}
-                    className="rounded border px-2 py-1 text-xs" />
+                    className="campo w-auto" />
                   <button onClick={() => void programarArticulo()} disabled={ocupado || !progFecha}
-                    className="rounded border px-2 py-1 text-xs disabled:opacity-50">Programar publicación</button>
+                    className="btn btn-sec btn-sm">Programar publicación</button>
                 </div>
               )}
               {previewArt && <IframePreview html={previewArt} />}
             </div>
           )}
 
-          {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+          {error && <p className="error-campo">{error}</p>}
         </div>
       )}
-    </div>
+    </details>
   );
 }

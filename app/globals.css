@@ -356,4 +356,41 @@ a:hover { color: var(--color-texto); }
   .historial .detalle { flex: 1; min-width: 0; }
   .historial .cuando { color: var(--color-texto-3); font-size: 12px; }
   .historial .vacio-hist { padding: 16px; font-size: 13px; color: var(--color-texto-3); }
+
+  /* ---------- Campos: variantes textarea / select ---------- */
+  textarea.campo { height: auto; min-height: 64px; padding: 8px 12px; line-height: 1.5; resize: vertical; }
+  select.campo { cursor: pointer; width: auto; }
+
+  /* =============================================================
+     BLOG (docs/design/09-blog.html)
+     ============================================================= */
+  .badge-ia { background: var(--color-texto); color: var(--color-acento); }
+  .chip { display: inline-flex; align-items: center; gap: 6px; background: var(--color-superficie-2);
+    border-radius: var(--radius-full); padding: 3px 10px; font-size: 12px; color: var(--color-texto-2); }
+
+  .lista { background: var(--color-superficie); border: 1px solid var(--color-borde);
+    border-radius: var(--radius-t); box-shadow: var(--shadow-1); overflow: hidden; }
+  .lista .item { display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-bottom: 1px solid var(--color-borde); }
+  .lista .item:last-child { border-bottom: 0; }
+  .lista .item:hover { background: var(--color-superficie-2); }
+  .lista .item .t { flex: 1; min-width: 0; }
+  .lista .item .t b { font-weight: 600; font-size: 14px; display: block; }
+  .lista .item .t small { color: var(--color-texto-3); font-size: 12px; display: flex; gap: 8px;
+    align-items: center; margin-top: 3px; flex-wrap: wrap; }
+  .lista .item .acciones { display: flex; gap: 6px; flex: none; align-items: center; }
+
+  .blog-seccion { display: flex; flex-direction: column; gap: 16px; }
+  .blog-cab { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 2px; }
+  .blog-cab h3 { font-size: 15px; font-weight: 600; margin: 0; }
+
+  /* Carril del piloto automático (tarjeta tinta) */
+  .card-piloto { position: relative; overflow: hidden; background: var(--color-texto); color: #F3F4EC;
+    border: 1px solid var(--color-texto); border-radius: var(--radius-t); padding: 16px; }
+  .card-piloto .top { position: relative; display: flex; align-items: center; gap: 10px; }
+  .card-piloto h3 { color: #fff; font-size: 15px; margin: 0; flex: 1; }
+  .card-piloto p { position: relative; color: #C7C8BC; font-size: 12.5px; margin: 8px 0 0; }
+  .card-piloto .interruptor { background: #4A4B40; }
+  .card-piloto .interruptor[aria-checked="true"] { background: var(--color-acento); }
+  .card-piloto .ultima { position: relative; margin-top: 12px; background: rgba(255,255,255,.06);
+    border-radius: 10px; padding: 9px 11px; font-size: 12px; color: #C7C8BC; }
 }

@@ -109,9 +109,9 @@ export function ArticleAiWorkspace({ projectId, draftId, modelo, onUsar, onSalir
   if (!detalle) {
     return (
       <div className="space-y-2">
-        <p className="text-sm text-gray-500">Cargando borrador…</p>
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <button onClick={onSalir} className="rounded border px-2 py-1 text-xs">← Volver</button>
+        <p className="text-sm text-texto-2">Cargando borrador…</p>
+        {error && <p className="error-campo">{error}</p>}
+        <button onClick={onSalir} className="btn btn-sec btn-sm">← Volver</button>
       </div>
     );
   }
@@ -121,20 +121,20 @@ export function ArticleAiWorkspace({ projectId, draftId, modelo, onUsar, onSalir
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <p className="text-sm font-medium">Artículo con IA: <span className="font-normal">{d.keyword}</span></p>
-        <button onClick={onSalir} className="rounded border px-2 py-1 text-xs">← Volver</button>
+        <button onClick={onSalir} className="btn btn-sec btn-sm">← Volver</button>
       </div>
-      <p className="text-xs text-gray-500">Modelo: {modelo} <span className="text-gray-400">(se cambia en Configuración)</span></p>
+      <p className="text-xs text-texto-2">Modelo: {modelo} <span className="text-texto-3">(se cambia en Configuración)</span></p>
 
       {d.estado === "revision" && (
-        <div className="rounded border border-green-300 bg-green-50 p-2">
-          <p className="text-sm text-green-800">El borrador está listo para revisar.</p>
+        <div className="rounded-c border p-3" style={{ background: "var(--color-exito-suave)", borderColor: "#B7E3C1" }}>
+          <p className="text-sm text-exito-texto">El borrador está listo para revisar.</p>
           <button onClick={() => onUsar(detalle)}
-            className="mt-1 rounded bg-green-700 px-3 py-1 text-sm text-white">Usar este borrador</button>
-          <p className="mt-1 text-xs text-green-700">Se abrirá el editor de artículos con todo pre-rellenado; ahí subes la imagen de portada y guardas.</p>
+            className="btn btn-primario btn-sm mt-2">Usar este borrador</button>
+          <p className="mt-2 text-xs text-exito-texto">Se abrirá el editor de artículos con todo pre-rellenado; ahí subes la imagen de portada y guardas.</p>
         </div>
       )}
       {d.estado === "error" && d.errorMsg && (
-        <div className="rounded border border-red-300 bg-red-50 p-2 text-sm text-red-700">
+        <div className="rounded-c border border-peligro-borde p-3 text-sm text-peligro-texto" style={{ background: "var(--color-peligro-suave)" }}>
           {d.errorMsg} — puedes reintentar la etapa.
         </div>
       )}
@@ -143,15 +143,15 @@ export function ArticleAiWorkspace({ projectId, draftId, modelo, onUsar, onSalir
         {detalle.siguiente && !auto && (
           <>
             <button onClick={() => void ejecutarUna(detalle.siguiente!)} disabled={ocupado}
-              className="rounded bg-indigo-600 px-3 py-1 text-sm text-white disabled:opacity-50">
+              className="btn btn-primario btn-sm">
               ▶ Ejecutar {NOMBRES[detalle.siguiente] ?? detalle.siguiente}
             </button>
             <button onClick={() => void autoHastaRevision()} disabled={ocupado}
-              className="rounded border px-2 py-1 text-xs disabled:opacity-50">⏩ Auto hasta revisión</button>
+              className="btn btn-sec btn-sm">⏩ Auto hasta revisión</button>
           </>
         )}
         {auto && (
-          <button onClick={() => { pararRef.current = true; }} className="rounded border border-red-300 px-2 py-1 text-xs text-red-700">
+          <button onClick={() => { pararRef.current = true; }} className="btn btn-peligro-sutil btn-sm">
             ⏹ Detener (para al acabar la etapa en curso)
           </button>
         )}
@@ -163,35 +163,35 @@ export function ArticleAiWorkspace({ projectId, draftId, modelo, onUsar, onSalir
           const abierto = !!abiertos[e.nombre];
           const enCurso = etapaEnCurso === e.nombre;
           return (
-            <li key={e.nombre} className="rounded border bg-white px-2 py-1">
+            <li key={e.nombre} className="tarjeta px-3 py-2">
               <div className="flex items-center justify-between text-sm">
-                <span>{enCurso ? "⏳" : e.completada ? "✅" : "○"} {NOMBRES[e.nombre] ?? e.nombre}{enCurso && <span className="text-xs text-gray-400"> generando…</span>}</span>
+                <span>{enCurso ? "⏳" : e.completada ? "✅" : "○"} {NOMBRES[e.nombre] ?? e.nombre}{enCurso && <span className="text-xs text-texto-3"> generando…</span>}</span>
                 <span className="flex gap-2">
                   {e.completada && !auto && (
                     <button onClick={() => void ejecutarUna(e.nombre)} disabled={ocupado}
-                      className="rounded border px-2 py-0.5 text-xs disabled:opacity-50">↻ Regenerar</button>
+                      className="btn btn-sec btn-sm">↻ Regenerar</button>
                   )}
                   {artefacto && (
                     <button onClick={() => setAbiertos({ ...abiertos, [e.nombre]: !abierto })}
-                      className="text-xs text-gray-500 underline">{abierto ? "ocultar" : "ver"}</button>
+                      className="btn btn-fantasma btn-sm">{abierto ? "ocultar" : "ver"}</button>
                   )}
                 </span>
               </div>
               {e.completada && !auto && (
                 <input value={instrucciones[e.nombre] ?? ""} placeholder="Instrucción opcional para regenerar (p. ej.: más corto, tono formal…)"
                   onChange={(ev) => setInstrucciones({ ...instrucciones, [e.nombre]: ev.target.value })}
-                  className="mt-1 w-full rounded border px-2 py-0.5 text-xs" />
+                  className="campo mt-1" />
               )}
               {abierto && artefacto && (
-                <pre className="mt-1 max-h-64 overflow-auto whitespace-pre-wrap rounded bg-gray-50 p-2 text-xs">{artefacto}</pre>
+                <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap rounded-c bg-superficie-2 p-2 text-xs">{artefacto}</pre>
               )}
             </li>
           );
         })}
       </ul>
 
-      <p className="text-xs text-gray-400">Regenerar una etapa no rehace las posteriores: tú decides cuáles regenerar.</p>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      <p className="text-xs text-texto-3">Regenerar una etapa no rehace las posteriores: tú decides cuáles regenerar.</p>
+      {error && <p className="error-campo">{error}</p>}
     </div>
   );
 }
