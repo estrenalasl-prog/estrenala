@@ -1,5 +1,6 @@
 // E2e del incremento 4f (portada automática) SIN gastar IA y SIN tocar
 // org_settings. La vía «ia» se SKIPea si hay clave real (gastaría céntimos).
+// Desde 4f2 la portada «diseno» llega como PNG rasterizado (og:image real).
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 
@@ -64,18 +65,18 @@ check("modo raro → 400 mensaje exacto", r.status === 400 && d.error === "Modo 
 const TITULO = "Automatiza tu pyme con IA & <ahorra>";
 r = await fetch(`${API}/blog/portada`, { method: "POST", headers: HJ, body: JSON.stringify({ titulo: TITULO, modo: "diseno" }) });
 d = await r.json();
-check("portada diseno → 201 con assetId y url", r.status === 201 && !!d.assetId && String(d.url).endsWith(".svg"), JSON.stringify(d));
+check("portada diseno → 201 con assetId y url .png", r.status === 201 && !!d.assetId && String(d.url).endsWith(".png"), JSON.stringify(d));
 const asset = d;
 
 r = await fetch(`${BASE}${asset.url}`, { headers: H });
 const ct = r.headers.get("content-type") ?? "";
-const svg = await r.text();
-check("el asset servido es SVG", r.ok && ct.includes("image/svg+xml"), ct);
-check("el SVG lleva el color dominante del css del sitio (#e11d48)", svg.includes("#e11d48"));
-check("el SVG lleva el segundo color (#0ea5e9)", svg.includes("#0ea5e9"));
-check("el SVG lleva el título escapado", svg.includes("&amp; &lt;ahorra&gt;") && !svg.includes("<ahorra>"));
-check("el SVG lleva el nombre del sitio", svg.includes("E2E 4f"));
-check("medidas og:image 1200×630", svg.includes('width="1200"') && svg.includes('height="630"'));
+const png = Buffer.from(await r.arrayBuffer());
+const FIRMA = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+check("el asset servido es PNG", r.ok && ct.includes("image/png"), ct);
+check("firma PNG válida", png.subarray(0, 8).equals(FIRMA));
+check("medidas og:image 1200×630", png.readUInt32BE(16) === 1200 && png.readUInt32BE(20) === 630,
+  `${png.readUInt32BE(16)}x${png.readUInt32BE(20)}`);
+check("pesa como un render real (>20 KB), no un placeholder", png.length > 20 * 1024, `${png.length} bytes`);
 
 // --- la portada generada sirve para publicar un post de verdad (circuito 4a) ---
 r = await fetch(`${API}/blog/posts`, {
@@ -91,7 +92,7 @@ r = await fetch(`${API}/blog/posts`, {
 d = await r.json();
 check("POST blog/posts con la portada generada → 201", r.status === 201 && !!d.postId, JSON.stringify(d));
 
-r = await fetch(`${API}/preview/blog/img/post-con-portada-generada.svg`, { headers: H });
+r = await fetch(`${API}/preview/blog/img/post-con-portada-generada.png`, { headers: H });
 check("la portada quedó materializada en el blog (preview la sirve)", r.ok, String(r.status));
 
 // --- vía IA: solo sin clave real (si la hay, gastaría céntimos) ---

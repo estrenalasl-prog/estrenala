@@ -1,6 +1,5 @@
 import { promises as fs } from "fs";
 import path from "path";
-import { createRequire } from "module";
 import { initWasm, Resvg } from "@resvg/resvg-wasm";
 
 // Rasteriza el SVG de portada a PNG (WhatsApp/X no muestran SVG en og:image).
@@ -10,6 +9,9 @@ import { initWasm, Resvg } from "@resvg/resvg-wasm";
 // en outputFileTracingIncludes (next.config.ts) por el output standalone.
 
 const DIR_FUENTES = path.join(process.cwd(), "src", "blog", "portada", "fuentes");
+// Ruta calculada a mano y no con require.resolve: si el bundler la ve como
+// import intenta procesar el .wasm y revienta («Can't resolve 'wbg'»).
+const RUTA_WASM = path.join(process.cwd(), "node_modules", "@resvg", "resvg-wasm", "index_bg.wasm");
 
 let listo: Promise<Buffer[]> | null = null;
 
@@ -18,8 +20,7 @@ let listo: Promise<Buffer[]> | null = null;
 function preparar(): Promise<Buffer[]> {
   if (!listo) {
     listo = (async () => {
-      const require = createRequire(import.meta.url);
-      await initWasm(await fs.readFile(require.resolve("@resvg/resvg-wasm/index_bg.wasm")));
+      await initWasm(await fs.readFile(RUTA_WASM));
       return Promise.all([
         fs.readFile(path.join(DIR_FUENTES, "SpaceGrotesk-Bold.ttf")),
         fs.readFile(path.join(DIR_FUENTES, "SpaceGrotesk-Medium.ttf")),
