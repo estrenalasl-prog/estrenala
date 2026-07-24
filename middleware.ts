@@ -6,7 +6,9 @@ import { verificarSesion, SESSION_COOKIE } from "@/src/auth/session-cookie";
 // externos (sin cookie): solo hacen lo que el tick del servidor haría igual en
 // <60 s (publicar vencidos / ejecutar pilotos ya configurados por sus dueños)
 // y pueden exigir CRON_SECRET — el candado real está en cada ruta.
-const RUTAS_PUBLICAS = ["/login", "/api/login", "/registro", "/api/registro", "/api/health", "/api/cron/publicar", "/api/cron/piloto", "/brand"];
+const RUTAS_PUBLICAS = ["/login", "/api/login", "/registro", "/api/registro",
+  "/verificar", "/recuperar", "/restablecer", "/api/auth/recuperar", "/api/auth/restablecer",
+  "/api/health", "/api/cron/publicar", "/api/cron/piloto", "/brand"];
 
 // 1) Hosts que no son la plataforma → se sirven como sitio publicado (/sites/<host>).
 // 2) La raíz del dominio madre → redirect al panel.

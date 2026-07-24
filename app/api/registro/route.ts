@@ -3,6 +3,8 @@ import { registrar, normalizarEmail } from "@/src/auth/cuentas";
 import { permitirIntento, ipDe } from "@/src/auth/rate-limit";
 import { accountStore } from "@/src/repositories/accounts";
 import { iniciarSesion } from "@/src/auth/cookie-http";
+import { enviarVerificacion } from "@/src/auth/verificacion";
+import { baseApp } from "@/src/auth/url";
 import { EditorError } from "@/src/editor/errors";
 
 export const runtime = "nodejs";
@@ -18,6 +20,16 @@ export async function POST(req: Request) {
 
   try {
     const { userId } = await registrar(accountStore, body);
+    // Correo de confirmación. Si el envío falla (Resend caído), NO se tumba el
+    // alta: la cuenta ya existe y el usuario puede pedir el correo de nuevo.
+    try {
+      await enviarVerificacion(accountStore, {
+        userId, email: normalizarEmail(body.email),
+        nombre: String(body.nombre ?? "").trim(), base: baseApp(req),
+      });
+    } catch (e) {
+      console.error("registro: fallo al enviar la verificación", e instanceof Error ? e.message : e);
+    }
     const res = NextResponse.json({ ok: true }, { status: 201 });
     await iniciarSesion(res, secret, userId);
     return res;

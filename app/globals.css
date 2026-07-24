@@ -205,6 +205,15 @@ a:hover { color: var(--color-texto); }
     border-radius: var(--radius-c); padding: 11px 13px; font-size: 13px; margin-bottom: 20px; }
   .aviso-error .ico { width: 18px; height: 18px; border-radius: 50%; background: var(--color-peligro); color: #fff;
     display: grid; place-items: center; font: 700 11px var(--font-sans); flex: none; margin-top: 1px; }
+  .aviso-ok { background: var(--color-superficie-2); border: 1px solid var(--color-borde);
+    color: var(--color-texto-2); border-radius: var(--radius-c); padding: 12px 14px; font-size: 14px; line-height: 1.5; }
+
+  /* Aviso de «confirma tu correo» en el panel (solo cuando el envío está activo). */
+  .banner-verifica { display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    background: var(--color-acento-suave, #F4FBCC); border: 1px solid var(--color-borde);
+    border-radius: var(--radius-c); padding: 12px 16px; margin: 0 0 20px; font-size: 14px; color: var(--color-texto); }
+  .banner-verifica b { font-weight: 600; }
+  .banner-verifica .crece { flex: 1; min-width: 200px; color: var(--color-texto-2); }
 
   /* =============================================================
      PANEL «Tus webs» (docs/design/04-panel.html)

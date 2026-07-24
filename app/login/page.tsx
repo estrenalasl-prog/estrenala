@@ -80,7 +80,10 @@ export default function LoginPage() {
             {ocupado ? <><span className="cargador" /> Entrando…</> : "Entrar"}
           </button>
 
-          <p className="lead" style={{ marginTop: 22 }}>
+          <p className="lead" style={{ marginTop: 18, marginBottom: 0 }}>
+            <Link href="/recuperar">¿Olvidaste tu contraseña?</Link>
+          </p>
+          <p className="lead" style={{ marginTop: 10 }}>
             ¿Aún no tienes cuenta? <Link href="/registro">Crea una gratis</Link>
           </p>
         </form>

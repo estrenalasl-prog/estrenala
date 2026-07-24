@@ -16,6 +16,12 @@ function fakeStore(membership: MembershipInfo | null): AccountStore {
     getUserByEmail: async () => null,
     getUserById: async () => null,
     crearCuenta: async () => ({ userId: "x", orgId: "y" }),
+    crearToken: async () => {},
+    getTokenPorHash: async () => null,
+    marcarTokenUsado: async () => {},
+    invalidarTokens: async () => {},
+    marcarEmailVerificado: async () => {},
+    setPassword: async () => {},
   };
 }
 

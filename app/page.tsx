@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { getContexto } from "@/src/auth/contexto";
 import { projectStore } from "@/src/repositories/projects";
+import { accountStore } from "@/src/repositories/accounts";
 import type { ProjectRow } from "@/src/repositories/types";
+import { envioActivo } from "@/src/email/enviar";
 import { ImportDropzone } from "./_components/ImportDropzone";
 import { AppHeader } from "./_components/AppHeader";
+import { BannerVerifica } from "./_components/BannerVerifica";
 
 export const dynamic = "force-dynamic";
 
@@ -22,14 +25,23 @@ function direccionDe(p: ProjectRow): string {
 }
 
 export default async function Dashboard() {
-  const { orgId } = await getContexto();
+  const { orgId, userId } = await getContexto();
   const proyectos = await projectStore.listProjects(orgId);
+
+  // Aviso de «confirma tu correo» solo cuando hay envío real de correos (prod):
+  // en dev no hay forma de recibirlo, así que no molestamos.
+  let banner: React.ReactNode = null;
+  if (envioActivo()) {
+    const user = await accountStore.getUserById(userId);
+    if (user && !user.emailVerificadoAt) banner = <BannerVerifica email={user.email} />;
+  }
 
   if (proyectos.length === 0) {
     return (
       <>
         <AppHeader />
         <main className="panel-main">
+          {banner}
           <div className="vacio">
             <h2>Vamos a poner tu web online.</h2>
             <p>Sube la web que te generó la IA. La alojamos, le damos dirección y HTTPS, y podrás editarla sin código.</p>
@@ -51,6 +63,7 @@ export default async function Dashboard() {
     <>
       <AppHeader />
       <main className="panel-main">
+        {banner}
         <div className="titulo-fila">
           <h1>Tus webs</h1>
           <span className="cuenta">{proyectos.length} {proyectos.length === 1 ? "proyecto" : "proyectos"}</span>
