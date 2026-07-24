@@ -18,8 +18,11 @@ function memStore() {
   const store: AccountStore = {
     async getUserByEmail(email) { return users.find((u) => u.email === email) ?? null; },
     async getUserById(id) { return users.find((u) => u.id === id) ?? null; },
+    async getUserByGoogleSub() { return null; },
     async getMembershipByUser() { return null; },
     async crearCuenta() { return { userId: "x", orgId: "y" }; },
+    async crearCuentaGoogle() { return { userId: "x", orgId: "y" }; },
+    async vincularGoogle() {},
     async crearToken(i) {
       tokens.push({
         id: crypto.randomUUID(), email: i.email, userId: i.userId, tipo: i.tipo,

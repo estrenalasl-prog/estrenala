@@ -208,6 +208,11 @@ a:hover { color: var(--color-texto); }
   .aviso-ok { background: var(--color-superficie-2); border: 1px solid var(--color-borde);
     color: var(--color-texto-2); border-radius: var(--radius-c); padding: 12px 14px; font-size: 14px; line-height: 1.5; }
 
+  /* «Continuar con Google» + separador «o» */
+  .boton-google { gap: 10px; }
+  .separador-o { display: flex; align-items: center; gap: 12px; margin: 16px 0; color: var(--color-texto-3); font-size: 12px; }
+  .separador-o::before, .separador-o::after { content: ""; flex: 1; height: 1px; background: var(--color-borde); }
+
   /* Aviso de «confirma tu correo» en el panel (solo cuando el envío está activo). */
   .banner-verifica { display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
     background: var(--color-acento-suave, #F4FBCC); border: 1px solid var(--color-borde);

@@ -26,11 +26,17 @@ export type TokenRow = {
 export interface AccountStore {
   getUserByEmail(email: string): Promise<UserRow | null>;
   getUserById(userId: string): Promise<UserRow | null>;
+  getUserByGoogleSub(googleSub: string): Promise<UserRow | null>;
   getMembershipByUser(userId: string): Promise<MembershipInfo | null>;
   // Alta atómica: usuario + su propia organización + membership de propietario.
   crearCuenta(input: {
     nombre: string; email: string; passwordHash: string; orgNombre: string;
   }): Promise<{ userId: string; orgId: string }>;
+  // Alta por Google: sin contraseña, con el email ya verificado (lo verificó Google).
+  crearCuentaGoogle(input: {
+    nombre: string; email: string; googleSub: string; orgNombre: string;
+  }): Promise<{ userId: string; orgId: string }>;
+  vincularGoogle(userId: string, googleSub: string): Promise<void>;
 
   // Tokens de un solo uso (verificación, reset, invitación).
   crearToken(input: {
@@ -68,6 +74,11 @@ export class DrizzleAccountStore implements AccountStore {
     return r[0] ? toUserRow(r[0]) : null;
   }
 
+  async getUserByGoogleSub(googleSub: string): Promise<UserRow | null> {
+    const r = await db.select().from(users).where(eq(users.googleSub, googleSub)).limit(1);
+    return r[0] ? toUserRow(r[0]) : null;
+  }
+
   async getMembershipByUser(userId: string): Promise<MembershipInfo | null> {
     const r = await db
       .select({ orgId: memberships.orgId, rol: memberships.rol })
@@ -90,6 +101,26 @@ export class DrizzleAccountStore implements AccountStore {
       await tx.insert(memberships).values({ orgId, userId, rol: "owner" });
     });
     return { userId, orgId };
+  }
+
+  async crearCuentaGoogle(input: {
+    nombre: string; email: string; googleSub: string; orgNombre: string;
+  }): Promise<{ userId: string; orgId: string }> {
+    const userId = crypto.randomUUID();
+    const orgId = crypto.randomUUID();
+    await db.transaction(async (tx) => {
+      await tx.insert(users).values({
+        id: userId, email: input.email, nombre: input.nombre,
+        googleSub: input.googleSub, emailVerificadoAt: new Date(),
+      });
+      await tx.insert(organizations).values({ id: orgId, nombre: input.orgNombre });
+      await tx.insert(memberships).values({ orgId, userId, rol: "owner" });
+    });
+    return { userId, orgId };
+  }
+
+  async vincularGoogle(userId: string, googleSub: string): Promise<void> {
+    await db.update(users).set({ googleSub }).where(eq(users.id, userId));
   }
 
   async crearToken(input: {

@@ -18,6 +18,9 @@ function memStore(): AccountStore & { users: UserRow[] } {
       users.push({ id: userId, email: input.email, nombre: input.nombre, passwordHash: input.passwordHash, googleSub: null, emailVerificadoAt: null });
       return { userId, orgId };
     },
+    async getUserByGoogleSub() { return null; },
+    async crearCuentaGoogle() { return { userId: crypto.randomUUID(), orgId: crypto.randomUUID() }; },
+    async vincularGoogle() {},
     async crearToken() {},
     async getTokenPorHash() { return null; },
     async marcarTokenUsado() {},
