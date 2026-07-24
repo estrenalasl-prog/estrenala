@@ -254,6 +254,72 @@ function SeccionEquipo() {
   );
 }
 
+type Cuenta = { nombre: string; email: string; tienePassword: boolean; google: boolean; verificado: boolean };
+
+// Sección Tu cuenta: nombre, contraseña (pide la actual) y correo (doble confirmación).
+function SeccionCuenta() {
+  const [c, setC] = useState<Cuenta | null>(null);
+  const [nombre, setNombre] = useState("");
+  const [actual, setActual] = useState("");
+  const [nueva, setNueva] = useState("");
+  const [nuevoEmail, setNuevoEmail] = useState("");
+  const [msg, setMsg] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function cargar() {
+    try { const r = await fetch("/api/cuenta"); if (r.ok) { const d = (await r.json()) as Cuenta; setC(d); setNombre(d.nombre); } } catch { /* silencioso */ }
+  }
+  useEffect(() => { void cargar(); }, []);
+
+  async function pedir(url: string, body: unknown, exito: string) {
+    setError(null); setMsg(null);
+    try {
+      const r = await fetch(url, { method: url === "/api/cuenta" ? "PATCH" : "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+      const d = (await r.json().catch(() => ({}))) as { error?: string };
+      if (!r.ok) { setError(d.error ?? "Error"); return false; }
+      setMsg(exito); await cargar(); return true;
+    } catch { setError("Error de conexión"); return false; }
+  }
+
+  return (
+    <section className="card-conf" id="cuenta">
+      <header><div className="tit"><h2>Tu cuenta</h2><p>Tu nombre, tu contraseña y tu correo de acceso.</p></div></header>
+      <div className="cuerpo">
+        {error && <div className="aviso-error" role="alert"><span className="ico">!</span><span>{error}</span></div>}
+        {msg && <div className="aviso-ok" style={{ marginBottom: 14 }}>{msg}</div>}
+
+        <form className="fila-conf" style={{ gap: 8, flexWrap: "wrap" }}
+          onSubmit={(e) => { e.preventDefault(); void pedir("/api/cuenta", { nombre }, "Nombre guardado."); }}>
+          <div className="info"><b>Nombre</b><small>Como te llamamos en la plataforma.</small></div>
+          <div className="control">
+            <input className="campo" value={nombre} onChange={(e) => setNombre(e.target.value)} style={{ minWidth: 180 }} />
+            <button className="btn btn-sec btn-sm">Guardar</button>
+          </div>
+        </form>
+
+        <form className="fila-conf" style={{ gap: 8, flexWrap: "wrap" }}
+          onSubmit={(e) => { e.preventDefault(); void pedir("/api/cuenta/password", { actual, nueva }, "Contraseña cambiada.").then((ok) => { if (ok) { setActual(""); setNueva(""); } }); }}>
+          <div className="info"><b>Contraseña</b><small>{c && !c.tienePassword ? "Entras con Google. Puedes ponerte también una contraseña." : "Cambia tu contraseña."}</small></div>
+          <div className="control" style={{ gap: 8, flexWrap: "wrap" }}>
+            {c?.tienePassword && <input className="campo" type="password" placeholder="Actual" autoComplete="current-password" value={actual} onChange={(e) => setActual(e.target.value)} />}
+            <input className="campo" type="password" placeholder="Nueva (mín. 8)" autoComplete="new-password" value={nueva} onChange={(e) => setNueva(e.target.value)} />
+            <button className="btn btn-sec btn-sm">Cambiar</button>
+          </div>
+        </form>
+
+        <form className="fila-conf" style={{ gap: 8, flexWrap: "wrap" }}
+          onSubmit={(e) => { e.preventDefault(); void pedir("/api/cuenta/email", { nuevoEmail }, `Te enviamos un correo a ${nuevoEmail} para confirmarlo.`).then((ok) => { if (ok) setNuevoEmail(""); }); }}>
+          <div className="info"><b>Correo</b><small>Ahora: {c?.email ?? "…"}. Te enviaremos un enlace al nuevo para confirmarlo.</small></div>
+          <div className="control">
+            <input className="campo" type="email" placeholder="nuevo@correo.com" value={nuevoEmail} onChange={(e) => setNuevoEmail(e.target.value)} style={{ minWidth: 180 }} />
+            <button className="btn btn-sec btn-sm">Cambiar</button>
+          </div>
+        </form>
+      </div>
+    </section>
+  );
+}
+
 export default function SettingsPage() {
   const [estados, setEstados] = useState<EstadoClaves | null>(null);
   const [ocupado, setOcupado] = useState(false);
@@ -389,12 +455,7 @@ export default function SettingsPage() {
               descripcion="Tu plan y el consumo de IA del mes, con facturas."
               porQue="Llegará cuando la plataforma se monetice. Mientras tanto, el gasto de IA va con tus propias claves y lo controlas desde «Conexiones y claves»."
             />
-            <SeccionProximamente
-              id="cuenta"
-              titulo="Tu cuenta"
-              descripcion="Correo, contraseña y avisos por correo cuando el piloto publica."
-              porQue="Depende de que existan cuentas de usuario reales; hoy el acceso es una contraseña única del panel."
-            />
+            <SeccionCuenta />
 
             <section className="card-conf peligro" id="peligro">
               <header>

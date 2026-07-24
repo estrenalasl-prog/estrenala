@@ -219,6 +219,14 @@ export class DrizzleAccountStore implements AccountStore {
   async setPassword(userId: string, passwordHash: string): Promise<void> {
     await db.update(users).set({ passwordHash }).where(eq(users.id, userId));
   }
+
+  async setNombre(userId: string, nombre: string): Promise<void> {
+    await db.update(users).set({ nombre }).where(eq(users.id, userId));
+  }
+
+  async setEmail(userId: string, email: string): Promise<void> {
+    await db.update(users).set({ email }).where(eq(users.id, userId));
+  }
 }
 
 // Tipo concreto (no el interfaz): así las rutas de equipo ven también los

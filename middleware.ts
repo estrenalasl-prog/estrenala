@@ -8,7 +8,7 @@ import { verificarSesion, SESSION_COOKIE } from "@/src/auth/session-cookie";
 // y pueden exigir CRON_SECRET — el candado real está en cada ruta.
 const RUTAS_PUBLICAS = ["/login", "/api/login", "/registro", "/api/registro",
   "/verificar", "/recuperar", "/restablecer", "/api/auth/recuperar", "/api/auth/restablecer",
-  "/api/auth/google", "/invitacion",
+  "/api/auth/google", "/invitacion", "/cambiar-email", "/api/cuenta/email/confirmar",
   "/api/health", "/api/cron/publicar", "/api/cron/piloto", "/brand"];
 
 // 1) Hosts que no son la plataforma → se sirven como sitio publicado (/sites/<host>).
