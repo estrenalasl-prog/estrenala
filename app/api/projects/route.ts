@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { importProject } from "@/src/import/import-project";
 import { ImportError } from "@/src/import/unzip";
-import { getDevContext } from "@/src/auth/dev-stub";
+import { getContexto } from "@/src/auth/contexto";
 import { getStorage } from "@/src/storage/factory";
 import { projectStore } from "@/src/repositories/projects";
 
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Falta el archivo ZIP" }, { status: 400 });
     }
     const zip = Buffer.from(await file.arrayBuffer());
-    const { orgId } = await getDevContext();
+    const { orgId } = await getContexto();
     const { projectId } = await importProject(
       { store: projectStore, storage: getStorage(), orgId },
       { zip, nombre }

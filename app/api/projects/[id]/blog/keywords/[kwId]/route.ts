@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getDevContext } from "@/src/auth/dev-stub";
+import { getContexto } from "@/src/auth/contexto";
 import { blogStore } from "@/src/repositories/blog";
 import { EditorError } from "@/src/editor/errors";
 
@@ -14,7 +14,7 @@ function conError(e: unknown) {
 
 export async function PUT(req: Request, ctx: { params: Promise<{ id: string; kwId: string }> }) {
   const { id, kwId } = await ctx.params;
-  const { orgId } = await getDevContext();
+  const { orgId } = await getContexto();
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   const estado = typeof body.estado === "string" ? body.estado : "";
   try {

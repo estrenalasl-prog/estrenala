@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Popover del editor in-situ — Estrénala · v2 Alto Voltaje</title>
+<style>
+  /* ===== Página de muestra (NO se inyecta; solo para enseñar el widget) ===== */
+  body{margin:0;background:#E7E8E2;color:#141509;
+    font:15px/1.55 "Space Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+  .escena{max-width:960px;margin:0 auto;padding:40px 24px 90px}
+  .eyebrow{font:600 11px/1 "Space Grotesk",system-ui;letter-spacing:.14em;text-transform:uppercase;color:#5E7300}
+  .escena h1{font-size:30px;font-weight:700;letter-spacing:-.03em;margin:12px 0 6px}
+  .escena>p.lead{color:#55584C;margin:0 0 28px;max-width:640px}
+  .cap{font:600 11px/1 "Space Grotesk",system-ui;letter-spacing:.1em;text-transform:uppercase;color:#9A9C8F;
+    display:block;padding-bottom:10px;border-bottom:1px solid #D2D3CA;margin:36px 0 20px}
+
+  /* Web ficticia del cliente (fuente serif, colores propios: demuestra que el widget no hereda) */
+  .web-cliente{background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.1);padding:40px;margin-bottom:60px;
+    font-family:Georgia,"Times New Roman",serif;color:#22303a}
+  .web-cliente h2{margin:0 0 10px;font-size:28px}
+  .web-cliente p{font-size:17px;line-height:1.6}
+  .web-cliente .cta{display:inline-block;background:#166534;color:#fff;padding:11px 24px;border-radius:6px;font-family:inherit;margin-top:8px}
+
+  .galeria{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:30px}
+  .variante>h3{font:600 12px/1 "Space Grotesk",system-ui;color:#55584C;margin:0 0 12px;text-transform:uppercase;letter-spacing:.05em}
+  .lienzo-pop{background:#E7E8E2;border:1px dashed #C9CABF;border-radius:12px;padding:26px;display:flex;justify-content:center}
+
+  /* =====================================================================
+     SISTEMA DEL EDITOR — se inyecta sobre webs de terceros.
+     Prefijo wc-. CSS plano. DEFENSIVO: no hereda del host, z-index alto.
+     Fuente: stack de sistema (no asumir Space Grotesk cargada en el host).
+     ===================================================================== */
+
+  /* Reset defensivo: todo lo que empiece por wc- parte de cero */
+  .wc-pop, .wc-pop *,
+  .wc-etiqueta, .wc-toast{
+    box-sizing:border-box;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.45; letter-spacing:normal; text-transform:none; text-align:left;
+    margin:0; padding:0; color:#141509; font-weight:400; font-style:normal;
+  }
+
+  /* --- Resaltado sobre el elemento del host --- */
+  .wc-hover{outline:2px dashed rgba(196,240,0,.9)!important;outline-offset:3px!important;cursor:pointer!important;border-radius:2px}
+  .wc-activo{outline:2px solid #C4F000!important;outline-offset:3px!important;border-radius:2px;
+    box-shadow:0 0 0 6px rgba(196,240,0,.22)!important}
+  .wc-etiqueta{position:absolute;transform:translateY(calc(-100% - 8px));background:#141509;color:#C4F000;
+    font-size:11px;font-weight:600;padding:3px 9px;border-radius:6px;letter-spacing:.02em;z-index:2147483647;white-space:nowrap}
+
+  /* --- Popover base --- */
+  .wc-pop{position:relative;width:300px;background:#fff;border:1px solid #DEDFD6;border-radius:16px;
+    box-shadow:0 18px 48px -12px rgba(20,21,9,.28);font-size:13px;padding:15px;z-index:2147483647}
+  .wc-pop::before{content:"";position:absolute;top:-6px;left:26px;width:12px;height:12px;background:#fff;
+    border-left:1px solid #DEDFD6;border-top:1px solid #DEDFD6;transform:rotate(45deg)}
+  .wc-pop-cab{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+  .wc-pop-cab .wc-titulo{font-weight:600;font-size:13.5px}
+  .wc-tipo{font-size:11px;font-weight:600;color:#141509;background:#C4F000;border-radius:999px;padding:2px 9px}
+  .wc-cerrar{margin-left:auto;border:0;background:none;cursor:pointer;color:#9A9C8F;font-size:15px;line-height:1;width:22px;height:22px;border-radius:6px}
+  .wc-cerrar:hover{color:#141509;background:#ECEDE4}
+
+  .wc-label{display:block;font-size:11.5px;font-weight:500;color:#55584C;margin-bottom:5px}
+  .wc-campo{width:100%;height:34px;border:1px solid #DEDFD6;border-radius:9px;padding:0 10px;font-size:13px;color:#141509;background:#fff;outline:none}
+  .wc-campo:focus{border-color:#8FB300;box-shadow:0 0 0 2px #fff,0 0 0 4px #8FB300}
+  textarea.wc-campo{height:auto;min-height:60px;padding:8px 10px;resize:vertical}
+  .wc-campo:disabled{background:#F5F6F1;color:#9A9C8F}
+
+  .wc-fila{display:flex;gap:8px;margin-top:12px;align-items:center}
+  .wc-btn{height:34px;padding:0 14px;border-radius:9px;border:1px solid transparent;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:7px;justify-content:center}
+  .wc-btn:focus-visible{outline:none;box-shadow:0 0 0 2px #fff,0 0 0 4px #8FB300}
+  .wc-btn-primario{background:#C4F000;color:#141509}
+  .wc-btn-primario:hover{background:#B4E000}
+  .wc-btn-primario:disabled{opacity:.7;cursor:default}
+  .wc-btn-sec{background:#fff;border-color:#DEDFD6;color:#141509;font-weight:500}
+  .wc-btn-sec:hover{background:#ECEDE4}
+  .wc-btn-sec:disabled{opacity:.5;cursor:default}
+  .wc-ayuda{font-size:11.5px;color:#9A9C8F;margin-top:9px}
+  .wc-spinner{display:inline-block;width:13px;height:13px;border:2px solid rgba(20,21,9,.35);border-top-color:#141509;border-radius:50%;animation:wcgirar .7s linear infinite}
+  @keyframes wcgirar{to{transform:rotate(360deg)}}
+
+  /* Imagen */
+  .wc-img-previa{display:flex;gap:10px;align-items:center}
+  .wc-img-previa img{width:64px;height:44px;object-fit:cover;border-radius:7px;border:1px solid #DEDFD6}
+  .wc-img-previa .meta{font-size:11.5px;color:#9A9C8F}
+  .wc-drop{border:1.5px dashed #C9CABF;border-radius:9px;padding:13px;text-align:center;color:#55584C;font-size:12px;margin-top:10px;cursor:pointer}
+  .wc-drop:hover{border-color:#8FB300;background:#F2FBCB}
+  .wc-drop b{color:#141509}
+
+  /* Botón (variante nueva): estilo + texto + enlace */
+  .wc-mini-previa-boton{display:flex;justify-content:center;padding:10px;background:#F5F6F1;border-radius:9px;margin-bottom:12px}
+  .wc-mini-boton{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;background:#166534;color:#fff}
+  .wc-estilos{display:flex;gap:8px;margin-top:8px}
+  .wc-estilo-op{flex:1;border:1px solid #DEDFD6;border-radius:9px;padding:8px;text-align:center;font-size:11px;color:#55584C;cursor:pointer}
+  .wc-estilo-op.wc-elegido{border-color:#141509;box-shadow:0 0 0 1px #141509}
+  .wc-estilo-op .pill{display:block;height:16px;border-radius:5px;margin-bottom:6px}
+
+  /* Color */
+  .wc-colores{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:4px}
+  .wc-color{width:30px;height:30px;border-radius:8px;border:1px solid rgba(20,21,9,.12);cursor:pointer}
+  .wc-color.wc-elegido{outline:2px solid #141509;outline-offset:2px}
+  .wc-color-hex{width:92px;height:30px;border:1px solid #DEDFD6;border-radius:8px;padding:0 8px;font-size:12px;font-family:ui-monospace,Consolas,monospace}
+
+  /* Estado guardado */
+  .wc-ok{display:flex;align-items:flex-start;gap:9px;background:#E7F5E9;border:1px solid #B7E3C1;color:#1F7A34;border-radius:9px;padding:10px 12px;font-size:12.5px}
+  .wc-ok .marca{width:18px;height:18px;border-radius:50%;background:#2A9D3F;color:#fff;display:grid;place-items:center;font-size:10px;font-weight:700;flex:none;margin-top:1px}
+  .wc-ok b{font-weight:600}
+</style>
+</head>
+<body>
+<div class="escena">
+  <div class="eyebrow">Sistema visual · Entregable 6</div>
+  <h1>Popover del editor in-situ</h1>
+  <p class="lead">Se inyecta con JavaScript ES5 (sin React) sobre la web real del cliente. CSS plano con prefijo
+  <code>wc-</code>, reset defensivo (no hereda tipografía ni colores del host) y <code>z-index</code> máximo, para
+  que se vea bien flotando sobre cualquier web. La web de abajo usa fuente serif y verde propios a propósito:
+  el widget no se contagia.</p>
+
+  <!-- Contexto: web del cliente con hover y seleccionado -->
+  <span class="cap">En contexto · un elemento en hover, otro seleccionado</span>
+  <div class="web-cliente" style="position:relative">
+    <h2 class="wc-hover">Bienvenido a Clínica Sonrisa</h2>
+    <p>Cuidamos tu salud dental desde 1998. <span class="wc-activo" style="position:relative">Pide tu primera cita gratis<span class="wc-etiqueta">Texto</span></span> y conoce a nuestro equipo.</p>
+    <a class="cta">Reservar cita</a>
+  </div>
+
+  <span class="cap">Variantes y estados</span>
+  <div class="galeria">
+
+    <!-- TEXTO -->
+    <div class="variante">
+      <h3>Texto · seleccionado</h3>
+      <div class="lienzo-pop"><div class="wc-pop">
+        <div class="wc-pop-cab"><span class="wc-titulo">Editar</span><span class="wc-tipo">Texto</span><button class="wc-cerrar">✕</button></div>
+        <textarea class="wc-campo">Pide tu primera cita gratis</textarea>
+        <div class="wc-fila"><button class="wc-btn wc-btn-primario">Guardar</button><button class="wc-btn wc-btn-sec">Cancelar</button></div>
+      </div></div>
+    </div>
+
+    <!-- ENLACE -->
+    <div class="variante">
+      <h3>Enlace</h3>
+      <div class="lienzo-pop"><div class="wc-pop">
+        <div class="wc-pop-cab"><span class="wc-titulo">Editar</span><span class="wc-tipo">Enlace</span><button class="wc-cerrar">✕</button></div>
+        <label class="wc-label">Texto del enlace</label>
+        <input class="wc-campo" value="Reservar cita" style="margin-bottom:10px">
+        <label class="wc-label">Adónde lleva</label>
+        <input class="wc-campo" value="https://calendly.com/clinica">
+        <div class="wc-fila"><button class="wc-btn wc-btn-primario">Guardar</button><button class="wc-btn wc-btn-sec">Cancelar</button></div>
+      </div></div>
+    </div>
+
+    <!-- IMAGEN -->
+    <div class="variante">
+      <h3>Imagen</h3>
+      <div class="lienzo-pop"><div class="wc-pop">
+        <div class="wc-pop-cab"><span class="wc-titulo">Editar</span><span class="wc-tipo">Imagen</span><button class="wc-cerrar">✕</button></div>
+        <div class="wc-img-previa">
+          <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='44'%3E%3Crect width='100%25' height='100%25' fill='%23ECEDE4'/%3E%3Cpath d='M0 44 L20 24 L34 36 L48 18 L64 32 V44Z' fill='%23C9CABF'/%3E%3C/svg%3E" alt="">
+          <span class="meta">equipo.jpg · 340 KB</span>
+        </div>
+        <div class="wc-drop">Arrastra una imagen nueva o <b>haz clic para elegir</b></div>
+        <div class="wc-fila"><button class="wc-btn wc-btn-primario">Guardar</button><button class="wc-btn wc-btn-sec">Cancelar</button></div>
+        <p class="wc-ayuda">Se adapta sola al hueco: no hace falta recortarla.</p>
+      </div></div>
+    </div>
+
+    <!-- BOTÓN (nuevo) -->
+    <div class="variante">
+      <h3>Botón</h3>
+      <div class="lienzo-pop"><div class="wc-pop">
+        <div class="wc-pop-cab"><span class="wc-titulo">Editar</span><span class="wc-tipo">Botón</span><button class="wc-cerrar">✕</button></div>
+        <div class="wc-mini-previa-boton"><span class="wc-mini-boton">Reservar cita</span></div>
+        <label class="wc-label">Texto</label>
+        <input class="wc-campo" value="Reservar cita" style="margin-bottom:10px">
+        <label class="wc-label">Adónde lleva</label>
+        <input class="wc-campo" value="/contacto">
+        <label class="wc-label" style="margin-top:10px">Estilo</label>
+        <div class="wc-estilos">
+          <div class="wc-estilo-op wc-elegido"><span class="pill" style="background:#166534"></span>Relleno</div>
+          <div class="wc-estilo-op"><span class="pill" style="background:#fff;border:1px solid #166534"></span>Borde</div>
+          <div class="wc-estilo-op"><span class="pill" style="background:transparent"></span>Texto</div>
+        </div>
+        <div class="wc-fila"><button class="wc-btn wc-btn-primario">Guardar</button><button class="wc-btn wc-btn-sec">Cancelar</button></div>
+      </div></div>
+    </div>
+
+    <!-- COLOR -->
+    <div class="variante">
+      <h3>Color</h3>
+      <div class="lienzo-pop"><div class="wc-pop">
+        <div class="wc-pop-cab"><span class="wc-titulo">Editar</span><span class="wc-tipo">Color</span><button class="wc-cerrar">✕</button></div>
+        <div class="wc-colores">
+          <span class="wc-color wc-elegido" style="background:#166534"></span>
+          <span class="wc-color" style="background:#0F766E"></span>
+          <span class="wc-color" style="background:#1D4ED8"></span>
+          <span class="wc-color" style="background:#B42020"></span>
+          <span class="wc-color" style="background:#D97706"></span>
+          <span class="wc-color" style="background:#141509"></span>
+          <input class="wc-color-hex" value="#166534">
+        </div>
+        <div class="wc-fila"><button class="wc-btn wc-btn-primario">Guardar</button><button class="wc-btn wc-btn-sec">Cancelar</button></div>
+      </div></div>
+    </div>
+
+    <!-- HOVER (estado del elemento, sin popover) -->
+    <div class="variante">
+      <h3>Estado · hover del elemento</h3>
+      <div class="lienzo-pop" style="background:#fff;flex-direction:column;align-items:flex-start;gap:6px">
+        <p style="font-family:Georgia,serif;font-size:16px;color:#22303a;margin:0" class="wc-hover" >Cuidamos tu salud dental desde 1998.</p>
+        <span style="font-size:11.5px;color:#9A9C8F">Al pasar el ratón: contorno lima discontinuo + cursor de mano.</span>
+      </div>
+    </div>
+
+    <!-- GUARDANDO -->
+    <div class="variante">
+      <h3>Estado · guardando</h3>
+      <div class="lienzo-pop"><div class="wc-pop">
+        <div class="wc-pop-cab"><span class="wc-titulo">Editar</span><span class="wc-tipo">Texto</span><button class="wc-cerrar" disabled style="opacity:.4">✕</button></div>
+        <textarea class="wc-campo" disabled>Pide tu primera cita gratis</textarea>
+        <div class="wc-fila">
+          <button class="wc-btn wc-btn-primario" disabled><span class="wc-spinner"></span>Guardando…</button>
+          <button class="wc-btn wc-btn-sec" disabled>Cancelar</button>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- GUARDADO -->
+    <div class="variante">
+      <h3>Estado · guardado</h3>
+      <div class="lienzo-pop"><div class="wc-pop">
+        <div class="wc-pop-cab"><span class="wc-titulo">Editar</span><span class="wc-tipo">Texto</span><button class="wc-cerrar">✕</button></div>
+        <div class="wc-ok"><span class="marca">✓</span><span>Guardado. Recuerda <b>publicar</b> para que se vea online.</span></div>
+      </div></div>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>

@@ -3,6 +3,7 @@ import { pedirJson, RelevanciaSchema, OpenRouterError } from "@/src/ia/claude";
 import { basePublica } from "@/src/blog/render";
 import { sitesBaseDomain } from "@/src/blog/apply";
 import { claveSerpApi } from "@/src/config/claves";
+import { entrarOrg } from "@/src/auth/org-context";
 import { buscarTendencias, buscarRelacionadas, type CandidatoKeyword } from "./serpapi";
 import type { ProjectStore } from "@/src/repositories/types";
 import type { BlogStore } from "@/src/repositories/blog";
@@ -24,6 +25,7 @@ export async function actualizarRadar(
   deps: DepsRadar,
   forzar = false
 ): Promise<{ actualizado: false } | { actualizado: true; candidatos: number; tendencias: number; relacionadas: number }> {
+  entrarOrg(deps.orgId); // claves BYOK de esta organización (org-context)
   const project = await deps.store.getProject(deps.orgId, deps.projectId);
   if (!project) throw new EditorError("Proyecto no encontrado", 404);
   const settings = await deps.blog.getBlogSettings(deps.orgId, deps.projectId);

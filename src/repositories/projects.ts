@@ -46,6 +46,14 @@ export class DrizzleProjectStore implements ProjectStore {
     return r[0] ? toProjectRow(r[0]) : null;
   }
 
+  // Fuera del interfaz ProjectStore a propósito: SIN filtrar por org, solo para
+  // el preview/assets públicos del iframe (la capacidad es el UUID). El resto
+  // del código usa getProject (scoped). Lo llaman las rutas con el singleton.
+  async getProjectById(projectId: string): Promise<ProjectRow | null> {
+    const r = await db.select().from(projects).where(eq(projects.id, projectId)).limit(1);
+    return r[0] ? toProjectRow(r[0]) : null;
+  }
+
   async listProjects(orgId: string): Promise<ProjectRow[]> {
     const rows = await db.select().from(projects)
       .where(eq(projects.orgId, orgId)).orderBy(desc(projects.createdAt));

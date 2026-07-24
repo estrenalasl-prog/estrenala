@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getDevContext } from "@/src/auth/dev-stub";
+import { getContexto } from "@/src/auth/contexto";
 import { projectStore } from "@/src/repositories/projects";
 import { blogStore } from "@/src/repositories/blog";
 import { EditorError } from "@/src/editor/errors";
@@ -13,7 +13,7 @@ function conError(e: unknown) {
 
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
-  const { orgId } = await getDevContext();
+  const { orgId } = await getContexto();
   try {
     const project = await projectStore.getProject(orgId, id);
     if (!project) throw new EditorError("Proyecto no encontrado", 404);

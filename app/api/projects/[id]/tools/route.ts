@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getDevContext } from "@/src/auth/dev-stub";
+import { getContexto } from "@/src/auth/contexto";
 import { getStorage } from "@/src/storage/factory";
 import { projectStore } from "@/src/repositories/projects";
 import { aplicarHerramientaAlProyecto, quitarHerramientaDelProyecto, estadoDeHerramientas } from "@/src/editor/tools";
@@ -15,7 +15,7 @@ function conError(e: unknown) {
 
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
-  const { orgId } = await getDevContext();
+  const { orgId } = await getContexto();
   try {
     const estado = await estadoDeHerramientas({ store: projectStore, storage: getStorage() }, { orgId, projectId: id });
     return NextResponse.json(estado);
@@ -24,7 +24,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
 
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
-  const { orgId } = await getDevContext();
+  const { orgId } = await getContexto();
   const body = (await req.json().catch(() => ({}))) as { herramienta?: Herramienta };
   if (!body.herramienta || typeof body.herramienta !== "object") {
     return NextResponse.json({ error: "Herramienta desconocida" }, { status: 400 });
@@ -40,7 +40,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
 
 export async function DELETE(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
-  const { orgId } = await getDevContext();
+  const { orgId } = await getContexto();
   const body = (await req.json().catch(() => ({}))) as { tipo?: TipoHerramienta };
   if (!body.tipo) return NextResponse.json({ error: "Herramienta desconocida" }, { status: 400 });
   try {

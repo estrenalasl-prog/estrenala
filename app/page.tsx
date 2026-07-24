@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getDevContext } from "@/src/auth/dev-stub";
+import { getContexto } from "@/src/auth/contexto";
 import { projectStore } from "@/src/repositories/projects";
 import type { ProjectRow } from "@/src/repositories/types";
 import { ImportDropzone } from "./_components/ImportDropzone";
@@ -22,7 +22,7 @@ function direccionDe(p: ProjectRow): string {
 }
 
 export default async function Dashboard() {
-  const { orgId } = await getDevContext();
+  const { orgId } = await getContexto();
   const proyectos = await projectStore.listProjects(orgId);
 
   if (proyectos.length === 0) {

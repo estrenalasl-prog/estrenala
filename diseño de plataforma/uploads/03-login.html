@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup — Login</title>
+<style>
+  :root{
+    --lienzo:#f8fafc; --superficie:#fff; --superficie-2:#f1f5f9; --borde:#e2e8f0; --borde-fuerte:#cbd5e1;
+    --texto:#0f172a; --texto-2:#475569; --texto-3:#94a3b8;
+    --primario:#4f46e5; --primario-osc:#4338ca; --primario-suave:#eef2ff; --primario-borde:#c7d2fe;
+    --peligro:#e11d48; --peligro-suave:#fff1f2; --peligro-borde:#fecdd3;
+    --radio-c:8px; --radio-t:12px;
+    --sombra-2:0 4px 12px -2px rgba(15,23,42,.10);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:28px;padding:24px;color:var(--texto);
+    font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    background:
+      radial-gradient(600px 300px at 15% 0%, rgba(79,70,229,.10), transparent 60%),
+      radial-gradient(600px 300px at 85% 100%, rgba(14,165,233,.10), transparent 60%),
+      var(--lienzo);}
+
+  .marca{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:700;letter-spacing:-.01em}
+  .marca .simbolo{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;color:#fff;
+    background:linear-gradient(135deg,var(--primario),#0ea5e9);font-size:16px}
+
+  .tarjeta{width:100%;max-width:380px;background:var(--superficie);border:1px solid var(--borde);
+    border-radius:var(--radio-t);box-shadow:var(--sombra-2);padding:32px 28px}
+  h1{margin:0 0 4px;font-size:22px;font-weight:700;letter-spacing:-.01em}
+  .sub{margin:0 0 24px;color:var(--texto-2);font-size:14px}
+
+  label{display:block;font-size:13px;font-weight:500;color:var(--texto-2);margin:0 0 6px}
+  .input{height:40px;width:100%;border:1px solid var(--borde);border-radius:var(--radio-c);
+    background:var(--superficie);padding:0 12px;font:inherit;color:var(--texto)}
+  .input::placeholder{color:var(--texto-3)}
+  .input:focus{border-color:var(--primario);box-shadow:0 0 0 3px rgba(79,70,229,.25);outline:none}
+  .input-error{border-color:var(--peligro)}
+  .error{display:flex;gap:8px;align-items:flex-start;background:var(--peligro-suave);
+    border:1px solid var(--peligro-borde);color:#be123c;border-radius:var(--radio-c);
+    padding:10px 12px;font-size:13px;margin:0 0 16px}
+
+  .btn{width:100%;height:40px;margin-top:18px;border:0;border-radius:var(--radio-c);cursor:pointer;
+    background:var(--primario);color:#fff;font:600 14px system-ui;transition:.12s}
+  .btn:hover{background:var(--primario-osc)}
+  .btn:focus-visible{outline:2px solid var(--primario);outline-offset:2px}
+
+  .pie{margin-top:18px;text-align:center;font-size:12px;color:var(--texto-3)}
+  .nota-mockup{max-width:380px;font-size:12px;color:var(--texto-3);text-align:center}
+</style>
+</head>
+<body>
+
+  <!-- Marca fuera de la tarjeta: la puerta del producto (agnóstica del nombre) -->
+  <div class="marca"><span class="simbolo">▲</span>[Marca]</div>
+
+  <!-- ESTADO NORMAL (hoy: solo contraseña) -->
+  <div class="tarjeta">
+    <h1>Hola de nuevo</h1>
+    <p class="sub">Tu web te espera. Entra para gestionarla.</p>
+    <label for="pw">Contraseña</label>
+    <input id="pw" class="input" type="password" placeholder="••••••••">
+    <button class="btn">Entrar</button>
+    <p class="pie">¿Problemas para entrar? Escríbenos a soporte@[marca].com</p>
+  </div>
+
+  <!-- ESTADO DE ERROR -->
+  <div class="tarjeta">
+    <h1>Hola de nuevo</h1>
+    <p class="sub">Tu web te espera. Entra para gestionarla.</p>
+    <div class="error">⚠️ <span>Contraseña incorrecta. Revísala e inténtalo otra vez.</span></div>
+    <label for="pw2">Contraseña</label>
+    <input id="pw2" class="input input-error" type="password" value="········">
+    <button class="btn">Entrar</button>
+    <p class="pie">¿Problemas para entrar? Escríbenos a soporte@[marca].com</p>
+  </div>
+
+  <!-- FUTURO MULTIUSUARIO (misma tarjeta, un campo más: no cambia el diseño) -->
+  <div class="tarjeta" style="opacity:.75">
+    <h1>Hola de nuevo</h1>
+    <p class="sub">Versión multiusuario (futura): mismo diseño, un campo más.</p>
+    <label for="em">Email</label>
+    <input id="em" class="input" type="email" placeholder="tu@empresa.com" style="margin-bottom:14px">
+    <label for="pw3">Contraseña</label>
+    <input id="pw3" class="input" type="password" placeholder="••••••••">
+    <button class="btn">Entrar</button>
+    <p class="pie">¿Primera vez? Crea tu cuenta</p>
+  </div>
+
+  <p class="nota-mockup">Mockup 4.1 del design-brief · el símbolo ▲ es un placeholder: ver <code>08-wordmarks.html</code></p>
+</body>
+</html>

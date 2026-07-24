@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Login — Estrénala · v2 Alto Voltaje</title>
+<style>
+  :root{
+    --lienzo:#F5F6F1; --superficie:#FFFFFF; --superficie-2:#ECEDE4;
+    --borde:#DEDFD6; --borde-fuerte:#C9CABF;
+    --texto:#141509; --texto-2:#55584C; --texto-3:#9A9C8F;
+    --acento:#C4F000; --acento-vivo:#B4E000; --acento-activo:#A3CC00;
+    --acento-texto:#5E7300; --acento-suave:#F2FBCB; --acento-borde:#DDF08A; --acento-anillo:#8FB300;
+    --exito:#2A9D3F; --exito-suave:#E7F5E9; --exito-texto:#1F7A34;
+    --aviso:#D99500; --aviso-suave:#FFF7E6; --aviso-texto:#8A5B00; --aviso-borde:#F5E3B8;
+    --peligro:#DC2626; --peligro-suave:#FEECEC; --peligro-texto:#B42020; --peligro-borde:#F6C9C9;
+    --radio-c:9px; --radio-t:14px; --radio-full:999px;
+    --sombra-1:0 1px 2px rgba(20,21,9,.06);
+    --sombra-2:0 4px 14px -3px rgba(20,21,9,.12);
+    --sombra-3:0 18px 48px -12px rgba(20,21,9,.20);
+    --anillo-foco:0 0 0 2px var(--lienzo),0 0 0 4px var(--acento-anillo);
+    --sans:"Space Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--lienzo);color:var(--texto);font:15px/1.55 var(--sans);-webkit-font-smoothing:antialiased}
+  a{color:var(--acento-texto);text-decoration:none} a:hover{color:var(--texto)}
+  ::selection{background:var(--acento);color:var(--texto)}
+
+  /* Rótulo de la hoja de entregable (no forma parte del producto) */
+  .rotulo{max-width:1000px;margin:0 auto;padding:40px 24px 0}
+  .rotulo .eyebrow{font:600 11px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--acento-texto)}
+  .rotulo h1{font-size:30px;font-weight:700;letter-spacing:-.03em;margin:12px 0 6px}
+  .rotulo p{color:var(--texto-2);margin:0;max-width:620px}
+  .sep{max-width:1000px;margin:36px auto 0;padding:0 24px}
+  .sep .cap{font:600 11px/1 var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--texto-3);
+    padding-bottom:10px;border-bottom:1px solid var(--borde);display:block}
+
+  /* ----- Estructura de la pantalla de login (split, responsive) ----- */
+  .pantalla{max-width:1000px;margin:16px auto 0;padding:0 24px}
+  .split{display:grid;grid-template-columns:1fr 1fr;background:var(--superficie);border:1px solid var(--borde);
+    border-radius:20px;overflow:hidden;box-shadow:var(--sombra-2);min-height:480px}
+  @media (max-width:760px){.split{grid-template-columns:1fr;min-height:0}}
+
+  /* Panel de marca (tinta) */
+  .marca-panel{background:var(--texto);color:#F3F4EC;padding:44px 40px;display:flex;flex-direction:column;position:relative;overflow:hidden}
+  .marca-panel .grano{position:absolute;inset:0;opacity:.05;
+    background:repeating-linear-gradient(45deg,#fff 0 1px,transparent 1px 7px)}
+  .wordmark{font:700 26px/1 var(--sans);letter-spacing:-.03em;position:relative}
+  .wordmark .hl{background:var(--acento);color:var(--texto);padding:0 5px;border-radius:4px}
+  .marca-panel .claim{position:relative;margin-top:auto;font-size:26px;font-weight:600;line-height:1.15;letter-spacing:-.02em;max-width:320px;text-wrap:balance}
+  .marca-panel .sub{position:relative;color:#C7C8BC;font-size:14px;margin-top:12px;max-width:300px}
+  @media (max-width:760px){.marca-panel{padding:28px 28px 24px}.marca-panel .claim{font-size:20px;margin-top:20px}}
+
+  /* Panel de formulario */
+  .form-panel{padding:44px 40px;display:flex;flex-direction:column;justify-content:center}
+  @media (max-width:760px){.form-panel{padding:28px}}
+  .form-panel h2{font-size:22px;font-weight:700;letter-spacing:-.02em}
+  .form-panel .lead{color:var(--texto-2);font-size:14px;margin:6px 0 24px}
+  .campo-grupo{margin-bottom:16px}
+  .etiqueta-campo{display:block;font:500 12px var(--sans);color:var(--texto-2);margin-bottom:6px}
+  .campo{height:40px;width:100%;border:1px solid var(--borde);border-radius:var(--radio-c);background:var(--superficie);
+    padding:0 12px;font:400 15px var(--sans);color:var(--texto)}
+  .campo::placeholder{color:var(--texto-3)}
+  .campo:focus-visible,.campo.is-focus{outline:none;border-color:var(--acento-anillo);box-shadow:var(--anillo-foco)}
+  .campo-error{border-color:var(--peligro)}
+  .campo-error.is-focus{box-shadow:0 0 0 2px var(--superficie),0 0 0 4px var(--peligro)}
+  .error-campo{font-size:12.5px;color:var(--peligro-texto);margin:7px 0 0;display:flex;align-items:center;gap:6px}
+  .fila-label{display:flex;align-items:center;justify-content:space-between}
+  .fila-label a{font-size:12px}
+
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;width:100%;
+    border-radius:var(--radio-c);font:600 15px var(--sans);cursor:pointer;border:1px solid transparent;transition:background .12s,box-shadow .12s,border-color .12s}
+  .btn:focus-visible{outline:none;box-shadow:var(--anillo-foco)}
+  .btn-primario{background:var(--acento);color:var(--texto)}
+  .btn-primario:hover{background:var(--acento-vivo)}
+  .btn-fantasma{background:transparent;color:var(--texto-2);font-weight:500}
+  .btn-fantasma:hover{background:var(--superficie-2);color:var(--texto)}
+
+  .aviso-error{display:flex;gap:10px;align-items:flex-start;background:var(--peligro-suave);border:1px solid var(--peligro-borde);
+    color:var(--peligro-texto);border-radius:var(--radio-c);padding:11px 13px;font-size:13px;margin-bottom:20px}
+  .aviso-error .ico{width:18px;height:18px;border-radius:50%;background:var(--peligro);color:#fff;display:grid;place-items:center;font:700 11px var(--sans);flex:none;margin-top:1px}
+
+  .divisor{display:flex;align-items:center;gap:12px;color:var(--texto-3);font-size:12px;margin:18px 0}
+  .divisor::before,.divisor::after{content:"";height:1px;background:var(--borde);flex:1}
+  .pie-form{margin-top:22px;font-size:13px;color:var(--texto-2);text-align:center}
+
+  /* Variante multiusuario: selector de espacios */
+  .espacios{display:flex;flex-direction:column;gap:10px;margin:6px 0 4px}
+  .espacio{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--superficie);
+    border:1px solid var(--borde);border-radius:var(--radio-t);padding:12px 14px;cursor:pointer;transition:border-color .12s,box-shadow .12s}
+  .espacio:hover{border-color:var(--borde-fuerte);box-shadow:var(--sombra-1)}
+  .espacio:focus-visible{outline:none;box-shadow:var(--anillo-foco)}
+  .espacio .ini{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;font:700 15px var(--sans);flex:none}
+  .espacio .t{flex:1;min-width:0}
+  .espacio .t b{font-weight:600;font-size:14.5px}
+  .espacio .t small{display:block;color:var(--texto-3);font-size:12px}
+  .rol{font:500 11px var(--sans);color:var(--texto-2);background:var(--superficie-2);border-radius:var(--radio-full);padding:3px 9px}
+  .flecha{color:var(--texto-3);flex:none}
+</style>
+</head>
+<body>
+
+<div class="rotulo">
+  <div class="eyebrow">Sistema visual · Entregable 3</div>
+  <h1>Login</h1>
+  <p>Dirección <b>1b · Alto Voltaje</b>. Fondo limpio (fuera los degradados radiales de la v1), panel de marca en
+  tinta con el lima como resalte, un solo primario. Tres variantes: normal, con error y multiusuario (futuro).
+  Responsive: en móvil el panel de marca se apila arriba.</p>
+</div>
+
+<!-- ===================== 1 · NORMAL ===================== -->
+<div class="sep"><span class="cap">1 · Normal</span></div>
+<div class="pantalla">
+  <div class="split">
+    <div class="marca-panel">
+      <div class="grano"></div>
+      <div class="wordmark">Estrénal<span class="hl">a</span></div>
+      <div class="claim">Tu web hecha con IA, por fin en directo.</div>
+      <div class="sub">Súbela online, edítala con un clic y deja que el blog escriba solo.</div>
+    </div>
+    <div class="form-panel">
+      <h2>Entra</h2>
+      <p class="lead">Bienvenido de nuevo. Vamos a tu web.</p>
+      <div class="campo-grupo">
+        <label class="etiqueta-campo" for="e1">Correo</label>
+        <input class="campo" id="e1" type="email" placeholder="tucorreo@ejemplo.com">
+      </div>
+      <div class="campo-grupo">
+        <div class="fila-label"><label class="etiqueta-campo" for="p1">Contraseña</label><a href="#">¿La olvidaste?</a></div>
+        <input class="campo" id="p1" type="password" value="············">
+      </div>
+      <button class="btn btn-primario">Entrar</button>
+      <div class="divisor">o</div>
+      <button class="btn btn-fantasma">Enviarme un enlace por correo</button>
+      <p class="pie-form">¿Aún no tienes cuenta? <a href="#">Créala gratis</a></p>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== 2 · ERROR ===================== -->
+<div class="sep"><span class="cap">2 · Con error</span></div>
+<div class="pantalla">
+  <div class="split">
+    <div class="marca-panel">
+      <div class="grano"></div>
+      <div class="wordmark">Estrénal<span class="hl">a</span></div>
+      <div class="claim">Tu web hecha con IA, por fin en directo.</div>
+      <div class="sub">Súbela online, edítala con un clic y deja que el blog escriba solo.</div>
+    </div>
+    <div class="form-panel">
+      <h2>Entra</h2>
+      <p class="lead">Bienvenido de nuevo. Vamos a tu web.</p>
+      <div class="aviso-error">
+        <span class="ico">!</span>
+        <span>No hemos reconocido ese correo o esa contraseña. Revísalos y vuelve a intentarlo.</span>
+      </div>
+      <div class="campo-grupo">
+        <label class="etiqueta-campo" for="e2">Correo</label>
+        <input class="campo" id="e2" type="email" value="hola@clinicasonrisa.com">
+      </div>
+      <div class="campo-grupo">
+        <div class="fila-label"><label class="etiqueta-campo" for="p2">Contraseña</label><a href="#">¿La olvidaste?</a></div>
+        <input class="campo campo-error is-focus" id="p2" type="password" value="······">
+        <p class="error-campo">⚠ La contraseña no coincide.</p>
+      </div>
+      <button class="btn btn-primario">Entrar</button>
+      <div class="divisor">o</div>
+      <button class="btn btn-fantasma">Enviarme un enlace por correo</button>
+      <p class="pie-form">¿Aún no tienes cuenta? <a href="#">Créala gratis</a></p>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== 3 · MULTIUSUARIO (futuro) ===================== -->
+<div class="sep"><span class="cap">3 · Multiusuario · elegir espacio (preparado para el futuro)</span></div>
+<div class="pantalla" style="padding-bottom:80px">
+  <div class="split">
+    <div class="marca-panel">
+      <div class="grano"></div>
+      <div class="wordmark">Estrénal<span class="hl">a</span></div>
+      <div class="claim">Un mismo correo, varios proyectos de equipo.</div>
+      <div class="sub">Cuando trabajes con una agencia o un equipo, cada web vive en su espacio.</div>
+    </div>
+    <div class="form-panel">
+      <h2>¿Dónde entras?</h2>
+      <p class="lead">Tu correo pertenece a estos espacios. Elige uno para continuar.</p>
+      <div class="espacios">
+        <button class="espacio">
+          <span class="ini" style="background:var(--acento);color:var(--texto)">CS</span>
+          <span class="t"><b>Clínica Sonrisa</b><small>Tu espacio personal · 1 web</small></span>
+          <span class="rol">Propietario</span>
+          <span class="flecha">→</span>
+        </button>
+        <button class="espacio">
+          <span class="ini" style="background:var(--texto);color:#F3F4EC">AM</span>
+          <span class="t"><b>Agencia Marabierto</b><small>3 miembros · 8 webs</small></span>
+          <span class="rol">Editor</span>
+          <span class="flecha">→</span>
+        </button>
+        <button class="espacio">
+          <span class="ini" style="background:var(--superficie-2);color:var(--texto-2)">EM</span>
+          <span class="t"><b>Estudio Mará</b><small>2 miembros · 2 webs</small></span>
+          <span class="rol">Invitado</span>
+          <span class="flecha">→</span>
+        </button>
+      </div>
+      <div class="divisor">o</div>
+      <button class="btn btn-fantasma">Crear un espacio nuevo</button>
+      <p class="pie-form">¿No eres tú? <a href="#">Cambiar de cuenta</a></p>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

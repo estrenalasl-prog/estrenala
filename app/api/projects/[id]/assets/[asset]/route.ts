@@ -1,19 +1,22 @@
-import { getDevContext } from "@/src/auth/dev-stub";
 import { getStorage } from "@/src/storage/factory";
 import { projectStore } from "@/src/repositories/projects";
 import { isUuid } from "@/src/editor/validate-op";
 
 export const runtime = "nodejs";
 
+// Ruta PÚBLICA (la sirve el iframe del preview sin cookie): la capacidad es el
+// UUID del proyecto, no la sesión. Por eso el org se resuelve desde el proyecto.
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string; asset: string }> }) {
   const { id, asset } = await ctx.params;
-  const { orgId } = await getDevContext();
 
   const dot = asset.lastIndexOf(".");
   const assetId = dot === -1 ? asset : asset.slice(0, dot);
   if (!isUuid(assetId)) return new Response("No encontrado", { status: 404 });
 
-  const row = await projectStore.getAsset(orgId, id, assetId);
+  const project = await projectStore.getProjectById(id);
+  if (!project) return new Response("No encontrado", { status: 404 });
+
+  const row = await projectStore.getAsset(project.orgId, id, assetId);
   if (!row) return new Response("No encontrado", { status: 404 });
 
   const file = await getStorage().get(row.storageKey);

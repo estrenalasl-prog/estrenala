@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getDevContext } from "@/src/auth/dev-stub";
+import { getContexto } from "@/src/auth/contexto";
 import { getStorage } from "@/src/storage/factory";
 import { projectStore } from "@/src/repositories/projects";
 import type { ProjectRow } from "@/src/repositories/types";
@@ -21,7 +21,7 @@ function estadoProyecto(p: ProjectRow): { clase: string; texto: string } {
 
 export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { orgId } = await getDevContext();
+  const { orgId } = await getContexto();
   const project = await projectStore.getProject(orgId, id);
   if (!project) notFound();
   const pages = await listPages({ store: projectStore, storage: getStorage() }, { orgId, projectId: id });

@@ -5,6 +5,7 @@ import { claveOpenRouter } from "@/src/config/claves";
 import { extraerColores, paletaPara } from "./colores";
 import { generarSvgPortada } from "./svg";
 import { rasterizarPortadaPng } from "./png";
+import { entrarOrg } from "@/src/auth/org-context";
 import type { StorageAdapter } from "@/src/storage/types";
 import type { ProjectStore } from "@/src/repositories/types";
 import type { BlogStore } from "@/src/repositories/blog";
@@ -23,6 +24,7 @@ export async function generarPortada(
   deps: DepsPortada,
   input: { orgId: string; projectId: string; titulo: string; modo: string }
 ): Promise<{ assetId: string; url: string }> {
+  entrarOrg(input.orgId); // claves BYOK de esta organización (org-context)
   const project = await deps.store.getProject(input.orgId, input.projectId);
   if (!project) throw new EditorError("Proyecto no encontrado", 404);
   if (!input.titulo.trim()) throw new EditorError("Escribe primero el título del artículo", 400);

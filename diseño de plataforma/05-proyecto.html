@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pantalla de proyecto — Estrénala · v2 Alto Voltaje</title>
+<style>
+  :root{
+    --lienzo:#F5F6F1; --superficie:#FFFFFF; --superficie-2:#ECEDE4;
+    --borde:#DEDFD6; --borde-fuerte:#C9CABF;
+    --texto:#141509; --texto-2:#55584C; --texto-3:#9A9C8F;
+    --acento:#C4F000; --acento-vivo:#B4E000; --acento-activo:#A3CC00;
+    --acento-texto:#5E7300; --acento-suave:#F2FBCB; --acento-borde:#DDF08A; --acento-anillo:#8FB300;
+    --exito:#2A9D3F; --exito-suave:#E7F5E9; --exito-texto:#1F7A34;
+    --aviso:#D99500; --aviso-suave:#FFF7E6; --aviso-texto:#8A5B00; --aviso-borde:#F5E3B8;
+    --peligro:#DC2626; --peligro-suave:#FEECEC; --peligro-texto:#B42020; --peligro-borde:#F6C9C9;
+    --radio-c:9px; --radio-t:14px; --radio-full:999px;
+    --sombra-1:0 1px 2px rgba(20,21,9,.06);
+    --sombra-2:0 4px 14px -3px rgba(20,21,9,.12);
+    --sombra-3:0 18px 48px -12px rgba(20,21,9,.20);
+    --anillo-foco:0 0 0 2px var(--lienzo),0 0 0 4px var(--acento-anillo);
+    --sans:"Space Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
+    --mono:ui-monospace,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--lienzo);color:var(--texto);font:14px/1.55 var(--sans);-webkit-font-smoothing:antialiased}
+  h1,h2,h3,h4{margin:0;letter-spacing:-.01em}
+  a{color:var(--acento-texto);text-decoration:none} a:hover{color:var(--texto)}
+  ::selection{background:var(--acento);color:var(--texto)}
+
+  /* Cabecera */
+  .cabecera{position:sticky;top:0;z-index:5;background:rgba(245,246,241,.82);backdrop-filter:blur(10px);border-bottom:1px solid var(--borde)}
+  .cab-int{max-width:1180px;margin:0 auto;display:flex;align-items:center;gap:14px;padding:12px 24px}
+  .wordmark{font:700 18px/1 var(--sans);letter-spacing:-.03em}
+  .wordmark .hl{background:var(--acento);color:var(--texto);padding:0 4px;border-radius:4px}
+  .cab-int nav{margin-left:auto;display:flex;align-items:center;gap:16px;font-size:13px}
+  .cab-int nav a{color:var(--texto-2)} .cab-int nav a:hover{color:var(--texto)}
+  .avatar{width:30px;height:30px;border-radius:50%;background:var(--texto);color:#F3F4EC;display:grid;place-items:center;font:700 11px var(--sans)}
+
+  main{max-width:1180px;margin:0 auto;padding:22px 24px 90px}
+  .miga{font-size:13px;margin-bottom:8px}
+  .miga a{color:var(--texto-3)} .miga a:hover{color:var(--texto-2)}
+  .titulo-fila{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+  h1{font-size:25px;font-weight:700;letter-spacing:-.02em}
+
+  /* Botones */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:38px;padding:0 16px;
+    border-radius:var(--radio-c);font:500 14px var(--sans);cursor:pointer;border:1px solid transparent;transition:background .12s,box-shadow .12s,border-color .12s}
+  .btn:focus-visible{outline:none;box-shadow:var(--anillo-foco)}
+  .btn-primario{background:var(--acento);color:var(--texto);font-weight:600;box-shadow:var(--sombra-1)}
+  .btn-primario:hover{background:var(--acento-vivo)}
+  .btn-sec{background:var(--superficie);border-color:var(--borde);color:var(--texto)}
+  .btn-sec:hover{border-color:var(--borde-fuerte);background:var(--superficie-2)}
+  .btn-fantasma{background:transparent;color:var(--texto-2)}
+  .btn-fantasma:hover{background:var(--superficie-2);color:var(--texto)}
+  .btn-peligro-sutil{background:var(--peligro-suave);border-color:var(--peligro-borde);color:var(--peligro-texto)}
+  .btn-peligro-sutil:hover{background:#FCDCDC}
+  .btn-sm{height:32px;padding:0 11px;font-size:13px}
+
+  /* Badges */
+  .badge{display:inline-flex;align-items:center;gap:6px;border-radius:var(--radio-full);padding:4px 11px;font:500 11.5px/1 var(--sans)}
+  .badge .punto{width:6px;height:6px;border-radius:50%}
+  .badge-exito{background:var(--exito-suave);color:var(--exito-texto)} .badge-exito .punto{background:var(--exito)}
+  .badge-aviso{background:var(--aviso-suave);color:var(--aviso-texto)} .badge-aviso .punto{background:var(--aviso)}
+  .badge-neutro{background:var(--superficie-2);color:var(--texto-2)} .badge-neutro .punto{background:var(--texto-3)}
+
+  /* ---- BARRA DE PUBLICACIÓN: LA acción ---- */
+  .publicar{display:flex;flex-wrap:wrap;align-items:center;gap:12px;background:var(--superficie);
+    border:1px solid var(--borde);border-radius:var(--radio-t);box-shadow:var(--sombra-1);padding:14px 18px}
+  .pastilla-url{display:inline-flex;align-items:center;gap:6px;border-radius:var(--radio-full);background:var(--superficie-2);
+    border:1px solid var(--borde);color:var(--texto);padding:6px 6px 6px 14px;font:500 13px var(--sans)}
+  .pastilla-url .copiar{border:0;background:var(--superficie);color:var(--texto);border-radius:var(--radio-full);padding:5px 11px;font:600 12px var(--sans);cursor:pointer}
+  .pastilla-url .copiar:hover{background:var(--acento)}
+  .publicar .derecha{margin-left:auto;display:flex;align-items:center;gap:12px}
+  .aviso-inline{display:inline-flex;gap:7px;align-items:center;font-size:13px;color:var(--aviso-texto)}
+  .aviso-inline .punto{width:7px;height:7px;border-radius:50%;background:var(--aviso)}
+
+  /* Sección plegable de dirección/dominio */
+  details.direccion{margin-top:12px;background:var(--superficie);border:1px solid var(--borde);border-radius:var(--radio-t);box-shadow:var(--sombra-1)}
+  details.direccion summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:9px;padding:13px 18px;font-size:13.5px;font-weight:600;color:var(--texto-2)}
+  details.direccion summary::-webkit-details-marker{display:none}
+  details.direccion summary .flecha{transition:.15s;color:var(--texto-3)}
+  details[open].direccion summary .flecha{transform:rotate(90deg)}
+  details.direccion summary .estado-dom{margin-left:auto;font-weight:500;font-size:12px;color:var(--texto-3)}
+  .direccion-cuerpo{padding:4px 18px 18px;display:grid;gap:22px}
+  .grupo h4{font-size:13.5px;font-weight:600;margin-bottom:4px;display:flex;align-items:center;gap:7px}
+  .grupo p{margin:0 0 11px;font-size:13px;color:var(--texto-2)}
+  .quees{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:var(--superficie-2);color:var(--texto-2);font:700 10px var(--sans);cursor:help;border:1px solid var(--borde)}
+  .fila{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  .campo{height:36px;border:1px solid var(--borde);border-radius:var(--radio-c);background:var(--superficie);padding:0 12px;font:400 14px var(--sans);color:var(--texto);width:240px}
+  .campo:focus-visible{outline:none;border-color:var(--acento-anillo);box-shadow:var(--anillo-foco)}
+  .bloque-codigo{max-width:540px;background:var(--superficie-2);border:1px solid var(--borde);border-radius:var(--radio-c);padding:4px 4px 4px 0;font-family:var(--mono);font-size:13px}
+  .bloque-codigo .linea{display:flex;align-items:center;gap:12px;padding:8px 8px 8px 14px}
+  .bloque-codigo .copiar{margin-left:auto;height:26px;padding:0 10px;font:600 12px var(--sans);border:1px solid var(--borde);background:var(--superficie);border-radius:6px;cursor:pointer;color:var(--texto-2)}
+  .bloque-codigo .copiar:hover{border-color:var(--borde-fuerte)}
+  .etiqueta-dns{color:var(--texto-3);width:56px}
+  .zona-peligro{border-top:1px solid var(--borde);padding-top:16px}
+  /* Confirmación en dos pasos (patrón v1 conservado) */
+  .confirm2{display:none;gap:10px;align-items:center;flex-wrap:wrap;background:var(--peligro-suave);border:1px solid var(--peligro-borde);border-radius:var(--radio-c);padding:10px 12px}
+  .confirm2 .msg{font-size:13px;color:var(--peligro-texto);flex:1;min-width:180px}
+  #arm-despublicar:checked ~ .confirm2{display:flex}
+  #arm-despublicar:checked ~ .paso1{display:none}
+  .paso1{display:flex}
+
+  /* ---- Vista previa (protagonista) + historial ---- */
+  .area{display:grid;grid-template-columns:1fr 300px;gap:18px;margin-top:18px}
+  @media (max-width:920px){.area{grid-template-columns:1fr}}
+  .previo{background:var(--superficie);border:1px solid var(--borde);border-radius:var(--radio-t);box-shadow:var(--sombra-1);overflow:hidden}
+  .previo-barra{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--borde)}
+  select.campo{width:auto;height:32px;font-size:13px;padding:0 30px 0 10px;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' stroke='%2355584C' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
+  .conmutador{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--texto);cursor:pointer}
+  .interruptor{position:relative;width:36px;height:20px;border-radius:var(--radio-full);background:var(--acento);border:0;cursor:pointer;flex:none}
+  .interruptor::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:var(--sombra-1);transform:translateX(16px)}
+  .previo-barra .derecha{margin-left:auto;display:flex;gap:8px}
+  .lienzo-web{height:440px;display:grid;place-items:center;background:repeating-linear-gradient(45deg,#F1F2ED 0 14px,#EAEBE3 14px 28px);color:var(--texto-3);font-size:13px;font-family:var(--mono)}
+
+  .historial{background:var(--superficie);border:1px solid var(--borde);border-radius:var(--radio-t);box-shadow:var(--sombra-1);align-self:start}
+  .historial header{padding:13px 16px;font-weight:600;font-size:13.5px;border-bottom:1px solid var(--borde);display:flex;align-items:center;gap:8px}
+  .historial ul{margin:0;padding:0;list-style:none}
+  .historial li{display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;border-bottom:1px solid var(--borde)}
+  .historial li:last-child{border-bottom:0}
+  .historial .tipo{width:8px;height:8px;border-radius:50%;background:var(--texto-3);flex:none}
+  .historial .tipo.actual{background:var(--exito);box-shadow:0 0 0 3px var(--exito-suave)}
+  .historial .qué{flex:1;min-width:0}
+  .historial .cuando{color:var(--texto-3);font-size:12px}
+  .historial .publicado-sep{padding:7px 16px;font:600 10px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--texto-3);background:var(--superficie-2);border-bottom:1px solid var(--borde)}
+
+  .rotulo{max-width:1180px;margin:0 auto;padding:40px 24px 0}
+  .rotulo .eyebrow{font:600 11px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--acento-texto)}
+  .rotulo h1{font-size:30px;font-weight:700;letter-spacing:-.03em;margin:12px 0 6px}
+  .rotulo p{color:var(--texto-2);margin:0;max-width:640px}
+</style>
+</head>
+<body>
+
+<div class="rotulo">
+  <div class="eyebrow">Sistema visual · Entregable 5</div>
+  <h1>Pantalla de proyecto</h1>
+  <p>Dirección <b>1b · Alto Voltaje</b>. <b>Publicar</b> es LA acción (único primario). La dirección y el dominio
+  viven plegados y ordenados; despublicar pide confirmación en dos pasos. La vista previa es protagonista y el
+  historial permite revertir.</p>
+</div>
+
+<header class="cabecera">
+  <div class="cab-int">
+    <span class="wordmark">Estrénal<span class="hl">a</span></span>
+    <nav><a href="#">Configuración</a><a href="#">Ayuda</a><span class="avatar">MR</span></nav>
+  </div>
+</header>
+
+<main>
+  <p class="miga"><a href="#">← Tus webs</a></p>
+  <div class="titulo-fila">
+    <h1>Clínica Sonrisa</h1>
+    <span class="badge badge-aviso"><span class="punto"></span>Cambios sin publicar</span>
+  </div>
+
+  <!-- LA acción: publicar -->
+  <div class="publicar">
+    <span class="pastilla-url">clinica-sonrisa.estrenala.com <button class="copiar">Copiar</button></span>
+    <div class="derecha">
+      <span class="aviso-inline"><span class="punto"></span>Tienes cambios sin publicar</span>
+      <button class="btn btn-primario">Publicar cambios</button>
+    </div>
+  </div>
+
+  <!-- Dirección y dominio: plegado y ordenado -->
+  <details class="direccion">
+    <summary><span class="flecha">▸</span> Dirección y dominio <span class="estado-dom">Subdominio activo · sin dominio propio</span></summary>
+    <div class="direccion-cuerpo">
+      <div class="grupo">
+        <h4>Subdominio</h4>
+        <p>La dirección gratuita de tu web en Estrénala.</p>
+        <div class="fila">
+          <input class="campo" value="clinica-sonrisa">
+          <span style="color:var(--texto-3);font-size:13px">.estrenala.com</span>
+          <button class="btn btn-sec btn-sm">Cambiar</button>
+        </div>
+      </div>
+      <div class="grupo">
+        <h4>Dominio propio <span class="quees" title="Los registros DNS son como la dirección postal de tu dominio.">?</span></h4>
+        <p>Conecta tu dominio (p. ej. <b>clinicasonrisa.com</b>) apuntando estos dos registros en tu proveedor:</p>
+        <div class="bloque-codigo" style="margin-bottom:11px">
+          <div class="linea"><span class="etiqueta-dns">Tipo A</span><span>@ &nbsp;→&nbsp; 76.76.21.21</span><button class="copiar">Copiar</button></div>
+          <div class="linea"><span class="etiqueta-dns">Tipo A</span><span>www &nbsp;→&nbsp; 76.76.21.21</span><button class="copiar">Copiar</button></div>
+        </div>
+        <div class="fila">
+          <input class="campo" placeholder="tudominio.com">
+          <button class="btn btn-sec btn-sm">Conectar</button>
+        </div>
+      </div>
+      <div class="grupo zona-peligro">
+        <input type="checkbox" id="arm-despublicar" style="display:none">
+        <div class="fila paso1">
+          <div style="flex:1;min-width:220px">
+            <h4>Despublicar la web</h4>
+            <p style="margin:0">Dejará de verse en internet. Podrás volver a publicarla cuando quieras.</p>
+          </div>
+          <label class="btn btn-peligro-sutil" for="arm-despublicar" style="cursor:pointer">Despublicar</label>
+        </div>
+        <div class="confirm2">
+          <span class="msg"><b>¿Seguro?</b> La web dejará de verse en clinica-sonrisa.estrenala.com al momento.</span>
+          <label class="btn btn-fantasma btn-sm" for="arm-despublicar" style="cursor:pointer">No, dejarla</label>
+          <button class="btn btn-peligro-sutil btn-sm">Sí, despublicar</button>
+        </div>
+      </div>
+    </div>
+  </details>
+
+  <!-- Vista previa (protagonista) + historial -->
+  <div class="area">
+    <div class="previo">
+      <div class="previo-barra">
+        <select class="campo"><option>Página: inicio (index.html)</option><option>servicios.html</option><option>contacto.html</option></select>
+        <label class="conmutador"><span class="interruptor"></span> Modo edición</label>
+        <div class="derecha">
+          <button class="btn btn-fantasma btn-sm">Descartar</button>
+          <button class="btn btn-sec btn-sm">Guardar cambios</button>
+        </div>
+      </div>
+      <div class="lienzo-web">[ aquí vive la web real del cliente, en un iframe ]</div>
+    </div>
+
+    <aside class="historial">
+      <header>Historial</header>
+      <div class="publicado-sep">Sin publicar</div>
+      <ul>
+        <li><span class="tipo actual"></span><span class="qué">Ahora · texto editado<br><span class="cuando">hace un momento</span></span></li>
+        <li><span class="tipo"></span><span class="qué">Imagen cambiada<br><span class="cuando">ayer, 18:20</span></span><button class="btn btn-sec btn-sm">Restaurar</button></li>
+      </ul>
+      <div class="publicado-sep">Publicado el 12 jul</div>
+      <ul>
+        <li><span class="tipo"></span><span class="qué">Color del botón<br><span class="cuando">12 jul</span></span><button class="btn btn-sec btn-sm">Restaurar</button></li>
+        <li><span class="tipo"></span><span class="qué">Importación inicial<br><span class="cuando">10 jul</span></span><button class="btn btn-sec btn-sm">Restaurar</button></li>
+      </ul>
+    </aside>
+  </div>
+</main>
+
+</body>
+</html>

@@ -1,12 +1,14 @@
 // Ajustes de la organización (claves de API y modelo de IA): primero lo
 // guardado en Configuración (org_settings en BD) y, para las claves, la del
-// .env.local como respaldo. El import de la BD es dinámico y tolerante: en
-// tests unitarios (sin DATABASE_URL) falla el import y se cae al entorno.
+// .env.local como respaldo. La organización activa se toma del contexto
+// ambiental (org-context); sin contexto (o sin BD en tests unitarios) devuelve
+// "" y quien llama cae al entorno.
 async function desdeBd(campo: "openrouterKey" | "serpapiKey" | "modeloIa"): Promise<string> {
   try {
-    const { getDevContext } = await import("@/src/auth/dev-stub");
+    const { orgActual } = await import("@/src/auth/org-context");
+    const orgId = orgActual();
+    if (!orgId) return "";
     const { orgSettingsStore } = await import("@/src/repositories/org-settings");
-    const { orgId } = await getDevContext();
     return (await orgSettingsStore.getSettings(orgId))?.[campo] ?? "";
   } catch {
     return "";

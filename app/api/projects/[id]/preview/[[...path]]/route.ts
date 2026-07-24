@@ -1,18 +1,19 @@
 import { resolvePreview } from "@/src/preview/resolve";
-import { getDevContext } from "@/src/auth/dev-stub";
 import { getStorage } from "@/src/storage/factory";
 import { projectStore } from "@/src/repositories/projects";
 
 export const runtime = "nodejs";
 
+// Ruta PÚBLICA (la sirve el iframe del preview sin cookie): la capacidad es el
+// UUID del proyecto, no la sesión. Por eso el org se resuelve desde el proyecto.
 export async function GET(
   req: Request,
   ctx: { params: Promise<{ id: string; path?: string[] }> }
 ) {
   const { id, path } = await ctx.params;
-  const { orgId } = await getDevContext();
-  const project = await projectStore.getProject(orgId, id);
+  const project = await projectStore.getProjectById(id);
   if (!project) return new Response("Proyecto no encontrado", { status: 404 });
+  const orgId = project.orgId;
   const snap = await projectStore.getCurrentSnapshot(orgId, id);
   if (!snap) return new Response("Sin snapshot", { status: 404 });
 

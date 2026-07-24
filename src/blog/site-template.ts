@@ -1,5 +1,6 @@
 import { EditorError } from "@/src/editor/errors";
 import { claveOpenRouter } from "@/src/config/claves";
+import { entrarOrg } from "@/src/auth/org-context";
 import { pedirJson, PlantillasSchema, OpenRouterError } from "@/src/ia/claude";
 import { huecosSinRellenar } from "./template";
 import type { StorageAdapter } from "@/src/storage/types";
@@ -51,6 +52,7 @@ export async function generarPlantillas(
   deps: { store: ProjectStore; storage: StorageAdapter },
   input: { orgId: string; projectId: string }
 ): Promise<{ tplPost: string; tplIndex: string }> {
+  entrarOrg(input.orgId); // claves BYOK de esta organización (org-context)
   if (!(await claveOpenRouter())) throw new EditorError("Falta la clave de OpenRouter: añádela en Configuración", 500);
   const project = await deps.store.getProject(input.orgId, input.projectId);
   if (!project) throw new EditorError("Proyecto no encontrado", 404);

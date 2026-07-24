@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup — Pantalla de proyecto</title>
+<style>
+  :root{
+    --lienzo:#f8fafc; --superficie:#fff; --superficie-2:#f1f5f9; --borde:#e2e8f0; --borde-fuerte:#cbd5e1;
+    --texto:#0f172a; --texto-2:#475569; --texto-3:#94a3b8;
+    --primario:#4f46e5; --primario-osc:#4338ca; --primario-suave:#eef2ff; --primario-borde:#c7d2fe;
+    --exito:#059669; --exito-suave:#ecfdf5; --exito-texto:#047857;
+    --aviso:#d97706; --aviso-suave:#fffbeb; --aviso-texto:#b45309; --aviso-borde:#fde68a;
+    --peligro:#e11d48; --peligro-suave:#fff1f2; --peligro-borde:#fecdd3;
+    --radio-c:8px; --radio-t:12px;
+    --sombra-1:0 1px 2px rgba(15,23,42,.06); --sombra-2:0 4px 12px -2px rgba(15,23,42,.10);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--lienzo);color:var(--texto);
+    font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+
+  .cabecera{position:sticky;top:0;background:rgba(255,255,255,.85);backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--borde);z-index:5}
+  .cabecera-int{max-width:1180px;margin:0 auto;display:flex;align-items:center;gap:14px;padding:12px 24px}
+  .marca{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px}
+  .marca .simbolo{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;color:#fff;
+    background:linear-gradient(135deg,var(--primario),#0ea5e9);font-size:12px}
+  .cabecera nav{margin-left:auto;display:flex;gap:14px;font-size:13px}
+  .cabecera a{color:var(--texto-2);text-decoration:none}
+
+  main{max-width:1180px;margin:0 auto;padding:24px 24px 80px}
+  .miga{font-size:13px;margin-bottom:6px}
+  .miga a{color:var(--texto-3);text-decoration:none}
+  .miga a:hover{color:var(--texto-2)}
+  .titulo-fila{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+  h1{font-size:24px;font-weight:700;letter-spacing:-.01em;margin:0}
+
+  .badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:500}
+  .badge .punto{width:6px;height:6px;border-radius:50%}
+  .badge-aviso{background:var(--aviso-suave);color:var(--aviso-texto)}.badge-aviso .punto{background:var(--aviso)}
+
+  .btn{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 16px;border-radius:var(--radio-c);
+    font:inherit;font-weight:500;cursor:pointer;border:1px solid transparent;transition:.12s}
+  .btn-primario{background:var(--primario);color:#fff;font-weight:600;box-shadow:var(--sombra-1)}
+  .btn-primario:hover{background:var(--primario-osc)}
+  .btn-sec{background:var(--superficie);border-color:var(--borde);color:var(--texto)}
+  .btn-sec:hover{border-color:var(--borde-fuerte);background:var(--superficie-2)}
+  .btn-peligro-sutil{background:var(--peligro-suave);border-color:var(--peligro-borde);color:var(--peligro)}
+  .btn-quieto{height:30px;padding:0 10px;font-size:13px}
+
+  /* ---------- Barra de publicación: LA acción ---------- */
+  .publicar{display:flex;flex-wrap:wrap;align-items:center;gap:12px;background:var(--superficie);
+    border:1px solid var(--borde);border-radius:var(--radio-t);box-shadow:var(--sombra-1);padding:14px 18px}
+  .url-pastilla{display:inline-flex;align-items:center;gap:8px;border-radius:999px;background:var(--primario-suave);
+    border:1px solid var(--primario-borde);color:var(--primario);padding:5px 6px 5px 14px;font-size:13px}
+  .url-pastilla .copiar{height:24px;padding:0 9px;font:500 12px system-ui;border-radius:999px;border:0;
+    background:#fff;color:var(--primario);cursor:pointer}
+  .publicar .derecha{margin-left:auto;display:flex;align-items:center;gap:10px}
+  .aviso-inline{display:flex;gap:6px;align-items:center;font-size:13px;color:var(--aviso-texto)}
+
+  /* Sección plegable de dirección/dominio: fuera del camino principal */
+  details.direccion{margin-top:10px;background:var(--superficie);border:1px solid var(--borde);
+    border-radius:var(--radio-t);box-shadow:var(--sombra-1)}
+  details.direccion summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;
+    padding:12px 18px;font-size:13px;font-weight:500;color:var(--texto-2)}
+  details.direccion summary::-webkit-details-marker{display:none}
+  details.direccion summary .flecha{transition:.15s}
+  details[open].direccion summary .flecha{transform:rotate(90deg)}
+  .direccion-cuerpo{padding:4px 18px 18px;display:grid;gap:18px}
+  .grupo h4{margin:0 0 4px;font-size:13px;font-weight:600}
+  .grupo p{margin:0 0 10px;font-size:13px;color:var(--texto-2)}
+  .fila{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  .input{height:36px;border:1px solid var(--borde);border-radius:var(--radio-c);background:var(--superficie);
+    padding:0 12px;font:inherit;color:var(--texto);width:240px}
+  .input:focus{border-color:var(--primario);box-shadow:0 0 0 3px rgba(79,70,229,.25);outline:none}
+  .bloque-codigo{max-width:520px;background:var(--superficie-2);border:1px solid var(--borde);
+    border-radius:var(--radio-c);padding:4px 4px 4px 0;font-family:ui-monospace,Consolas,monospace;font-size:13px}
+  .bloque-codigo .linea{display:flex;align-items:center;gap:12px;padding:7px 8px 7px 14px}
+  .bloque-codigo .copiar{margin-left:auto;height:26px;padding:0 10px;font:500 12px system-ui;
+    border:1px solid var(--borde);background:var(--superficie);border-radius:6px;cursor:pointer;color:var(--texto-2)}
+  .etiqueta-dns{color:var(--texto-3);width:56px}
+  .zona-peligro{border-top:1px solid var(--borde);padding-top:14px}
+
+  /* ---------- Vista previa + historial ---------- */
+  .area{display:grid;grid-template-columns:1fr 280px;gap:16px;margin-top:16px}
+  @media (max-width:900px){.area{grid-template-columns:1fr}}
+  .previo{background:var(--superficie);border:1px solid var(--borde);border-radius:var(--radio-t);
+    box-shadow:var(--sombra-1);overflow:hidden}
+  .previo-barra{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--borde)}
+  select{height:32px;border:1px solid var(--borde);border-radius:var(--radio-c);background:var(--superficie);
+    font:inherit;font-size:13px;color:var(--texto);padding:0 8px}
+  .conmutador{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--texto-2);cursor:pointer}
+  .palanca{width:36px;height:20px;border-radius:999px;background:var(--primario);position:relative}
+  .palanca::after{content:"";position:absolute;top:2px;right:2px;width:16px;height:16px;border-radius:50%;background:#fff}
+  .previo-barra .derecha{margin-left:auto;display:flex;gap:8px}
+  .lienzo-web{height:420px;display:grid;place-items:center;background:
+    repeating-linear-gradient(45deg,#fbfcfe 0 14px,#f4f6fb 14px 28px);color:var(--texto-3);font-size:13px}
+
+  .historial{background:var(--superficie);border:1px solid var(--borde);border-radius:var(--radio-t);
+    box-shadow:var(--sombra-1);align-self:start}
+  .historial header{padding:12px 16px;font-weight:600;font-size:13px;border-bottom:1px solid var(--borde)}
+  .historial ul{margin:0;padding:0;list-style:none}
+  .historial li{display:flex;align-items:center;gap:10px;padding:10px 16px;font-size:13px;border-bottom:1px solid var(--borde)}
+  .historial li:last-child{border-bottom:0}
+  .historial .tipo{width:8px;height:8px;border-radius:50%;background:var(--texto-3);flex:none}
+  .historial .tipo.actual{background:var(--exito)}
+  .historial .cuando{color:var(--texto-3);margin-left:auto;font-size:12px}
+</style>
+</head>
+<body>
+
+<header class="cabecera">
+  <div class="cabecera-int">
+    <span class="marca"><span class="simbolo">▲</span>[Marca]</span>
+    <nav><a href="#">Configuración</a><a href="#">Salir</a></nav>
+  </div>
+</header>
+
+<main>
+  <p class="miga"><a href="#">← Tus webs</a></p>
+  <div class="titulo-fila">
+    <h1>Clínica Sonrisa</h1>
+    <span class="badge badge-aviso"><span class="punto"></span>Cambios sin publicar</span>
+  </div>
+
+  <!-- LA acción: publicar. Una sola fila, sin cajón de sastre. -->
+  <div class="publicar">
+    <span class="url-pastilla">clinica-sonrisa.plataforma.com <button class="copiar">Copiar</button></span>
+    <div class="derecha">
+      <span class="aviso-inline">● Tienes cambios sin publicar</span>
+      <button class="btn btn-primario">Publicar cambios</button>
+    </div>
+  </div>
+
+  <!-- Todo lo demás de la dirección, plegado y ordenado -->
+  <details class="direccion">
+    <summary><span class="flecha">▸</span> Dirección y dominio</summary>
+    <div class="direccion-cuerpo">
+      <div class="grupo">
+        <h4>Subdominio</h4>
+        <p>La dirección gratuita de tu web en la plataforma.</p>
+        <div class="fila">
+          <input class="input" value="clinica-sonrisa">
+          <span style="color:var(--texto-3);font-size:13px">.plataforma.com</span>
+          <button class="btn btn-sec btn-quieto">Cambiar</button>
+        </div>
+      </div>
+      <div class="grupo">
+        <h4>Dominio propio</h4>
+        <p>Conecta tu dominio (p. ej. <b>clinicasonrisa.com</b>) apuntando estos dos registros en tu proveedor:</p>
+        <div class="bloque-codigo" style="margin-bottom:10px">
+          <div class="linea"><span class="etiqueta-dns">Tipo A</span><span>@ → 76.76.21.21</span><button class="copiar">Copiar</button></div>
+          <div class="linea"><span class="etiqueta-dns">Tipo A</span><span>www → 76.76.21.21</span><button class="copiar">Copiar</button></div>
+        </div>
+        <div class="fila">
+          <input class="input" placeholder="tudominio.com">
+          <button class="btn btn-sec btn-quieto">Conectar</button>
+        </div>
+      </div>
+      <div class="grupo zona-peligro">
+        <div class="fila">
+          <div style="flex:1;min-width:220px">
+            <h4>Despublicar la web</h4>
+            <p style="margin:0">La web dejará de verse en internet. Podrás volver a publicarla cuando quieras.</p>
+          </div>
+          <button class="btn btn-peligro-sutil">Despublicar</button>
+        </div>
+      </div>
+    </div>
+  </details>
+
+  <!-- Vista previa (protagonista) + historial al lado -->
+  <div class="area">
+    <div class="previo">
+      <div class="previo-barra">
+        <select><option>Página: inicio (index.html)</option><option>servicios.html</option><option>contacto.html</option></select>
+        <label class="conmutador"><span class="palanca"></span> Modo edición</label>
+        <div class="derecha">
+          <button class="btn btn-sec btn-quieto">Descartar</button>
+          <button class="btn btn-primario btn-quieto">Guardar cambios</button>
+        </div>
+      </div>
+      <div class="lienzo-web">[ aquí vive la web real del cliente, en un iframe ]</div>
+    </div>
+
+    <aside class="historial">
+      <header>Historial</header>
+      <ul>
+        <li><span class="tipo actual"></span>Ahora · texto editado<span class="cuando">—</span></li>
+        <li><span class="tipo"></span>Imagen cambiada<span class="cuando">ayer</span><button class="btn btn-sec btn-quieto">Restaurar</button></li>
+        <li><span class="tipo"></span>Color del botón<span class="cuando">12 jul</span><button class="btn btn-sec btn-quieto">Restaurar</button></li>
+        <li><span class="tipo"></span>Importación inicial<span class="cuando">10 jul</span><button class="btn btn-sec btn-quieto">Restaurar</button></li>
+      </ul>
+    </aside>
+  </div>
+</main>
+</body>
+</html>

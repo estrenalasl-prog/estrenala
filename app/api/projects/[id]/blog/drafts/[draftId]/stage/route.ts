@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getDevContext } from "@/src/auth/dev-stub";
+import { getContexto } from "@/src/auth/contexto";
 import { projectStore } from "@/src/repositories/projects";
 import { blogStore } from "@/src/repositories/blog";
 import { ETAPAS, ejecutarEtapa, type Etapa } from "@/src/blog/pipeline";
@@ -14,7 +14,7 @@ function conError(e: unknown) {
 
 export async function POST(req: Request, ctx: { params: Promise<{ id: string; draftId: string }> }) {
   const { id, draftId } = await ctx.params;
-  const { orgId } = await getDevContext();
+  const { orgId } = await getContexto();
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   const etapa = typeof body.etapa === "string" ? body.etapa : "";
   const instruccion = (typeof body.instruccion === "string" ? body.instruccion : "").trim();

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getDevContext } from "@/src/auth/dev-stub";
+import { getContexto } from "@/src/auth/contexto";
 import { orgSettingsStore, type OrgSettings } from "@/src/repositories/org-settings";
 import { EditorError } from "@/src/editor/errors";
 
@@ -20,7 +20,7 @@ function estadoDe(claveUi: string, claveEnv: string | undefined) {
 }
 
 export async function GET() {
-  const { orgId } = await getDevContext();
+  const { orgId } = await getContexto();
   try {
     const s = await orgSettingsStore.getSettings(orgId);
     return NextResponse.json({
@@ -32,7 +32,7 @@ export async function GET() {
 }
 
 export async function PUT(req: Request) {
-  const { orgId } = await getDevContext();
+  const { orgId } = await getContexto();
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   try {
     const patch: Partial<OrgSettings> = {};

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getDevContext } from "@/src/auth/dev-stub";
+import { getContexto } from "@/src/auth/contexto";
 import { getStorage } from "@/src/storage/factory";
 import { projectStore } from "@/src/repositories/projects";
 import { blogStore } from "@/src/repositories/blog";
@@ -16,7 +16,7 @@ function conError(e: unknown) {
 
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
-  const { orgId } = await getDevContext();
+  const { orgId } = await getContexto();
   try {
     const project = await projectStore.getProject(orgId, id);
     if (!project) throw new EditorError("Proyecto no encontrado", 404);
@@ -28,7 +28,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
 
 export async function POST(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
-  const { orgId } = await getDevContext();
+  const { orgId } = await getContexto();
   try {
     const plantillas = await generarPlantillas(
       { store: projectStore, storage: getStorage() },
@@ -40,7 +40,7 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
 
 export async function PUT(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
-  const { orgId } = await getDevContext();
+  const { orgId } = await getContexto();
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   const s = (v: unknown) => (typeof v === "string" ? v : "");
   try {

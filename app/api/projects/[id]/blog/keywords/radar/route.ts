@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getDevContext } from "@/src/auth/dev-stub";
+import { getContexto } from "@/src/auth/contexto";
 import { projectStore } from "@/src/repositories/projects";
 import { blogStore } from "@/src/repositories/blog";
 import { actualizarRadar } from "@/src/blog/radar";
@@ -14,7 +14,7 @@ function conError(e: unknown) {
 
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
-  const { orgId } = await getDevContext();
+  const { orgId } = await getContexto();
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   try {
     const r = await actualizarRadar(

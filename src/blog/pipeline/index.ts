@@ -2,6 +2,7 @@ import { EditorError } from "@/src/editor/errors";
 import { basePublica } from "@/src/blog/render";
 import { sitesBaseDomain } from "@/src/blog/apply";
 import { modeloOrganizacion } from "@/src/config/claves";
+import { entrarOrg } from "@/src/auth/org-context";
 import type { DraftRow } from "@/src/repositories/blog";
 import { ETAPAS, type Contexto, type DepsPipeline, type Etapa, type FnEtapa } from "./tipos";
 import { etapaAnalisis } from "./analisis";
@@ -47,6 +48,7 @@ export async function ejecutarEtapa(
   etapa: Etapa,
   instruccion?: string
 ): Promise<{ ok: true } | { ok: false; error: string }> {
+  entrarOrg(deps.orgId); // claves BYOK de esta organización (org-context)
   const draft = await deps.blog.getDraft(deps.orgId, deps.projectId, draftId);
   if (!draft) throw new EditorError("Borrador no encontrado", 404);
   const project = await deps.store.getProject(deps.orgId, deps.projectId);

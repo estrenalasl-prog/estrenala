@@ -3,6 +3,7 @@ import { ejecutarEtapa, siguienteEtapa, type Etapa } from "@/src/blog/pipeline";
 import { generarPortada } from "@/src/blog/portada";
 import { programarPost } from "@/src/blog/programados";
 import { claveOpenRouter, claveSerpApi } from "@/src/config/claves";
+import { entrarOrg } from "@/src/auth/org-context";
 import type { StorageAdapter } from "@/src/storage/types";
 import type { ProjectStore } from "@/src/repositories/types";
 import type { BlogStore } from "@/src/repositories/blog";
@@ -50,6 +51,7 @@ async function ejecutarPiloto(
   modoPortada: string,
   ahora: Date
 ): Promise<boolean> {
+  entrarOrg(orgId); // claves BYOK de esta organización (org-context)
   const registrar = (msg: string) => deps.blog.registrarPiloto(projectId, msg);
   try {
     // 1) Sin claves no se arranca (y no se reintenta hasta el día siguiente).

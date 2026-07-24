@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hoja de componentes — sistema visual</title>
+<style>
+  :root{
+    --lienzo:#f8fafc; --superficie:#fff; --superficie-2:#f1f5f9; --borde:#e2e8f0; --borde-fuerte:#cbd5e1;
+    --texto:#0f172a; --texto-2:#475569; --texto-3:#94a3b8;
+    --primario:#4f46e5; --primario-osc:#4338ca; --primario-suave:#eef2ff; --primario-borde:#c7d2fe;
+    --exito:#059669; --exito-suave:#ecfdf5; --exito-texto:#047857;
+    --aviso:#d97706; --aviso-suave:#fffbeb; --aviso-texto:#b45309; --aviso-borde:#fde68a;
+    --peligro:#e11d48; --peligro-osc:#be123c; --peligro-suave:#fff1f2; --peligro-borde:#fecdd3;
+    --radio-c:8px; --radio-t:12px;
+    --sombra-1:0 1px 2px rgba(15,23,42,.06);
+    --sombra-2:0 4px 12px -2px rgba(15,23,42,.10);
+    --sombra-3:0 12px 24px -6px rgba(15,23,42,.16);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--lienzo);color:var(--texto);
+    font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  main{max-width:960px;margin:0 auto;padding:40px 24px 80px}
+  h1{font-size:28px;font-weight:700;letter-spacing:-.01em;margin:0 0 4px}
+  .sub{color:var(--texto-2);margin:0 0 32px}
+  section{margin-top:36px}
+  h2{font-size:18px;font-weight:600;letter-spacing:-.01em;margin:0 0 4px}
+  .nota{font-size:13px;color:var(--texto-2);margin:0 0 14px}
+  .fila{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+  .muestra{background:var(--superficie);border:1px solid var(--borde);border-radius:var(--radio-t);
+    padding:20px;box-shadow:var(--sombra-1)}
+
+  /* ---------- Botones ---------- */
+  .btn{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 16px;border-radius:var(--radio-c);
+    font:inherit;font-weight:500;cursor:pointer;border:1px solid transparent;transition:.12s}
+  .btn:focus-visible{outline:2px solid var(--primario);outline-offset:2px}
+  .btn-primario{background:var(--primario);color:#fff;font-weight:600;box-shadow:var(--sombra-1)}
+  .btn-primario:hover{background:var(--primario-osc)}
+  .btn-sec{background:var(--superficie);border-color:var(--borde);color:var(--texto)}
+  .btn-sec:hover{border-color:var(--borde-fuerte);background:var(--superficie-2)}
+  .btn-peligro{background:var(--peligro);color:#fff;font-weight:600}
+  .btn-peligro:hover{background:var(--peligro-osc)}
+  .btn-peligro-sutil{background:var(--peligro-suave);border-color:var(--peligro-borde);color:var(--peligro)}
+  .btn[disabled]{opacity:.5;pointer-events:none}
+  .btn-quieto{height:30px;padding:0 10px;font-size:13px}
+  .spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;
+    animation:girar .7s linear infinite}
+  .btn-sec .spinner{border-color:var(--borde-fuerte);border-top-color:var(--texto-2)}
+  @keyframes girar{to{transform:rotate(360deg)}}
+
+  /* ---------- Inputs ---------- */
+  .campo{display:block;font-size:13px;font-weight:500;color:var(--texto-2);margin-bottom:6px}
+  .input{height:36px;width:100%;max-width:320px;border:1px solid var(--borde);border-radius:var(--radio-c);
+    background:var(--superficie);padding:0 12px;font:inherit;color:var(--texto)}
+  .input::placeholder{color:var(--texto-3)}
+  .input:hover{border-color:var(--borde-fuerte)}
+  .input:focus{border-color:var(--primario);box-shadow:0 0 0 3px rgba(79,70,229,.25);outline:none}
+  .input-error{border-color:var(--peligro)}
+  .input-error:focus{box-shadow:0 0 0 3px rgba(225,29,72,.2)}
+  .ayuda-error{font-size:12px;color:var(--peligro);margin-top:6px}
+  .input[disabled]{background:var(--superficie-2);color:var(--texto-3)}
+
+  /* ---------- Badges ---------- */
+  .badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;
+    font-size:12px;font-weight:500}
+  .badge .punto{width:6px;height:6px;border-radius:50%}
+  .badge-exito{background:var(--exito-suave);color:var(--exito-texto)}
+  .badge-exito .punto{background:var(--exito)}
+  .badge-aviso{background:var(--aviso-suave);color:var(--aviso-texto)}
+  .badge-aviso .punto{background:var(--aviso)}
+  .badge-neutro{background:var(--superficie-2);color:var(--texto-2)}
+  .badge-neutro .punto{background:var(--texto-3)}
+  .badge-peligro{background:var(--peligro-suave);color:var(--peligro)}
+  .badge-peligro .punto{background:var(--peligro)}
+
+  /* ---------- Tarjeta de proyecto ---------- */
+  .tarjeta-proyecto{display:flex;flex-direction:column;width:280px;border:1px solid var(--borde);
+    border-radius:var(--radio-t);background:var(--superficie);box-shadow:var(--sombra-1);overflow:hidden;
+    cursor:pointer;transition:.15s}
+  .tarjeta-proyecto:hover{box-shadow:var(--sombra-2);border-color:var(--borde-fuerte)}
+  .mini{height:110px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:34px;
+    font-weight:700;background:linear-gradient(135deg,#4f46e5,#0ea5e9)}
+  .tarjeta-cuerpo{padding:14px 16px 16px}
+  .tarjeta-cuerpo h3{margin:0 0 6px;font-size:15px;font-weight:600}
+  .meta{font-size:12px;color:var(--texto-3)}
+  .url-publica{display:inline-flex;align-items:center;gap:6px;margin-top:8px;max-width:100%;
+    border-radius:999px;background:var(--primario-suave);color:var(--primario);border:1px solid var(--primario-borde);
+    padding:3px 10px;font-size:12px;text-decoration:none;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+
+  /* ---------- Toasts ---------- */
+  .toast{display:flex;gap:10px;align-items:flex-start;max-width:420px;border-radius:var(--radio-t);
+    padding:12px 14px;font-size:13px;border:1px solid}
+  .toast b{display:block;font-size:13px}
+  .toast-exito{background:var(--exito-suave);border-color:#a7f3d0;color:var(--exito-texto)}
+  .toast-error{background:var(--peligro-suave);border-color:var(--peligro-borde);color:var(--peligro-osc)}
+  .toast .cerrar{margin-left:auto;border:0;background:none;cursor:pointer;color:inherit;opacity:.6}
+
+  /* ---------- Confirmación en dos pasos ---------- */
+  .confirmacion{display:inline-flex;align-items:center;gap:8px;background:var(--peligro-suave);
+    border:1px solid var(--peligro-borde);border-radius:var(--radio-c);padding:6px 8px 6px 12px;font-size:13px;color:var(--peligro-osc)}
+
+  /* ---------- Bloque DNS ---------- */
+  .bloque-codigo{max-width:520px;background:var(--superficie-2);border:1px solid var(--borde);
+    border-radius:var(--radio-c);padding:4px 4px 4px 0;font-family:ui-monospace,Consolas,monospace;font-size:13px}
+  .bloque-codigo .linea{display:flex;align-items:center;gap:12px;padding:7px 8px 7px 14px;border-radius:6px}
+  .bloque-codigo .linea:hover{background:#e8edf3}
+  .bloque-codigo .copiar{margin-left:auto;height:26px;padding:0 10px;font:500 12px system-ui;border:1px solid var(--borde);
+    background:var(--superficie);border-radius:6px;cursor:pointer;color:var(--texto-2)}
+  .bloque-codigo .copiar:hover{border-color:var(--borde-fuerte);color:var(--texto)}
+  .etiqueta-dns{color:var(--texto-3);width:64px}
+
+  /* ---------- Historial ---------- */
+  .historial{max-width:460px;border:1px solid var(--borde);border-radius:var(--radio-t);background:var(--superficie);overflow:hidden}
+  .historial header{padding:12px 16px;font-weight:600;font-size:13px;border-bottom:1px solid var(--borde)}
+  .historial ul{margin:0;padding:0;list-style:none}
+  .historial li{display:flex;align-items:center;gap:10px;padding:10px 16px;font-size:13px;border-bottom:1px solid var(--borde)}
+  .historial li:last-child{border-bottom:0}
+  .historial .tipo{width:8px;height:8px;border-radius:50%;background:var(--texto-3);flex:none}
+  .historial .tipo.actual{background:var(--exito)}
+  .historial .cuando{color:var(--texto-3);margin-left:auto}
+
+  /* ---------- Estado vacío ---------- */
+  .vacio{max-width:460px;border:1.5px dashed var(--borde-fuerte);border-radius:var(--radio-t);
+    padding:36px 24px;text-align:center;color:var(--texto-2);background:var(--superficie)}
+  .vacio .icono{font-size:30px;margin-bottom:8px}
+  .vacio h3{margin:0 0 4px;color:var(--texto);font-size:15px}
+  .vacio p{margin:0 0 14px;font-size:13px}
+</style>
+</head>
+<body>
+<main>
+  <h1>Hoja de componentes</h1>
+  <p class="sub">Entregable 3 del design-brief · todos los estados · los colores y medidas salen de <code>01-tokens.md</code></p>
+
+  <section>
+    <h2>Botones</h2>
+    <p class="nota">Un solo primario por vista. «Ocupado» conserva el ancho y conjuga el verbo. El rojo nunca es «cancelar».</p>
+    <div class="muestra fila">
+      <button class="btn btn-primario">Publicar</button>
+      <button class="btn btn-primario" disabled><span class="spinner"></span>Publicando…</button>
+      <button class="btn btn-primario" disabled>Publicar</button>
+      <button class="btn btn-sec">Vista previa</button>
+      <button class="btn btn-sec" disabled><span class="spinner"></span>Cargando…</button>
+      <button class="btn btn-peligro">Despublicar</button>
+      <button class="btn btn-peligro-sutil">Quitar dominio</button>
+      <button class="btn btn-sec btn-quieto">Acción compacta</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>Inputs</h2>
+    <p class="nota">Etiqueta arriba, siempre. El error habla en persona («Revisa…»), no en código.</p>
+    <div class="muestra" style="display:grid;gap:18px">
+      <div><label class="campo">Nombre del proyecto</label><input class="input" placeholder="p. ej. Clínica Sonrisa"></div>
+      <div><label class="campo">Subdominio</label><input class="input" value="clinica-sonrisa" style="border-color:var(--primario);box-shadow:0 0 0 3px rgba(79,70,229,.25)"></div>
+      <div>
+        <label class="campo">Dominio propio</label>
+        <input class="input input-error" value="clinica sonrisa,com">
+        <p class="ayuda-error">Dominio no válido (ejemplo: miempresa.com)</p>
+      </div>
+      <div><label class="campo">Campo deshabilitado</label><input class="input" disabled value="No disponible en tu plan"></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Badges de estado</h2>
+    <div class="muestra fila">
+      <span class="badge badge-exito"><span class="punto"></span>Publicado</span>
+      <span class="badge badge-aviso"><span class="punto"></span>Cambios sin publicar</span>
+      <span class="badge badge-neutro"><span class="punto"></span>Sin publicar</span>
+      <span class="badge badge-peligro"><span class="punto"></span>Error</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Tarjeta de proyecto</h2>
+    <p class="nota">Miniatura (o degradado con inicial), estado, URL pública clicable y fecha.</p>
+    <div class="fila">
+      <div class="tarjeta-proyecto">
+        <div class="mini">C</div>
+        <div class="tarjeta-cuerpo">
+          <h3>Clínica Sonrisa</h3>
+          <span class="badge badge-exito"><span class="punto"></span>Publicado</span>
+          <br><a class="url-publica" href="#">clinica-sonrisa.plataforma.com</a>
+          <div class="meta" style="margin-top:8px">Actualizado hace 2 días</div>
+        </div>
+      </div>
+      <div class="tarjeta-proyecto">
+        <div class="mini" style="background:linear-gradient(135deg,#0f766e,#84cc16)">T</div>
+        <div class="tarjeta-cuerpo">
+          <h3>Taller Rodríguez</h3>
+          <span class="badge badge-aviso"><span class="punto"></span>Cambios sin publicar</span>
+          <br><a class="url-publica" href="#">taller-rodriguez.plataforma.com</a>
+          <div class="meta" style="margin-top:8px">Actualizado hoy</div>
+        </div>
+      </div>
+      <div class="tarjeta-proyecto">
+        <div class="mini" style="background:linear-gradient(135deg,#7c3aed,#db2777)">F</div>
+        <div class="tarjeta-cuerpo">
+          <h3>Floristería Pétalos</h3>
+          <span class="badge badge-neutro"><span class="punto"></span>Sin publicar</span>
+          <div class="meta" style="margin-top:8px">Importado ayer</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Toast / banner</h2>
+    <div class="muestra" style="display:grid;gap:12px">
+      <div class="toast toast-exito">✅<div><b>Web publicada</b>Ya está online en clinica-sonrisa.plataforma.com</div><button class="cerrar">✕</button></div>
+      <div class="toast toast-error">⚠️<div><b>No se pudo publicar</b>El servidor no respondió. Vuelve a intentarlo en unos segundos.</div><button class="cerrar">✕</button></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Confirmación en dos pasos</h2>
+    <p class="nota">Patrón de Despublicar / Quitar dominio: la pregunta sustituye al botón, en su sitio.</p>
+    <div class="muestra fila">
+      <button class="btn btn-peligro-sutil">Despublicar</button>
+      <span style="color:var(--texto-3)">→ al hacer clic →</span>
+      <span class="confirmacion">¿Seguro? La web dejará de verse.
+        <button class="btn btn-peligro btn-quieto">Sí, despublicar</button>
+        <button class="btn btn-sec btn-quieto">Cancelar</button>
+      </span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Bloque DNS / código copiable</h2>
+    <div class="muestra">
+      <div class="bloque-codigo">
+        <div class="linea"><span class="etiqueta-dns">Tipo A</span><span>@ → 76.76.21.21</span><button class="copiar">Copiar</button></div>
+        <div class="linea"><span class="etiqueta-dns">Tipo A</span><span>www → 76.76.21.21</span><button class="copiar">Copiar</button></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Historial de versiones</h2>
+    <div class="historial">
+      <header>Historial</header>
+      <ul>
+        <li><span class="tipo actual"></span>Versión actual · edición de texto<span class="cuando">hace 5 min</span></li>
+        <li><span class="tipo"></span>Cambio de imagen<span class="cuando">ayer</span><button class="btn btn-sec btn-quieto">Restaurar</button></li>
+        <li><span class="tipo"></span>Importación inicial<span class="cuando">12 jul</span><button class="btn btn-sec btn-quieto">Restaurar</button></li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <h2>Estado vacío</h2>
+    <div class="vacio">
+      <div class="icono">🗂️</div>
+      <h3>Importa tu primera web</h3>
+      <p>Sube el ZIP que te generó tu IA y en un minuto estará online.</p>
+      <button class="btn btn-primario">Importar web</button>
+    </div>
+  </section>
+</main>
+</body>
+</html>

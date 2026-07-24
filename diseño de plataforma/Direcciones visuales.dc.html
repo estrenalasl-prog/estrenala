@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta name="design_doc_mode" content="canvas">
+<style>
+  body{margin:0;background:#8f9094;font-family:system-ui,-apple-system,sans-serif}
+  a{color:inherit}
+</style>
+</helmet>
+
+<section style="padding:56px 48px 96px;display:flex;flex-direction:column;gap:28px;font-family:system-ui,sans-serif">
+  <div style="max-width:760px;display:flex;flex-direction:column;gap:10px;color:#fff">
+    <div style="font:600 12px/1 'Space Grotesk';letter-spacing:.14em;text-transform:uppercase;opacity:.7">Sesión de diseño · Punto 2</div>
+    <h1 style="font:700 34px/1.05 'Space Grotesk';letter-spacing:-.02em;margin:0;color:#fff">Tres direcciones visuales</h1>
+    <p style="margin:0;font-size:15px;line-height:1.55;opacity:.82;max-width:640px">Las tres son <b>casi monocromo con un solo acento potente</b> y usan Space Grotesk. Comparten las reglas de la v1 (un primario por vista, rojo solo destructivo, estados en badges). Cambia la <b>personalidad</b>: el neutro, el acento y la temperatura. <b>1b es la valiente de verdad.</b> Elige una y produzco los entregables. Cada tarjeta incluye ambas variantes de badge (punto vs. emoji) para que decidas eso también.</p>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start">
+
+    <!-- ============ 1a · COBALTO ============ -->
+    <div id="1a" style="position:relative;width:452px;background:#FBFBFD;border-radius:20px;overflow:hidden;box-shadow:0 24px 60px -20px rgba(0,0,0,.45);border:1px solid rgba(0,0,0,.04)">
+      <div style="position:absolute;top:16px;right:16px;z-index:2;background:#16171A;color:#fff;font:600 12px/1 'Space Grotesk';letter-spacing:.06em;padding:6px 11px;border-radius:999px">1a</div>
+      <!-- specimen header -->
+      <div style="padding:32px 32px 24px;background:#FBFBFD;color:#16171A">
+        <div style="font:600 12px/1 'Space Grotesk';letter-spacing:.14em;text-transform:uppercase;color:#1E3AE8;margin-bottom:14px">Dirección · Cobalto</div>
+        <div style="font:700 40px/1.0 'Space Grotesk';letter-spacing:-.03em">Publica tu web<br><span style="color:#1E3AE8">en un clic.</span></div>
+        <p style="margin:14px 0 0;font-size:13.5px;line-height:1.5;color:#5B5E66;max-width:330px">Precisión de instrumento. Blanco frío casi Apple, tinta neutra y un azul ultramar profundo —seguro, capaz, sin ser el índigo de siempre.</p>
+      </div>
+      <!-- palette -->
+      <div style="display:flex;padding:0 32px 22px;gap:0">
+        <div style="flex:1"><div style="height:44px;background:#FBFBFD;border:1px solid #E7E8EC;border-right:0;border-radius:8px 0 0 8px"></div><div style="font:500 9.5px/1.4 'Space Grotesk';color:#8b8e96;margin-top:6px">Lienzo</div></div>
+        <div style="flex:1"><div style="height:44px;background:#F1F2F6;border:1px solid #E7E8EC;border-right:0"></div><div style="font:500 9.5px/1.4 'Space Grotesk';color:#8b8e96;margin-top:6px">Súperf.</div></div>
+        <div style="flex:1"><div style="height:44px;background:#5B5E66"></div><div style="font:500 9.5px/1.4 'Space Grotesk';color:#8b8e96;margin-top:6px">Texto-2</div></div>
+        <div style="flex:1"><div style="height:44px;background:#16171A"></div><div style="font:500 9.5px/1.4 'Space Grotesk';color:#8b8e96;margin-top:6px">Tinta</div></div>
+        <div style="flex:1.3"><div style="height:44px;background:#1E3AE8;border-radius:0 8px 8px 0"></div><div style="font:600 9.5px/1.4 'Space Grotesk';color:#1E3AE8;margin-top:6px">#1E3AE8</div></div>
+      </div>
+      <!-- mini UI context -->
+      <div style="margin:0 20px 20px;background:#FFFFFF;border:1px solid #E7E8EC;border-radius:14px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.04)">
+        <div style="height:96px;background:repeating-linear-gradient(45deg,#F1F2F6 0 12px,#E9EAF0 12px 24px)"></div>
+        <div style="padding:14px 16px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+            <div style="font:600 15px/1 'Space Grotesk';color:#16171A;flex:1">Clínica Sonrisa</div>
+            <span style="display:inline-flex;align-items:center;gap:6px;background:#FFF7E6;color:#9A6600;border-radius:999px;padding:4px 10px;font:500 11px/1 system-ui"><span style="width:6px;height:6px;border-radius:50%;background:#E0A100"></span>Cambios sin publicar</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="flex:1;display:inline-flex;align-items:center;gap:6px;background:#EEF1FE;border:1px solid #C9D2FB;color:#1E3AE8;border-radius:999px;padding:6px 6px 6px 13px;font:500 12px/1 system-ui">clinica-sonrisa.web·com<button style="border:0;background:#fff;color:#1E3AE8;border-radius:999px;padding:4px 9px;font:600 11px system-ui;cursor:pointer">Copiar</button></span>
+            <button style="height:34px;padding:0 16px;border:0;border-radius:9px;background:#1E3AE8;color:#fff;font:600 13px 'Space Grotesk';cursor:pointer">Publicar</button>
+          </div>
+        </div>
+      </div>
+      <!-- badge variants -->
+      <div style="border-top:1px solid #E7E8EC;padding:16px 20px;display:flex;flex-direction:column;gap:10px">
+        <div style="font:600 10px/1 'Space Grotesk';letter-spacing:.1em;text-transform:uppercase;color:#a1a4ac">Badges · punto vs. emoji</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <span style="display:inline-flex;align-items:center;gap:6px;background:#E9F7EF;color:#0A7C42;border-radius:999px;padding:4px 11px;font:500 11.5px/1 system-ui"><span style="width:6px;height:6px;border-radius:50%;background:#12A85B"></span>Publicado</span>
+          <span style="display:inline-flex;align-items:center;gap:6px;background:#FFF7E6;color:#9A6600;border-radius:999px;padding:4px 11px;font:500 11.5px/1 system-ui"><span style="width:6px;height:6px;border-radius:50%;background:#E0A100"></span>Sin publicar</span>
+          <span style="display:inline-flex;align-items:center;gap:6px;background:#F1F2F6;color:#5B5E66;border-radius:999px;padding:4px 11px;font:500 11.5px/1 system-ui"><span style="width:6px;height:6px;border-radius:50%;background:#a1a4ac"></span>Borrador</span>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <span style="display:inline-flex;align-items:center;gap:6px;background:#E9F7EF;color:#0A7C42;border-radius:999px;padding:4px 11px;font:500 11.5px/1 system-ui">🟢 Publicado</span>
+          <span style="display:inline-flex;align-items:center;gap:6px;background:#FFF7E6;color:#9A6600;border-radius:999px;padding:4px 11px;font:500 11.5px/1 system-ui">🟡 Sin publicar</span>
+          <span style="display:inline-flex;align-items:center;gap:6px;background:#F1F2F6;color:#5B5E66;border-radius:999px;padding:4px 11px;font:500 11.5px/1 system-ui">⚪ Borrador</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ 1b · ALTO VOLTAJE (la valiente) ============ -->
+    <div id="1b" style="position:relative;width:452px;background:#F5F6F1;border-radius:20px;overflow:hidden;box-shadow:0 24px 70px -18px rgba(0,0,0,.55);border:1px solid rgba(0,0,0,.04)">
+      <div style="position:absolute;top:16px;right:16px;z-index:2;display:flex;gap:6px;align-items:center">
+        <span style="background:#C4F000;color:#141509;font:600 11px/1 'Space Grotesk';letter-spacing:.04em;padding:6px 10px;border-radius:999px">LA VALIENTE</span>
+        <span style="background:#141509;color:#fff;font:600 12px/1 'Space Grotesk';letter-spacing:.06em;padding:6px 11px;border-radius:999px">1b</span>
+      </div>
+      <div style="padding:32px 32px 24px;background:#F5F6F1;color:#141509">
+        <div style="font:600 12px/1 'Space Grotesk';letter-spacing:.14em;text-transform:uppercase;color:#141509;margin-bottom:14px">Dirección · Alto Voltaje</div>
+        <div style="font:700 40px/1.0 'Space Grotesk';letter-spacing:-.03em">Tu web,<br><span style="background:#C4F000;padding:0 6px;border-radius:4px">encendida.</span></div>
+        <p style="margin:14px 0 0;font-size:13.5px;line-height:1.5;color:#55584c;max-width:330px">Tinta casi negra sobre papel cálido y un único lima eléctrico que grita «en directo». Imposible de confundir con otro SaaS. Bold, reconocible de reojo.</p>
+      </div>
+      <div style="display:flex;padding:0 32px 22px;gap:0">
+        <div style="flex:1"><div style="height:44px;background:#F5F6F1;border:1px solid #DEDFD6;border-right:0;border-radius:8px 0 0 8px"></div><div style="font:500 9.5px/1.4 'Space Grotesk';color:#8a8c80;margin-top:6px">Lienzo</div></div>
+        <div style="flex:1"><div style="height:44px;background:#ECEDE4;border:1px solid #DEDFD6;border-right:0"></div><div style="font:500 9.5px/1.4 'Space Grotesk';color:#8a8c80;margin-top:6px">Súperf.</div></div>
+        <div style="flex:1"><div style="height:44px;background:#55584c"></div><div style="font:500 9.5px/1.4 'Space Grotesk';color:#8a8c80;margin-top:6px">Texto-2</div></div>
+        <div style="flex:1"><div style="height:44px;background:#141509"></div><div style="font:500 9.5px/1.4 'Space Grotesk';color:#8a8c80;margin-top:6px">Tinta</div></div>
+        <div style="flex:1.3"><div style="height:44px;background:#C4F000;border-radius:0 8px 8px 0"></div><div style="font:600 9.5px/1.4 'Space Grotesk';color:#6b7d00;margin-top:6px">#C4F000</div></div>
+      </div>
+      <div style="margin:0 20px 20px;background:#FFFFFF;border:1px solid #DEDFD6;border-radius:14px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.04)">
+        <div style="height:96px;background:repeating-linear-gradient(45deg,#ECEDE4 0 12px,#E3E4D9 12px 24px)"></div>
+        <div style="padding:14px 16px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+            <div style="font:600 15px/1 'Space Grotesk';color:#141509;flex:1">Clínica Sonrisa</div>
+            <span style="display:inline-flex;align-items:center;gap:6px;background:#FFF7E6;color:#8a5b00;border-radius:999px;padding:4px 10px;font:500 11px/1 system-ui"><span style="width:6px;height:6px;border-radius:50%;background:#D99500"></span>Cambios sin publicar</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="flex:1;display:inline-flex;align-items:center;gap:6px;background:#F5F6F1;border:1px solid #DEDFD6;color:#141509;border-radius:999px;padding:6px 6px 6px 13px;font:500 12px/1 system-ui">clinica-sonrisa.web·com<button style="border:0;background:#141509;color:#fff;border-radius:999px;padding:4px 9px;font:600 11px system-ui;cursor:pointer">Copiar</button></span>
+            <button style="height:34px;padding:0 16px;border:0;border-radius:9px;background:#C4F000;color:#141509;font:700 13px 'Space Grotesk';cursor:pointer">Publicar</button>
+          </div>
+        </div>
+      </div>
+      <div style="border-top:1px solid #DEDFD6;padding:16px 20px;display:flex;flex-direction:column;gap:10px">
+        <div style="font:600 10px/1 'Space Grotesk';letter-spacing:.1em;text-transform:uppercase;color:#9a9c8f">Badges · punto vs. emoji</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <span style="display:inline-flex;align-items:center;gap:6px;background:#E7F5E9;color:#1F7A34;border-radius:999px;padding:4px 11px;font:500 11.5px/1 system-ui"><span style="width:6px;height:6px;border-radius:50%;background:#2A9D3F"></span>Publicado</span>
+          <span style="display:inline-flex;align-items:center;gap:6px;background:#FFF7E6;color:#8a5b00;border-radius:999px;padding:4px 11px;font:500 11.5px/1 system-ui"><span style="width:6px;height:6px;border-radius:50%;background:#D99500"></span>Sin publicar</span>
+          <span style="display:inline-flex;align-items:center;gap:6px;background:#ECEDE4;color:#55584c;border-radius:999px;padding:4px 11px;font:500 11.5px/1 system-ui"><span style="width:6px;height:6px;border-radius:50%;background:#9a9c8f"></span>Borrador</span>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <span style="display:inline-flex;align-items:center;gap:6px;background:#E7F5E9;color:#1F7A34;border-radius:999px;padding:4px 11px;font:500 11.5px/1 system-ui">🟢 Publicado</span>
+          <span style="display:inline-flex;align-items:center;gap:6px;background:#FFF7E6;color:#8a5b00;border-radius:999px;padding:4px 11px;font:500 11.5px/1 system-ui">🟡 Sin publicar</span>
+          <span style="display:inline-flex;align-items:center;gap:6px;background:#ECEDE4;color:#55584c;border-radius:999px;padding:4px 11px;font:500 11.5px/1 system-ui">⚪ Borrador</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ 1c · PAPEL & TINTA ============ -->
+    <div id="1c" style="position:relative;width:452px;background:#FBF8F3;border-radius:20px;overflow:hidden;box-shadow:0 24px 60px -20px rgba(0,0,0,.45);border:1px solid rgba(0,0,0,.04)">
+      <div style="position:absolute;top:16px;right:16px;z-index:2;background:#1C1A17;color:#fff;font:600 12px/1 'Space Grotesk';letter-spacing:.06em;padding:6px 11px;border-radius:999px">1c</div>
+      <div style="padding:32px 32px 24px;background:#FBF8F3;color:#1C1A17">
+        <div style="font:600 12px/1 'Space Grotesk';letter-spacing:.14em;text-transform:uppercase;color:#D8531B;margin-bottom:14px">Dirección · Papel &amp; Tinta</div>
+        <div style="font:700 40px/1.0 'Space Grotesk';letter-spacing:-.03em">Estrena tu web<br><span style="color:#D8531B">hoy mismo.</span></div>
+        <p style="margin:14px 0 0;font-size:13.5px;line-height:1.5;color:#6B655C;max-width:330px">Papel hueso cálido y un naranja fundido con energía de estreno. Editorial, humana, capaz —la más cercana de las tres sin perder oficio.</p>
+      </div>
+      <div style="display:flex;padding:0 32px 22px;gap:0">
+        <div style="flex:1"><div style="height:44px;background:#FBF8F3;border:1px solid #EAE3D8;border-right:0;border-radius:8px 0 0 8px"></div><div style="font:500 9.5px/1.4 'Space Grotesk';color:#9a9084;margin-top:6px">Lienzo</div></div>
+        <div style="flex:1"><div style="height:44px;background:#F3ECE1;border:1px solid #EAE3D8;border-right:0"></div><div style="font:500 9.5px/1.4 'Space Grotesk';color:#9a9084;margin-top:6px">Súperf.</div></div>
+        <div style="flex:1"><div style="height:44px;background:#6B655C"></div><div style="font:500 9.5px/1.4 'Space Grotesk';color:#9a9084;margin-top:6px">Texto-2</div></div>
+        <div style="flex:1"><div style="height:44px;background:#1C1A17"></div><div style="font:500 9.5px/1.4 'Space Grotesk';color:#9a9084;margin-top:6px">Tinta</div></div>
+        <div style="flex:1.3"><div style="height:44px;background:#D8531B;border-radius:0 8px 8px 0"></div><div style="font:600 9.5px/1.4 'Space Grotesk';color:#D8531B;margin-top:6px">#D8531B</div></div>
+      </div>
+      <div style="margin:0 20px 20px;background:#FFFDFA;border:1px solid #EAE3D8;border-radius:14px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.04)">
+        <div style="height:96px;background:repeating-linear-gradient(45deg,#F3ECE1 0 12px,#EDE4D6 12px 24px)"></div>
+        <div style="padding:14px 16px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+            <div style="font:600 15px/1 'Space Grotesk';color:#1C1A17;flex:1">Clínica Sonrisa</div>
+            <span style="display:inline-flex;align-items:center;gap:6px;background:#FBF0E0;color:#8a5a12;border-radius:999px;padding:4px 10px;font:500 11px/1 system-ui"><span style="width:6px;height:6px;border-radius:50%;background:#C88A1E"></span>Cambios sin publicar</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="flex:1;display:inline-flex;align-items:center;gap:6px;background:#FBEEE6;border:1px solid #F3D3BF;color:#B8420F;border-radius:999px;padding:6px 6px 6px 13px;font:500 12px/1 system-ui">clinica-sonrisa.web·com<button style="border:0;background:#fff;color:#B8420F;border-radius:999px;padding:4px 9px;font:600 11px system-ui;cursor:pointer">Copiar</button></span>
+            <button style="height:34px;padding:0 16px;border:0;border-radius:9px;background:#D8531B;color:#fff;font:600 13px 'Space Grotesk';cursor:pointer">Publicar</button>
+          </div>
+        </div>
+      </div>
+      <div style="border-top:1px solid #EAE3D8;padding:16px 20px;display:flex;flex-direction:column;gap:10px">
+        <div style="font:600 10px/1 'Space Grotesk';letter-spacing:.1em;text-transform:uppercase;color:#b0a698">Badges · punto vs. emoji</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <span style="display:inline-flex;align-items:center;gap:6px;background:#E9F3E9;color:#3A7A2E;border-radius:999px;padding:4px 11px;font:500 11.5px/1 system-ui"><span style="width:6px;height:6px;border-radius:50%;background:#4E9E3C"></span>Publicado</span>
+          <span style="display:inline-flex;align-items:center;gap:6px;background:#FBF0E0;color:#8a5a12;border-radius:999px;padding:4px 11px;font:500 11.5px/1 system-ui"><span style="width:6px;height:6px;border-radius:50%;background:#C88A1E"></span>Sin publicar</span>
+          <span style="display:inline-flex;align-items:center;gap:6px;background:#F3ECE1;color:#6B655C;border-radius:999px;padding:4px 11px;font:500 11.5px/1 system-ui"><span style="width:6px;height:6px;border-radius:50%;background:#b0a698"></span>Borrador</span>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <span style="display:inline-flex;align-items:center;gap:6px;background:#E9F3E9;color:#3A7A2E;border-radius:999px;padding:4px 11px;font:500 11.5px/1 system-ui">🟢 Publicado</span>
+          <span style="display:inline-flex;align-items:center;gap:6px;background:#FBF0E0;color:#8a5a12;border-radius:999px;padding:4px 11px;font:500 11.5px/1 system-ui">🟡 Sin publicar</span>
+          <span style="display:inline-flex;align-items:center;gap:6px;background:#F3ECE1;color:#6B655C;border-radius:999px;padding:4px 11px;font:500 11.5px/1 system-ui">⚪ Borrador</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="max-width:760px;color:#fff;opacity:.72;font-size:13px;line-height:1.6">
+    <b>Mi recomendación:</b> si de verdad quieres «valiente y reconocible», <a href="#1b" style="color:#C4F000;font-weight:600">1b (Alto Voltaje)</a>. El lima eléctrico como acción única es memorable y encaja con «en directo / encendida». Si prefieres valiente pero más sobrio y corporativo, <a href="#1a" style="color:#fff;font-weight:600">1a (Cobalto)</a>. <a href="#1c" style="color:#fff;font-weight:600">1c</a> es la más cálida y humana. Dime el número y arranco por tokens.
+  </div>
+</section>
+
+</x-dc>
+</body>
+</html>

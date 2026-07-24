@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getDevContext } from "@/src/auth/dev-stub";
+import { getContexto } from "@/src/auth/contexto";
 import { getStorage } from "@/src/storage/factory";
 import { projectStore } from "@/src/repositories/projects";
 import { saveEdits } from "@/src/editor/save-edits";
@@ -10,7 +10,7 @@ export const runtime = "nodejs";
 
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
-  const { orgId } = await getDevContext();
+  const { orgId } = await getContexto();
   let body: { ops?: EditOp[] };
   try {
     body = (await req.json()) as { ops?: EditOp[] };

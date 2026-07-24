@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wordmarks — 3 candidatos de nombre</title>
+<style>
+  body{margin:0;background:#f8fafc;color:#0f172a;font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  main{max-width:900px;margin:0 auto;padding:40px 24px 80px}
+  h1{font-size:28px;font-weight:700;letter-spacing:-.01em;margin:0 0 4px}
+  .sub{color:#475569;margin:0 0 28px}
+  .candidato{background:#fff;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 1px 2px rgba(15,23,42,.06);
+    padding:28px;margin-bottom:24px}
+  .muestra-grande{display:flex;align-items:center;gap:18px;padding:26px 0 20px;flex-wrap:wrap}
+  .fila-mini{display:flex;align-items:center;gap:24px;border-top:1px solid #e2e8f0;padding-top:16px;flex-wrap:wrap}
+  .rational{font-size:13px;color:#475569;margin:0}
+  .dominio{font-size:12px;color:#94a3b8;font-family:ui-monospace,Consolas,monospace}
+  .encabezado-c{display:flex;align-items:baseline;gap:12px;margin-bottom:2px}
+  .encabezado-c h2{font-size:16px;margin:0}
+  .tagline{font-size:13px;color:#64748b;font-style:italic}
+
+  /* ---------- 1. Estrénala: el momento de cortar la cinta ---------- */
+  .wm-estrenala{font-size:46px;font-weight:800;letter-spacing:-.03em;color:#0f172a;position:relative}
+  .wm-estrenala .acento{color:#4f46e5}
+  .wm-estrenala .chispa{position:absolute;top:-6px;right:-20px;font-size:20px}
+  .icono-estrenala{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;font-size:24px;color:#fff;
+    background:linear-gradient(135deg,#4f46e5,#db2777)}
+  .mini-estrenala{display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:15px}
+  .mini-estrenala .s{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font-size:13px;color:#fff;
+    background:linear-gradient(135deg,#4f46e5,#db2777)}
+
+  /* ---------- 2. WebNace: lo que germina ---------- */
+  .wm-webnace{font-size:46px;font-weight:700;letter-spacing:-.02em;color:#0f172a}
+  .wm-webnace .nace{color:#059669;font-weight:800}
+  .icono-webnace{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;font-size:24px;color:#fff;
+    background:linear-gradient(160deg,#065f46,#10b981)}
+  .mini-webnace{display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:15px}
+  .mini-webnace .s{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font-size:13px;color:#fff;
+    background:linear-gradient(160deg,#065f46,#10b981)}
+
+  /* ---------- 3. YaVive: en directo ---------- */
+  .wm-yavive{font-size:46px;font-weight:800;letter-spacing:-.02em;color:#0f172a;display:inline-flex;align-items:center;gap:14px}
+  .wm-yavive .vive{color:#0ea5e9}
+  .pulso{position:relative;width:16px;height:16px}
+  .pulso .nucleo{position:absolute;inset:3px;border-radius:50%;background:#059669}
+  .pulso .onda{position:absolute;inset:0;border-radius:50%;border:2px solid #059669;opacity:.5;animation:latir 1.6s ease-out infinite}
+  @keyframes latir{0%{transform:scale(.6);opacity:.7}100%{transform:scale(1.5);opacity:0}}
+  .icono-yavive{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;color:#fff;
+    background:linear-gradient(135deg,#0369a1,#0ea5e9)}
+  .icono-yavive .p{width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 0 0 4px rgba(255,255,255,.35)}
+  .mini-yavive{display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:15px}
+  .mini-yavive .s{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;
+    background:linear-gradient(135deg,#0369a1,#0ea5e9)}
+  .mini-yavive .s i{width:8px;height:8px;border-radius:50%;background:#fff;display:block}
+</style>
+</head>
+<body>
+<main>
+  <h1>Wordmarks — 3 candidatos</h1>
+  <p class="sub">Entregable 5 (opcional) del design-brief · direcciones tipográficas para ayudar a decidir el nombre.
+    El sistema visual es agnóstico: cualquiera encaja sin tocar tokens.</p>
+
+  <div class="candidato">
+    <div class="encabezado-c"><h2>1 · Estrénala</h2><span class="dominio">estrenala.com</span></div>
+    <p class="tagline">«Tu web, estrenada.»</p>
+    <div class="muestra-grande">
+      <div class="icono-estrenala">🎀</div>
+      <div class="wm-estrenala">Estrénal<span class="acento">a</span><span class="chispa">✦</span></div>
+    </div>
+    <div class="fila-mini">
+      <span class="mini-estrenala"><span class="s">E</span>Estrénala</span>
+      <p class="rational">La emoción del estreno: cortar la cinta de tu web. Cálido y muy español; funciona
+      genial en verbos de la UI («Estrénala en 2 minutos»). El acento ✦ es el confeti del sistema.</p>
+    </div>
+  </div>
+
+  <div class="candidato">
+    <div class="encabezado-c"><h2>2 · WebNace</h2><span class="dominio">webnace.com</span></div>
+    <p class="tagline">«Donde las webs nacen.»</p>
+    <div class="muestra-grande">
+      <div class="icono-webnace">🌱</div>
+      <div class="wm-webnace">Web<span class="nace">Nace</span></div>
+    </div>
+    <div class="fila-mini">
+      <span class="mini-webnace"><span class="s">W</span>WebNace</span>
+      <p class="rational">Lo que germina y crece: tu web nace aquí y va creciendo (ediciones, blog, dominio).
+      El verde esmeralda ya es el color de «Publicado»: la marca y el éxito comparten idioma.</p>
+    </div>
+  </div>
+
+  <div class="candidato">
+    <div class="encabezado-c"><h2>3 · YaVive</h2><span class="dominio">yavive.app</span></div>
+    <p class="tagline">«Tu web ya vive.»</p>
+    <div class="muestra-grande">
+      <div class="icono-yavive"><span class="p"></span></div>
+      <div class="wm-yavive">Ya<span class="vive">Vive</span>
+        <span class="pulso"><span class="onda"></span><span class="nucleo"></span></span>
+      </div>
+    </div>
+    <div class="fila-mini">
+      <span class="mini-yavive"><span class="s"><i></i></span>YaVive</span>
+      <p class="rational">El punto verde de «en directo»: tu web está VIVA en internet. El pulso animado es
+      un recurso de sistema (aparece al publicar). El más «producto tech» de los tres; dominio .app.</p>
+    </div>
+  </div>
+</main>
+</body>
+</html>
