@@ -11,6 +11,24 @@
     if (el.children.length > 0) return false;
     return el.textContent.trim().length > 0;
   }
+  // Rich-text (incremento 7): un texto editable cuyos hijos son SOLO formato en
+  // línea permitido (negrita/cursiva/subrayado/enlace/salto). Superconjunto de
+  // esTextoHoja: así se puede reeditar un párrafo que ya tiene una negrita.
+  var INLINE_OK = ["b", "strong", "i", "em", "u", "a", "br"];
+  function soloFormatoEnLinea(el) {
+    for (var i = 0; i < el.children.length; i++) {
+      var h = el.children[i];
+      if (INLINE_OK.indexOf(h.tagName.toLowerCase()) === -1) return false;
+      if (!soloFormatoEnLinea(h)) return false;
+    }
+    return true;
+  }
+  function esTextoRico(el) {
+    if (!tieneId(el)) return false;
+    if (TEXT_TAGS.indexOf(el.tagName.toLowerCase()) === -1) return false;
+    if (el.textContent.trim().length === 0) return false;
+    return soloFormatoEnLinea(el);
+  }
   function esImagen(el) { return tieneId(el) && el.tagName.toLowerCase() === "img"; }
   function esEnlace(el) { return tieneId(el) && el.tagName.toLowerCase() === "a"; }
   function esBoton(el) { return tieneId(el) && el.tagName.toLowerCase() === "button"; }
@@ -25,7 +43,7 @@
   function resolverEditable(el) {
     if (!el || el.nodeType !== 1) return null;
     if (esTextoMixto(el)) return el;
-    if (esTextoHoja(el) || esImagen(el) || esEnlace(el)) return el;
+    if (esTextoRico(el) || esImagen(el) || esEnlace(el)) return el;
     if (!el.closest) return null;
     var a = el.closest("a[data-wc-id]");
     return a || null;
@@ -42,6 +60,45 @@
   pop.style.cssText = "position:absolute;z-index:2147483647;display:none;flex-direction:column;gap:8px;align-items:stretch;width:280px;max-width:92vw;background:#fff;color:#141509;border:1px solid #DEDFD6;border-radius:14px;padding:12px;font:13px/1.45 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;box-shadow:0 18px 48px -12px rgba(20,21,9,.28)";
   function montarPop() { if (!pop.parentNode && document.body) document.body.appendChild(pop); }
   if (document.body) montarPop(); else document.addEventListener("DOMContentLoaded", montarPop);
+
+  // ---------- barra de formato (rich-text) ----------
+  var barra = document.createElement("div");
+  barra.setAttribute("data-wc-ui", "1");
+  barra.style.cssText = "position:fixed;z-index:2147483647;display:none;gap:2px;background:#fff;" +
+    "border:1px solid rgba(20,21,9,.14);border-radius:10px;box-shadow:0 8px 24px -6px rgba(20,21,9,.20);padding:4px";
+  function botonFormato(txt, estilo, accion, titulo) {
+    var b = document.createElement("button"); b.type = "button"; b.textContent = txt; b.title = titulo;
+    b.style.cssText = "width:30px;height:30px;border:0;background:none;border-radius:7px;cursor:pointer;color:#141509;font-size:14px;line-height:1;" + estilo;
+    // mousedown preventDefault: no robar la selección del texto en edición.
+    b.addEventListener("mousedown", function (e) { e.preventDefault(); });
+    b.addEventListener("click", function (e) { e.preventDefault(); accion(); });
+    return b;
+  }
+  function comando(cmd) { try { document.execCommand("styleWithCSS", false, false); } catch (_) {} document.execCommand(cmd, false, null); }
+  barra.appendChild(botonFormato("B", "font-weight:700", function () { comando("bold"); }, "Negrita"));
+  barra.appendChild(botonFormato("I", "font-style:italic;font-weight:600", function () { comando("italic"); }, "Cursiva"));
+  barra.appendChild(botonFormato("U", "text-decoration:underline;font-weight:600", function () { comando("underline"); }, "Subrayado"));
+  barra.appendChild(botonFormato("🔗", "", function () {
+    var u = window.prompt("Enlace (https://…). Deja vacío para quitarlo.");
+    if (u === null) return;
+    if (u.trim() === "") { try { document.execCommand("styleWithCSS", false, false); } catch (_) {} document.execCommand("unlink", false, null); }
+    else document.execCommand("createLink", false, u.trim());
+  }, "Enlace"));
+  // Mientras se interactúa con la barra (incluido el prompt del enlace) NO se
+  // cierra la edición por focusout.
+  var tocandoBarra = false;
+  barra.addEventListener("mousedown", function () { tocandoBarra = true; setTimeout(function () { tocandoBarra = false; }, 0); });
+  function montarBarra() { if (!barra.parentNode && document.body) document.body.appendChild(barra); }
+  if (document.body) montarBarra(); else document.addEventListener("DOMContentLoaded", montarBarra);
+  function mostrarBarra(el) {
+    var r = el.getBoundingClientRect();
+    barra.style.display = "flex";
+    var alto = 40;
+    var top = r.top - alto - 6; if (top < 6) top = r.bottom + 6;
+    barra.style.top = Math.round(top) + "px";
+    barra.style.left = Math.round(Math.max(6, r.left)) + "px";
+  }
+  function ocultarBarra() { barra.style.display = "none"; }
 
   var objetivo = null;
   var ocultarTimer = null;
@@ -112,7 +169,7 @@
   function construir(el) {
     pop.innerHTML = "";
     objetivo = el;
-    var hoja = esTextoHoja(el);
+    var hoja = esTextoRico(el);
     var enlace = esEnlace(el) ? el : (el.closest ? el.closest("a[data-wc-id]") : null);
 
     if (hoja) {
@@ -198,28 +255,38 @@
   }
 
   // ---------- marcado visual ----------
-  function marcar(el) { el.style.outline = "2px dashed rgba(196,240,0,.95)"; el.style.outlineOffset = "3px"; if (esTextoHoja(el) || esTextoMixto(el)) el.style.cursor = "text"; }
+  function marcar(el) { el.style.outline = "2px dashed rgba(196,240,0,.95)"; el.style.outlineOffset = "3px"; if (esTextoRico(el) || esTextoMixto(el)) el.style.cursor = "text"; }
   function desmarcar(el) { if (el === editando) return; el.style.outline = ""; el.style.outlineOffset = ""; el.style.cursor = ""; }
 
   // ---------- edición de texto in-situ ----------
-  var editando = null, valorPrevio = "";
+  var editando = null, valorPrevio = "", htmlPrevio = "";
   function iniciarEdicion(el) {
     if (editando) terminarEdicion(true);
-    editando = el; valorPrevio = el.textContent;
+    editando = el; valorPrevio = el.textContent; htmlPrevio = el.innerHTML;
     el.setAttribute("contenteditable", "true"); el.focus();
+    // La barra de formato solo para texto de verdad (no para el texto suelto de
+    // un elemento mixto icono+texto, que es un único nodo sin formato).
+    if (!esTextoMixto(el)) mostrarBarra(el);
   }
   function terminarEdicion(guardar) {
     if (!editando) return;
-    var el = editando; el.removeAttribute("contenteditable");
-    var valor = el.textContent; editando = null; desmarcar(el);
-    if (guardar && valor !== valorPrevio) {
+    var el = editando; el.removeAttribute("contenteditable"); ocultarBarra();
+    var texto = el.textContent, html = el.innerHTML; editando = null; desmarcar(el);
+    if (guardar) {
       if (esTextoMixto(el)) {
-        var tn = (el.getAttribute("data-wc-tn") || "").split(":");
-        emitir({ page: PAGE, nodeId: Number(tn[0]), kind: "textNode", index: Number(tn[1]), value: valor });
-      } else {
-        emitir({ page: PAGE, nodeId: idDe(el), kind: "text", value: valor });
+        if (texto !== valorPrevio) {
+          var tn = (el.getAttribute("data-wc-tn") || "").split(":");
+          emitir({ page: PAGE, nodeId: Number(tn[0]), kind: "textNode", index: Number(tn[1]), value: texto });
+        }
+      } else if (el.children.length > 0) {
+        // Tiene formato en línea → op rich-text (el servidor la sanea).
+        if (html !== htmlPrevio) emitir({ page: PAGE, nodeId: idDe(el), kind: "richText", value: html });
+      } else if (texto !== valorPrevio) {
+        emitir({ page: PAGE, nodeId: idDe(el), kind: "text", value: texto });
       }
-    } else if (!guardar) { el.textContent = valorPrevio; }
+    } else {
+      el.innerHTML = htmlPrevio; // revertir restaura también el formato
+    }
   }
 
   // ---------- eventos ----------
@@ -261,7 +328,7 @@
     if (!objetivoClick) return;
     mostrar(objetivoClick); // el click también fija el popover (por si el hover se escapó)
     var mixtoEnBoton = esTextoMixto(objetivoClick) && objetivoClick.closest && !!objetivoClick.closest("button");
-    if ((esTextoHoja(objetivoClick) || esTextoMixto(objetivoClick)) && !esBoton(objetivoClick) && !mixtoEnBoton && objetivoClick !== editando) {
+    if ((esTextoRico(objetivoClick) || esTextoMixto(objetivoClick)) && !esBoton(objetivoClick) && !mixtoEnBoton && objetivoClick !== editando) {
       iniciarEdicion(objetivoClick);
     }
   });
@@ -278,6 +345,7 @@
   // editando como texto), NO cerramos la edición de texto. El guard !editando
   // en terminarEdicion mantiene el caso Enter->focusout como no-op.
   document.addEventListener("focusout", function (e) {
+    if (tocandoBarra) return; // interactuando con la barra de formato / prompt del enlace
     if (dentroDePop(e.relatedTarget)) return;
     // El mousedown enfoca el ancestro enfocable más cercano (p.ej. el <a> de un
     // botón-enlace icono+texto); al iniciar la edición, focus() del elemento dispara

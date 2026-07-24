@@ -11,8 +11,11 @@ const VACIAS = new Set(["br"]);
 // Etiquetas cuyo CONTENIDO también se tira (no solo la etiqueta).
 const DESCARTAR_CONTENIDO = new Set(["script", "style", "iframe", "svg", "noscript", "template", "title", "textarea"]);
 
+// La entrada es un fragmento HTML (viene de innerHTML): su texto YA está
+// codificado (`&amp;`, `&lt;`). Por eso NO se re-escapa `&` (double-encoding que
+// crecería en cada edición); solo se normalizan `<`/`>` sueltos. Idempotente.
 function escapeText(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return s.replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 function escapeAttr(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");

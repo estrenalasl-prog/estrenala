@@ -18,8 +18,9 @@ describe("sanitizeInline — permite el formato de la lista blanca", () => {
     expect(sanitizeInline('<a href="mailto:a@b.com">correo</a>')).toBe('<a href="mailto:a@b.com">correo</a>');
   });
 
-  it("escapa el texto (nada de inyección por texto)", () => {
-    expect(sanitizeInline("2 < 3 && 4 > 1")).toBe("2 &lt; 3 &amp;&amp; 4 &gt; 1");
+  it("normaliza < y > sueltos; el & (ya-entidad de innerHTML) se conserva", () => {
+    expect(sanitizeInline("2 < 3 && 4 > 1")).toBe("2 &lt; 3 && 4 &gt; 1");
+    expect(sanitizeInline("Tom &amp; Jerry")).toBe("Tom &amp; Jerry"); // no se re-escapa
   });
 });
 
