@@ -1,9 +1,13 @@
-// Cookie de sesión del panel: "v1.<expiraEpochMs>.<hmacHex>", HMAC-SHA256 con
-// SESSION_SECRET. Solo Web Crypto: se verifica en el middleware (runtime Edge).
+// Cookie de sesión del panel: "v2.<userId>.<expiraEpochMs>.<hmacHex>",
+// HMAC-SHA256 con SESSION_SECRET sobre "v2.<userId>.<expira>". Solo Web
+// Crypto: se verifica en el middleware (runtime Edge). Las v1 (sin identidad,
+// del panel monousuario) dejaron de valer en el incremento 6a.
 // La cookie se emite SIN atributo Domain (host-only): no puede filtrarse a los
 // subdominios de sitios ni a dominios de clientes.
 export const SESSION_COOKIE = "wc_session";
 export const SESSION_DURACION_MS = 30 * 24 * 60 * 60 * 1000; // 30 días
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 async function hmacHex(secret: string, mensaje: string): Promise<string> {
   const key = await crypto.subtle.importKey(
@@ -13,19 +17,23 @@ async function hmacHex(secret: string, mensaje: string): Promise<string> {
   return Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-export async function firmarSesion(secret: string, expiraEpochMs: number): Promise<string> {
-  const cuerpo = `v1.${expiraEpochMs}`;
+export async function firmarSesion(secret: string, userId: string, expiraEpochMs: number): Promise<string> {
+  const cuerpo = `v2.${userId}.${expiraEpochMs}`;
   return `${cuerpo}.${await hmacHex(secret, cuerpo)}`;
 }
 
-export async function verificarSesion(secret: string, valor: string, ahoraMs: number): Promise<boolean> {
+export async function verificarSesion(
+  secret: string, valor: string, ahoraMs: number
+): Promise<{ userId: string } | null> {
   const partes = valor.split(".");
-  if (partes.length !== 3 || partes[0] !== "v1") return false;
-  const expira = Number(partes[1]);
-  if (!Number.isFinite(expira) || expira <= ahoraMs) return false;
-  const esperado = await hmacHex(secret, `v1.${partes[1]}`);
-  if (esperado.length !== partes[2].length) return false;
+  if (partes.length !== 4 || partes[0] !== "v2") return null;
+  const [, userId, expiraStr, firma] = partes;
+  if (!UUID_RE.test(userId)) return null;
+  const expira = Number(expiraStr);
+  if (!Number.isFinite(expira) || expira <= ahoraMs) return null;
+  const esperado = await hmacHex(secret, `v2.${userId}.${expiraStr}`);
+  if (esperado.length !== firma.length) return null;
   let dif = 0; // comparación en tiempo constante
-  for (let i = 0; i < esperado.length; i++) dif |= esperado.charCodeAt(i) ^ partes[2].charCodeAt(i);
-  return dif === 0;
+  for (let i = 0; i < esperado.length; i++) dif |= esperado.charCodeAt(i) ^ firma.charCodeAt(i);
+  return dif === 0 ? { userId } : null;
 }
