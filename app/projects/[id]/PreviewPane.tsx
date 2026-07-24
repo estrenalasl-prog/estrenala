@@ -30,6 +30,7 @@ export function PreviewPane({
   const [actual, setActual] = useState(entryPath);
   const [guardando, setGuardando] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  const [expandido, setExpandido] = useState(false);
   const [ops, setOps] = useState<Map<string, EditOp>>(new Map());
   const [snapshots, setSnapshots] = useState<SnapshotInfo[] | null>(null);
   const [recarga, setRecarga] = useState(0);
@@ -46,6 +47,21 @@ export function PreviewPane({
     setSnapshots(d.snapshots ?? []);
   }, [projectId]);
   useEffect(() => { void cargarHistorial(); }, [cargarHistorial]);
+
+  // Pantalla completa: salir con Esc y bloquear el scroll del fondo mientras dura.
+  // El Esc de dentro del iframe (cancelar edición de texto) no llega aquí: los eventos
+  // del documento del iframe no burbujean al padre, así que no se pisan.
+  useEffect(() => {
+    if (!expandido) return;
+    function onKey(e: KeyboardEvent) { if (e.key === "Escape") setExpandido(false); }
+    window.addEventListener("keydown", onKey);
+    const previo = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = previo;
+    };
+  }, [expandido]);
 
   useEffect(() => {
     function onMsg(e: MessageEvent) {
@@ -138,7 +154,7 @@ export function PreviewPane({
         onChange={(e) => void onFileChange(e)}
       />
 
-      <div className="previo">
+      <div className={expandido ? "previo expandido" : "previo"}>
         <div className="previo-barra">
           <select
             className="previo-select"
@@ -170,6 +186,13 @@ export function PreviewPane({
             ) : (
               guardando && <span style={{ fontSize: 13, color: "var(--color-texto-3)" }}>guardando…</span>
             )}
+            <button
+              className="btn btn-sec btn-sm"
+              onClick={() => setExpandido(!expandido)}
+              title={expandido ? "Salir de pantalla completa (Esc)" : "Ver la web a tamaño real"}
+            >
+              {expandido ? "⤡ Salir" : "⤢ Expandir"}
+            </button>
           </div>
         </div>
 

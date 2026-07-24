@@ -426,4 +426,12 @@ a:hover { color: var(--color-texto); }
   .card-conf.peligro > header { border-bottom-color: var(--color-peligro-borde); }
   .card-conf.peligro > header h2 { color: var(--color-peligro-texto); }
   .card-conf.proximamente .cuerpo { opacity: .65; }
+
+  /* ---------- Vista previa a pantalla completa ----------
+     Se agranda el MISMO contenedor (no se mueve en el DOM) para que el iframe no se
+     remonte y no se pierda lo que hay en pantalla al expandir. */
+  .previo.expandido { position: fixed; inset: 0; z-index: 60; border: 0; border-radius: 0;
+    box-shadow: none; display: flex; flex-direction: column; }
+  .previo.expandido .previo-barra { background: var(--color-superficie); border-bottom: 1px solid var(--color-borde); }
+  .previo.expandido .lienzo-web { height: auto; flex: 1; }
 }
