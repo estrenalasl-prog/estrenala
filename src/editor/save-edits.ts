@@ -8,6 +8,7 @@ import type { ProjectStore } from "@/src/repositories/types";
 function toPageOp(op: EditOp): PageOp {
   switch (op.kind) {
     case "text": return { nodeId: op.nodeId, kind: "text", value: op.value };
+    case "richText": return { nodeId: op.nodeId, kind: "richText", value: op.value };
     case "href": return { nodeId: op.nodeId, kind: "href", value: op.value };
     case "src": return { nodeId: op.nodeId, kind: "src", value: op.value };
     case "style": return { nodeId: op.nodeId, kind: "style", property: op.property, value: op.value };

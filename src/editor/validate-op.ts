@@ -35,6 +35,9 @@ export function isValidOp(op: EditOp): boolean {
   switch (op.kind) {
     case "text":
       return typeof op.value === "string";
+    case "richText":
+      // Cualquier string es admisible: el servidor lo sanea al aplicarlo.
+      return typeof op.value === "string";
     case "href":
       return isSafeHref(op.value);
     case "src": {

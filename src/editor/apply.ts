@@ -1,8 +1,10 @@
 import { walkElementsInOrder, type WalkedElement } from "./walk";
 import { mergeStyleProperty } from "./style";
+import { sanitizeInline } from "./sanitize-inline";
 
 export type EditOp =
   | { page: string; nodeId: number; kind: "text"; value: string }
+  | { page: string; nodeId: number; kind: "richText"; value: string }
   | { page: string; nodeId: number; kind: "href"; value: string }
   | { page: string; nodeId: number; kind: "src"; value: string; assetId: string }
   | { page: string; nodeId: number; kind: "style"; property: "color"; value: string }
@@ -11,6 +13,7 @@ export type EditOp =
 // Op por página (sin `page`, sin `assetId`): lo que recibe applyEdits.
 export type PageOp =
   | { nodeId: number; kind: "text"; value: string }
+  | { nodeId: number; kind: "richText"; value: string }
   | { nodeId: number; kind: "href"; value: string }
   | { nodeId: number; kind: "src"; value: string }
   | { nodeId: number; kind: "style"; property: "color"; value: string }
@@ -57,6 +60,10 @@ export function applyEdits(html: string, ops: PageOp[]): string {
   // Gana la más específica (textNode).
   const nodosConTextNode = new Set<number>();
   for (const op of dedup.values()) if (op.kind === "textNode") nodosConTextNode.add(op.nodeId);
+  // richText y text sobre el mismo nodo hoja escribirían el mismo rango: gana la
+  // rica (formato en línea). También excluye la text clásica.
+  const nodosConRichText = new Set<number>();
+  for (const op of dedup.values()) if (op.kind === "richText") nodosConRichText.add(op.nodeId);
   // Un atributo NUEVO se inserta tras el tramo de cualquier atributo que se
   // esté REEMPLAZANDO en el mismo nodo: así los reemplazados conservan su
   // posición original y los nuevos quedan después (orden determinista). El
@@ -87,9 +94,18 @@ export function applyEdits(html: string, ops: PageOp[]): string {
     if (op.kind === "text") {
       if (el.textoExcluido) continue;
       if (nodosConTextNode.has(op.nodeId)) continue;
+      if (nodosConRichText.has(op.nodeId)) continue;
       if (el.hasElementChildren) continue;
       if (el.endTagStart == null) continue;
       edits.push({ start: el.startTagEnd, end: el.endTagStart, text: escapeHtmlText(op.value) });
+    } else if (op.kind === "richText") {
+      // Sustituye TODO el contenido interno por el fragmento saneado. A
+      // diferencia de "text", admite hijos de formato en línea (no se salta por
+      // hasElementChildren) y no escapa: sanea (lista blanca re-serializada).
+      if (el.textoExcluido) continue;
+      if (nodosConTextNode.has(op.nodeId)) continue;
+      if (el.endTagStart == null) continue;
+      edits.push({ start: el.startTagEnd, end: el.endTagStart, text: sanitizeInline(op.value) });
     } else if (op.kind === "href") {
       pushAttrEdit(edits, el, "href", op.value, replacedAttrs);
     } else if (op.kind === "src") {
