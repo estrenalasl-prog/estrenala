@@ -10,6 +10,7 @@ import { PublishBar } from "./PublishBar";
 import { PreviewPane } from "./PreviewPane";
 import { ToolsPanel } from "./ToolsPanel";
 import { BlogPanel } from "./BlogPanel";
+import { AssistantPanel } from "./AssistantPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -49,6 +50,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
           sitesBaseDomain={sitesBaseDomain}
           dnsTargetIp={dnsTargetIp}
         />
+        <AssistantPanel projectId={id} pages={pages} entryPath={project.entryPath} />
         <ToolsPanel projectId={id} />
         <BlogPanel projectId={id} />
         <PreviewPane projectId={id} entryPath={project.entryPath} pages={pages} />
