@@ -156,6 +156,66 @@ function SeccionProximamente({ id, titulo, descripcion, porQue }: {
   );
 }
 
+const botonPeligro = { background: "var(--color-peligro-texto, #b91c1c)", color: "#fff", borderColor: "transparent" };
+
+// Zona de peligro: eliminar la cuenta, con confirmación (escribir el correo).
+function SeccionPeligro() {
+  const [email, setEmail] = useState<string | null>(null);
+  const [confirmando, setConfirmando] = useState(false);
+  const [texto, setTexto] = useState("");
+  const [ocupado, setOcupado] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    void (async () => {
+      try { const r = await fetch("/api/cuenta"); if (r.ok) setEmail(((await r.json()) as { email: string }).email); } catch { /* silencioso */ }
+    })();
+  }, []);
+
+  async function borrar() {
+    setOcupado(true); setError(null);
+    try {
+      const r = await fetch("/api/cuenta", { method: "DELETE" });
+      if (!r.ok) { const d = (await r.json().catch(() => ({}))) as { error?: string }; setError(d.error ?? "No se pudo borrar la cuenta"); return; }
+      window.location.href = "/login";
+    } catch {
+      setError("Error de conexión");
+    } finally { setOcupado(false); }
+  }
+
+  const coincide = texto.trim().toLowerCase() === (email ?? "").toLowerCase() && !!email;
+
+  return (
+    <section className="card-conf peligro" id="peligro">
+      <header><div className="tit"><h2>Zona de peligro</h2><p>Acciones que no se pueden deshacer.</p></div></header>
+      <div className="cuerpo">
+        <p className="ayuda-campo" style={{ marginTop: 10 }}>
+          Al eliminar tu cuenta se borran los espacios de los que eres <b>único propietario</b>, con todas sus
+          webs, su historial y su blog. De los espacios que compartes con otras personas, simplemente saldrás.
+          <b> No se puede deshacer.</b>
+        </p>
+        {error && <div className="aviso-error" role="alert" style={{ marginTop: 10 }}><span className="ico">!</span><span>{error}</span></div>}
+        {!confirmando ? (
+          <button className="btn btn-sm" style={{ ...botonPeligro, marginTop: 12 }} onClick={() => setConfirmando(true)} disabled={!email}>
+            Eliminar mi cuenta…
+          </button>
+        ) : (
+          <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+            <label style={{ fontSize: 13 }}>Para confirmar, escribe tu correo <b>{email}</b>:</label>
+            <input className="campo" value={texto} onChange={(e) => setTexto(e.target.value)} placeholder={email ?? ""} style={{ maxWidth: 300 }} disabled={ocupado} />
+            <div style={{ display: "flex", gap: 8 }}>
+              <button className="btn btn-sm" style={botonPeligro} disabled={!coincide || ocupado} onClick={() => void borrar()}>
+                {ocupado ? "Borrando…" : "Borrar mi cuenta definitivamente"}
+              </button>
+              <button className="btn btn-fantasma btn-sm" onClick={() => { setConfirmando(false); setTexto(""); }} disabled={ocupado}>Cancelar</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 type Miembro = { userId: string; email: string; nombre: string; rol: string };
 type Equipo = { miembros: Miembro[]; rol: string; yo: string; orgNombre: string };
 
@@ -457,21 +517,7 @@ export default function SettingsPage() {
             />
             <SeccionCuenta />
 
-            <section className="card-conf peligro" id="peligro">
-              <header>
-                <div className="tit">
-                  <h2>Zona de peligro <span className="badge badge-neutro"><span className="punto" />Próximamente</span></h2>
-                  <p>Acciones que no se pueden deshacer.</p>
-                </div>
-              </header>
-              <div className="cuerpo">
-                <p className="ayuda-campo" style={{ marginTop: 10 }}>
-                  Eliminar una web (con su historial y su blog) es una acción de cada proyecto, no de la cuenta.
-                  Aún no está construida: al ser destructiva y sin vuelta atrás, prefiero hacerla con su
-                  confirmación en dos pasos y sus pruebas antes de darte el botón.
-                </p>
-              </div>
-            </section>
+            <SeccionPeligro />
           </div>
         </div>
 

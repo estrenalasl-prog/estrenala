@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { getContexto } from "@/src/auth/contexto";
 import { accountStore } from "@/src/repositories/accounts";
+import { projectStore } from "@/src/repositories/projects";
+import { getStorage } from "@/src/storage/factory";
 import { cambiarNombre } from "@/src/auth/cuenta";
+import { eliminarCuenta } from "@/src/auth/eliminar-cuenta";
+import { cerrarSesion } from "@/src/auth/cookie-http";
 import { errorJson } from "@/src/auth/http";
 
 export const runtime = "nodejs";
@@ -26,6 +30,23 @@ export async function PATCH(req: Request) {
     const body = (await req.json().catch(() => ({}))) as { nombre?: unknown };
     await cambiarNombre(accountStore, userId, body.nombre);
     return NextResponse.json({ ok: true });
+  } catch (e) {
+    return errorJson(e);
+  }
+}
+
+// Borrar la cuenta entera. Borra los espacios donde eres único dueño (con sus webs)
+// y te saca del resto; luego cierra la sesión.
+export async function DELETE() {
+  try {
+    const { userId } = await getContexto();
+    await eliminarCuenta(
+      { cuentas: accountStore, proyectos: projectStore, storage: getStorage() },
+      { userId }
+    );
+    const res = NextResponse.json({ ok: true });
+    cerrarSesion(res);
+    return res;
   } catch (e) {
     return errorJson(e);
   }

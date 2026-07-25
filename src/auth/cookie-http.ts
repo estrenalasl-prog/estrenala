@@ -14,6 +14,19 @@ export async function iniciarSesion(res: NextResponse, secret: string, userId: s
   });
 }
 
+// Caduca la sesión y la org activa (p. ej. al borrar la cuenta).
+export function cerrarSesion(res: NextResponse): void {
+  for (const nombre of [SESSION_COOKIE, ORG_COOKIE]) {
+    res.cookies.set(nombre, "", {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 0,
+    });
+  }
+}
+
 // Fija la organización activa (espacio) en su cookie hermana. getContexto la
 // valida siempre contra los memberships, así que ponerla no da acceso por sí sola.
 export function fijarOrgActiva(res: NextResponse, orgId: string): void {

@@ -1,6 +1,9 @@
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/src/db/client";
-import { assets, projects, snapshots } from "@/src/db/schema";
+import {
+  assets, projects, snapshots, posts, scheduledPosts, trendsCache,
+  blogKeywords, articleDrafts, blogSettings, blogTemplates,
+} from "@/src/db/schema";
 import type {
   AssetRow, CreateAssetInput, CreateProjectInput, CreateSnapshotInput,
   ProjectRow, ProjectStore, SnapshotInfo, SnapshotRow,
@@ -44,6 +47,25 @@ export class DrizzleProjectStore implements ProjectStore {
     const r = await db.select().from(projects)
       .where(and(eq(projects.id, projectId), eq(projects.orgId, orgId))).limit(1);
     return r[0] ? toProjectRow(r[0]) : null;
+  }
+
+  // Fuera del interfaz ProjectStore a propósito (como getProjectById): borrado en
+  // cascada del proyecto. El esquema no tiene ON DELETE CASCADE, así que se borran
+  // los hijos en orden dentro de una transacción. El proyecto se filtra por org
+  // (quien llama ya validó la pertenencia con getProject).
+  async deleteProjectCascade(orgId: string, projectId: string): Promise<void> {
+    await db.transaction(async (tx) => {
+      await tx.delete(posts).where(eq(posts.projectId, projectId));
+      await tx.delete(scheduledPosts).where(eq(scheduledPosts.projectId, projectId));
+      await tx.delete(trendsCache).where(eq(trendsCache.projectId, projectId));
+      await tx.delete(blogKeywords).where(eq(blogKeywords.projectId, projectId));
+      await tx.delete(articleDrafts).where(eq(articleDrafts.projectId, projectId));
+      await tx.delete(blogSettings).where(eq(blogSettings.projectId, projectId));
+      await tx.delete(blogTemplates).where(eq(blogTemplates.projectId, projectId));
+      await tx.delete(assets).where(eq(assets.projectId, projectId));
+      await tx.delete(snapshots).where(eq(snapshots.projectId, projectId));
+      await tx.delete(projects).where(and(eq(projects.id, projectId), eq(projects.orgId, orgId)));
+    });
   }
 
   // Fuera del interfaz ProjectStore a propósito: SIN filtrar por org, solo para

@@ -7,8 +7,24 @@ import { cambiarSubdominio, conectarDominio, quitarDominio } from "@/src/publish
 import { getDeploy } from "@/src/publish/deploy-factory";
 import { PublishError } from "@/src/publish/errors";
 import { esOwner, MSG_SOLO_OWNER } from "@/src/auth/roles";
+import { eliminarProyecto } from "@/src/projects/eliminar";
+import { EditorError } from "@/src/editor/errors";
 
 export const runtime = "nodejs";
+
+// Borrar la web entera (historial, blog y archivos). Solo el propietario.
+export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string }> }) {
+  const { id } = await ctx.params;
+  const { orgId, rol } = await getContexto();
+  if (!esOwner(rol)) return NextResponse.json({ error: MSG_SOLO_OWNER }, { status: 403 });
+  try {
+    await eliminarProyecto({ store: projectStore, storage: getStorage() }, { orgId, projectId: id });
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    if (e instanceof EditorError) return NextResponse.json({ error: e.message }, { status: e.status });
+    return NextResponse.json({ error: "Error interno" }, { status: 500 });
+  }
+}
 
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;

@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { db } from "@/src/db/client";
-import { users, organizations, memberships, authTokens } from "@/src/db/schema";
+import { users, organizations, memberships, authTokens, orgSettings } from "@/src/db/schema";
 
 export type UserRow = {
   id: string;
@@ -146,6 +146,32 @@ export class DrizzleAccountStore implements AccountStore {
       .from(memberships)
       .where(and(eq(memberships.orgId, orgId), eq(memberships.rol, "owner")));
     return r.length;
+  }
+
+  async contarMiembros(orgId: string): Promise<number> {
+    const r = await db.select({ userId: memberships.userId })
+      .from(memberships).where(eq(memberships.orgId, orgId));
+    return r.length;
+  }
+
+  // Borra un espacio VACÍO de proyectos (el dominio ya los borró antes): ajustes,
+  // memberships y la organización, en transacción. Fuera del interfaz AccountStore.
+  async eliminarEspacio(orgId: string): Promise<void> {
+    await db.transaction(async (tx) => {
+      await tx.delete(orgSettings).where(eq(orgSettings.orgId, orgId));
+      await tx.delete(memberships).where(eq(memberships.orgId, orgId));
+      await tx.delete(organizations).where(eq(organizations.id, orgId));
+    });
+  }
+
+  // Borra el usuario: sus memberships restantes (espacios con otros propietarios),
+  // sus tokens y la fila users. En transacción. Fuera del interfaz AccountStore.
+  async eliminarUsuario(userId: string): Promise<void> {
+    await db.transaction(async (tx) => {
+      await tx.delete(memberships).where(eq(memberships.userId, userId));
+      await tx.delete(authTokens).where(eq(authTokens.userId, userId));
+      await tx.delete(users).where(eq(users.id, userId));
+    });
   }
 
   async crearCuenta(input: {

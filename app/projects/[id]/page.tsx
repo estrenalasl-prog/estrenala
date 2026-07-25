@@ -11,6 +11,8 @@ import { PreviewPane } from "./PreviewPane";
 import { ToolsPanel } from "./ToolsPanel";
 import { BlogPanel } from "./BlogPanel";
 import { AssistantPanel } from "./AssistantPanel";
+import { DangerZone } from "./DangerZone";
+import { esOwner } from "@/src/auth/roles";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +24,7 @@ function estadoProyecto(p: ProjectRow): { clase: string; texto: string } {
 
 export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { orgId } = await getContexto();
+  const { orgId, rol } = await getContexto();
   const project = await projectStore.getProject(orgId, id);
   if (!project) notFound();
   const pages = await listPages({ store: projectStore, storage: getStorage() }, { orgId, projectId: id });
@@ -54,6 +56,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
         <ToolsPanel projectId={id} />
         <BlogPanel projectId={id} />
         <PreviewPane projectId={id} entryPath={project.entryPath} pages={pages} />
+        {esOwner(rol) && <DangerZone projectId={id} nombre={project.nombre} />}
       </main>
     </>
   );
