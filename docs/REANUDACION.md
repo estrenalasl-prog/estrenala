@@ -54,6 +54,8 @@ Drizzle/Postgres en Supabase, vitest). Flujo de trabajo: spec → plan (docs/sup
 | 4g | **Piloto automático**: radar→redacta→portada→programa, solo; OFF por defecto |
 | 5a | Sistema visual v1 en `docs/design/` (tokens, 4 pantallas, componentes, 404, wordmarks) |
 | 4f2 | Portada «diseño» rasterizada a **PNG real 1200×630** (resvg-wasm + Space Grotesk del repo en `src/blog/portada/fuentes/`): og:image visible en WhatsApp/X. GOTCHAs: el paquete va en `serverExternalPackages` y el `.wasm` se lee por ruta de `process.cwd()` (nunca `require.resolve`, Turbopack casca); fuentes+wasm declarados en `outputFileTracingIncludes` por el standalone |
+| 13 | **Landing pública integrada** (`app/_landing/`): la RAÍZ es pública — sin sesión sirve la landing de marketing, con sesión el panel (lo decide `app/page.tsx` con `haySesion()`, solo HMAC sin tocar BD). En `middleware.ts` `"/"` va APARTE de `RUTAS_PUBLICAS` (meterla en la lista abriría toda la app por el `startsWith`). CSS del mockup con **todos los selectores acotados a `.landing`** (la app ya usa `.btn`/`.badge`/`.contenedor`); `html`/`body` → `:has(.landing)`. Correcciones de honestidad al integrar: fuera el rol «Invitado» y las «640 lecturas» (no existen), CTA al registro real, logos `/brand/*.png` con `<img>`. **Pendiente: páginas legales** (la columna Legal del pie se omitió para no dejar enlaces rotos). e2e-13 (14/14) incluye que el panel SIGUE protegido |
+| 12 | **Subir la web como `.html` suelto o carpeta**, además del `.zip` (la landing lo prometía y tenía razón: mucha gente recibe de ChatGPT un `index.html`, no un ZIP). `sanearArchivos` en `unzip.ts` centraliza TODAS las reglas (zip-slip, límites, raíz envolvente) y la comparten las dos vías; `processFiles` para carpeta/archivos. **GOTCHA: sanear dos veces se comía dos niveles de carpeta** — cada vía sanea UNA sola vez (hay test de regresión). `POST /api/projects` acepta varios `file` + `rutas` (JSON paralelo con las rutas relativas). `ImportDropzone` arrastra carpetas (`webkitGetAsEntry` recursivo) y tiene «Elegir carpeta» (`webkitdirectory`). 11 tests + e2e-12 (8/8) |
 | 11 | **Actualizar una web desde un ZIP nuevo**: para quien prefiere editar en SU herramienta (Claude Code, ChatGPT, v0…) y subir la versión nueva (el asistente cuesta tokens; «Estrénala no te encierra»). `src/projects/actualizar.ts` crea un snapshot `tipo:"actualizacion"` (parentId=actual) con el ZIP, lo deja como actual, ajusta `entryPath` si cambia; mantiene proyecto+dirección+Historial (reversible); NO mezcla con lo editado in-app. `POST /api/projects/[id]/actualizar` (editor+propietario). `ActualizarPanel.tsx` + etiqueta «Actualización desde ZIP» en Historial. Mejora: `unzipSafe` envuelve el error de fflate → `ImportError` "El archivo no es un ZIP válido" (400 en crear y actualizar). 6 tests + e2e-11 (10/10) |
 | 10 | **Ceder la propiedad de un espacio**: acción atómica que hace propietario a otro miembro y baja al que cede a editor (sube al destino PRIMERO → nunca cero dueños). Desbloquea «borrar cuenta» al único propietario con equipo. `transferirPropiedad` + `TransferenciaStore` en `src/auth/equipo.ts`; `DrizzleAccountStore.aplicarTransferencia` (transacción); `POST /api/equipo/transferir` (owner-only); botón «Ceder propiedad» en Configuración › Equipo. Valida destino≠yo (`MSG_ELIGE_OTRA`) y que sea miembro (`MSG_NO_MIEMBRO`). 6 tests + e2e-10 (5/5, guardas con usuario desechable; el swap real de 2 usuarios queda en unit por el token de invitación) |
 | 9 | **Zona de peligro (borrados irreversibles)**: eliminar un proyecto (solo el propietario) y eliminar la cuenta, con confirmación en dos pasos (escribir para confirmar). Sin `ON DELETE CASCADE` en el esquema → se borran los hijos en orden en una transacción + storage aparte (BD PRIMERO, storage best-effort). Proyecto: `DrizzleProjectStore.deleteProjectCascade` (fuera del interfaz) + `src/projects/eliminar.ts` + `DELETE` en la ruta del proyecto + `DangerZone.tsx`. Cuenta: política segura (con otro owner → solo te vas; único owner y único miembro → borra el espacio entero; único owner con más gente → BLOQUEA, `MSG_ULTIMO_OWNER_CUENTA`); `contarMiembros`/`eliminarEspacio`/`eliminarUsuario` en el store + `src/auth/eliminar-cuenta.ts` + `DELETE /api/cuenta` (cierra sesión con `cerrarSesion`). Sección «Zona de peligro» real en Configuración. 15 tests + e2e-9 (7/7, usuario DESECHABLE). Fuera de v1: transferir propiedad, exportar datos antes de borrar |
@@ -77,11 +79,12 @@ en `scripts/e2e/` (necesitan dev server + .env.local; se ejecutan con `node`).
    deliberada, no un parche. Mientras, se sigue construyendo.
 2. **Marca FIJADA: Estrénala.** El usuario compra `estrenala.com` (2026-07-24).
    Al desplegar: apuntar DNS y configurar `PLATFORM_HOST` / `SITES_BASE_DOMAIN`.
-3. **Landing de marketing → la diseña el usuario en claude.ai** («Claude Design»),
-   igual que hizo con la plataforma. El prompt listo y la lista de adjuntos están en
-   `docs/design/prompt-landing-para-claude-design.md`. Entregable esperado:
-   `11-landing.html`. CTA de la landing = **botón al registro real** (cuando salga,
-   la plataforma estará terminada, con cuentas de usuario).
+3. **Landing de marketing: HECHA E INTEGRADA** ✅ (2026-07-25). La diseñó el usuario
+   en claude.ai con el prompt de `docs/design/prompt-landing-para-claude-design.md`
+   (actualizado con la idea fuerza **«Estrénala no te encierra»**: tres formas de
+   editar). Mockup en `docs/design/11-landing.html`, integrada en `app/_landing/`.
+   **Pendiente asociado: las páginas legales** (aviso legal, privacidad, cookies,
+   términos) — la columna «Legal» del pie está omitida hasta que existan.
 4. **Decisión de producto (2026-07-24): web primero, nada de app nativa.** La
    plataforma es responsive; si algún día hace falta icono en el móvil, se hace PWA
    (web instalable). App nativa solo se replantearía con usuarios pidiéndola.
@@ -96,6 +99,16 @@ en `scripts/e2e/` (necesitan dev server + .env.local; se ejecutan con `node`).
    (Anthropic/OpenRouter), el mismo patrón BYOK que ya usamos. Apuntado, NO empezado.
 7. **Orden de construcción hasta salir** (lo tachado = HECHO): ~~portada SVG→PNG~~ ✅
    (4f2) → ~~multiusuario/Equipo + Tu cuenta~~ ✅ (incremento 6 completo) →
+   **MONETIZACIÓN (perfilada el 2026-07-25, precios SIN decidir):** el modelo espejo
+   es **WordPress.com**, no .org (el .org no monetiza: el dinero está en el
+   ecosistema). Palanca de conversión = **dominio propio + quitar la marca**, como
+   Wix/Squarespace/Webflow. Reparto propuesto: **gratis** = 1 web, subdominio,
+   editor a mano, historial, actualizar desde ZIP; **premium** = dominio propio,
+   varias webs, quitar marca, blog automático, equipo. Dos ventajas propias: el
+   coste marginal de una web gratis es ínfimo (estáticos) y **la IA no le cuesta a
+   la plataforma** (clave del usuario), así que el margen no depende del uso de IA.
+   El usuario confirmó «una parte gratuita y otra premium»; los importes los decide
+   él (referencia de mercado: 9–15 €/mes personal, 29–49 €/mes agencia).
    ~~edición rich-text~~ ✅ (incremento 7) → ~~asistente IA v1~~ ✅ (incremento 8:
    proponer→revisar→aplicar; construido ANTES que la landing/Stripe porque esos dos
    dependen de decisiones del usuario y el asistente no) → **pendientes que dependen
