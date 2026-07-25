@@ -125,6 +125,12 @@ en `scripts/e2e/` (necesitan dev server + .env.local; se ejecutan con `node`).
 - **Los e2e JAMÁS escriben en `org_settings`** cuando hay claves reales (el
   2026-07-15 una regresión borró las claves del usuario; irrecuperables). Los
   scripts de `scripts/e2e/` ya llevan guardas (abortan/skipean); mantenerlas.
+- **GOTCHA Turbopack + CSS nuevo**: si creas un `.css` con el `npm run dev` YA
+  corriendo, Turbopack puede servir un chunk cacheado **sin tus reglas** (pasó al
+  integrar la landing: el CSS servido traía solo Tailwind y la página se veía sin
+  estilos, sin ningún error en el log). Cura: parar el dev server, `rm -rf .next` y
+  relanzar. Para diagnosticarlo: descargar el chunk `.css` que enlaza el HTML y
+  buscar dentro alguna clase propia.
 - **Nunca imprimir material de claves guardadas**, ni fragmentos (solo booleanos y
   longitud si hay que diagnosticar).
 - El e2e del 4g **jamás deja `piloto_activo=true`** (el tick correría con claves reales).
