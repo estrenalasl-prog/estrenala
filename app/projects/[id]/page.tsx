@@ -11,6 +11,7 @@ import { PreviewPane } from "./PreviewPane";
 import { ToolsPanel } from "./ToolsPanel";
 import { BlogPanel } from "./BlogPanel";
 import { AssistantPanel } from "./AssistantPanel";
+import { ActualizarPanel } from "./ActualizarPanel";
 import { DangerZone } from "./DangerZone";
 import { esOwner } from "@/src/auth/roles";
 
@@ -53,6 +54,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
           dnsTargetIp={dnsTargetIp}
         />
         <AssistantPanel projectId={id} pages={pages} entryPath={project.entryPath} />
+        <ActualizarPanel projectId={id} />
         <ToolsPanel projectId={id} />
         <BlogPanel projectId={id} />
         <PreviewPane projectId={id} entryPath={project.entryPath} pages={pages} />

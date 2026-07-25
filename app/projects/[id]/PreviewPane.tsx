@@ -20,6 +20,7 @@ const NOMBRE_TIPO: Record<string, string> = {
   edit: "Edición",
   restore: "Restauración",
   publish: "Publicación",
+  actualizacion: "Actualización desde ZIP",
 };
 function etiquetaTipo(t: string): string { return NOMBRE_TIPO[t] ?? t; }
 function cuando(iso: string): string { return iso.slice(0, 16).replace("T", " "); }

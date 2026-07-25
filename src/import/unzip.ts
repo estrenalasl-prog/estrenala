@@ -24,7 +24,14 @@ function normalizarRaiz(files: ZipFile[]): ZipFile[] {
 }
 
 export function unzipSafe(zip: Buffer): ZipFile[] {
-  const entries = unzipSync(new Uint8Array(zip));
+  let entries: Record<string, Uint8Array>;
+  try {
+    entries = unzipSync(new Uint8Array(zip));
+  } catch {
+    // fflate lanza un Error crudo ("invalid zip data") ante bytes que no son un
+    // ZIP; lo convertimos en ImportError para que las rutas respondan 400 y no 500.
+    throw new ImportError("El archivo no es un ZIP válido");
+  }
   const files: ZipFile[] = [];
   let total = 0;
   for (const [nombre, data] of Object.entries(entries)) {
