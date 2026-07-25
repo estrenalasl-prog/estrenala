@@ -265,6 +265,18 @@ function SeccionEquipo() {
     await cargar();
   }
 
+  async function ceder(userId: string, nombre: string) {
+    if (!window.confirm(`¿Ceder la propiedad de «${data?.orgNombre ?? "este espacio"}» a ${nombre}? Tú pasarás a ser editor y ${nombre} tomará el mando.`)) return;
+    setError(null); setMsg(null);
+    const res = await fetch("/api/equipo/transferir", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ userId }),
+    });
+    if (!res.ok) { const d = (await res.json().catch(() => ({}))) as { error?: string }; setError(d.error ?? "Error"); return; }
+    setMsg(`Ahora ${nombre} es el propietario del espacio.`);
+    await cargar();
+  }
+
   return (
     <section className="card-conf" id="equipo">
       <header>
@@ -299,6 +311,7 @@ function SeccionEquipo() {
                     <option value="owner">Propietario</option>
                     <option value="editor">Editor</option>
                   </select>
+                  <button className="btn btn-fantasma btn-sm" title="Hacer propietario a esta persona y bajarte tú a editor" onClick={() => void ceder(m.userId, m.nombre)}>Ceder propiedad</button>
                   <button className="btn btn-fantasma btn-sm" onClick={() => void quitar(m.userId)}>Quitar</button>
                 </>
               ) : (

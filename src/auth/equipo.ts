@@ -8,6 +8,8 @@ export const MSG_ROL_INVALIDO = "Rol no válido";
 export const MSG_EMAIL_INVALIDO = "Ese correo no parece válido";
 export const MSG_ULTIMO_OWNER = "No puedes dejar el espacio sin ningún propietario";
 export const MSG_YA_MIEMBRO = "Esa persona ya está en el espacio";
+export const MSG_ELIGE_OTRA = "Elige a otra persona del espacio";
+export const MSG_NO_MIEMBRO = "Esa persona no está en el espacio";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -30,6 +32,26 @@ export interface EquipoStore {
   }): Promise<void>;
   getTokenPorHash(tokenHash: string): Promise<TokenRow | null>;
   marcarTokenUsado(id: string): Promise<void>;
+}
+
+// Métodos del store para ceder la propiedad (subconjunto estructural).
+export interface TransferenciaStore {
+  getMembership(orgId: string, userId: string): Promise<MembershipInfo | null>;
+  aplicarTransferencia(orgId: string, deUserId: string, aUserId: string): Promise<void>;
+}
+
+// Cede la propiedad del espacio: el destino pasa a propietario y quien la cede baja
+// a editor (atómico en el store). El destino debe ser OTRO miembro del espacio.
+export async function transferirPropiedad(
+  store: TransferenciaStore,
+  input: { orgId: string; actualUserId: string; nuevoUserId: string }
+): Promise<void> {
+  if (!input.nuevoUserId || input.nuevoUserId === input.actualUserId) {
+    throw new EditorError(MSG_ELIGE_OTRA, 400);
+  }
+  const objetivo = await store.getMembership(input.orgId, input.nuevoUserId);
+  if (!objetivo) throw new EditorError(MSG_NO_MIEMBRO, 404);
+  await store.aplicarTransferencia(input.orgId, input.actualUserId, input.nuevoUserId);
 }
 
 function esc(s: string): string {

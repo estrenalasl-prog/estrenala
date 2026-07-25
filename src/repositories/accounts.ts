@@ -136,6 +136,17 @@ export class DrizzleAccountStore implements AccountStore {
       .where(and(eq(memberships.orgId, orgId), eq(memberships.userId, userId)));
   }
 
+  // Cede la propiedad de forma atómica: sube al destino a owner y baja al origen a
+  // editor. Se sube PRIMERO al destino → nunca hay un instante sin propietario.
+  async aplicarTransferencia(orgId: string, deUserId: string, aUserId: string): Promise<void> {
+    await db.transaction(async (tx) => {
+      await tx.update(memberships).set({ rol: "owner" })
+        .where(and(eq(memberships.orgId, orgId), eq(memberships.userId, aUserId)));
+      await tx.update(memberships).set({ rol: "editor" })
+        .where(and(eq(memberships.orgId, orgId), eq(memberships.userId, deUserId)));
+    });
+  }
+
   async quitarMiembro(orgId: string, userId: string): Promise<void> {
     await db.delete(memberships)
       .where(and(eq(memberships.orgId, orgId), eq(memberships.userId, userId)));
