@@ -54,6 +54,7 @@ Drizzle/Postgres en Supabase, vitest). Flujo de trabajo: spec → plan (docs/sup
 | 4g | **Piloto automático**: radar→redacta→portada→programa, solo; OFF por defecto |
 | 5a | Sistema visual v1 en `docs/design/` (tokens, 4 pantallas, componentes, 404, wordmarks) |
 | 4f2 | Portada «diseño» rasterizada a **PNG real 1200×630** (resvg-wasm + Space Grotesk del repo en `src/blog/portada/fuentes/`): og:image visible en WhatsApp/X. GOTCHAs: el paquete va en `serverExternalPackages` y el `.wasm` se lee por ruta de `process.cwd()` (nunca `require.resolve`, Turbopack casca); fuentes+wasm declarados en `outputFileTracingIncludes` por el standalone |
+| 8 | **Asistente de IA («copiloto para tu web»)**: panel en la pantalla del proyecto donde el usuario dice en lenguaje natural qué cambiar; el asistente **propone** cambios (viejo→nuevo), el usuario **revisa** y **aplica**. Todo reversible (Historial). CLAVE de seguridad: produce las MISMAS ops que el editor manual (`text/richText/href/style`) sobre los `nodeId` de `walkElementsInOrder` → no puede hacer nada que un humano no pudiera (misma lista blanca/saneado, imposible XSS). `src/asistente/inventario.ts` (nodos editables) + `proponer.ts` (`interpretarPropuesta` valida op por op con `isValidOp`, descarta ids/kinds/valores inseguros, `MAX_OPS`; `proponerEdiciones` llama al modelo vía `pedirJson` inyectable, NO guarda). BYOK opt-in (misma clave OpenRouter del blog, aviso de coste). Ruta `POST /api/projects/[id]/asistente`; «aplicar» reutiliza `/edits`. `AssistantPanel.tsx`. 21 tests + e2e-8 (6/6, vía IA saltada si hay clave real). v1 = un tiro «propón»; futuro: agente multi-paso, cambios estructurales, varias páginas |
 | 7 | **Edición rich-text del editor in-situ**: negrita/cursiva/subrayado/enlace dentro de un texto, con barra flotante (B/I/U/🔗) en `public/wc-editor.js` (lee `innerHTML`, op `richText`). La seguridad vive en el SERVIDOR: `src/editor/sanitize-inline.ts` re-serializa solo una lista blanca (`b strong i em u a[href seguro] br`), escapa el texto e ignora todo lo demás (probado con vectores XSS). `escapeText` NO re-escapa `&` (idempotente con innerHTML) |
 | 6e | **Tu cuenta**: cambiar nombre, contraseña (pide la actual; las cuentas solo-Google pueden ponerse una) y correo con **doble confirmación** (el cambio se aplica al abrir el enlace del correo NUEVO). `src/auth/cuenta.ts`, rutas `/api/cuenta*`, página `/cambiar-email`, sección real en Configuración |
 | 6d | **Equipo e invitaciones + roles**: Propietario/Editor aplicados (Editor no toca claves, dirección/dominio, despublicar ni equipo). Invitar por correo (token 7d) → `/invitacion` → aceptar y entrar. Selector de espacio en la cabecera (cookie `wc_org` validada). Protección del último propietario. `src/auth/roles.ts`, `equipo.ts`, rutas `/api/equipo*` `/api/espacio(s)*` |
@@ -91,12 +92,15 @@ en `scripts/e2e/` (necesitan dev server + .env.local; se ejecutan con `node`).
    usuario a una plataforma de terceros; lo que sí se puede es clave de API
    (Anthropic/OpenRouter), el mismo patrón BYOK que ya usamos. Apuntado, NO empezado.
 7. **Orden de construcción hasta salir** (lo tachado = HECHO): ~~portada SVG→PNG~~ ✅
-   (4f2) → ~~multiusuario/Equipo + Tu cuenta~~ ✅ (incremento 6 completo: cuentas,
-   correos, Google, equipo/roles, Tu cuenta) → **siguiente: edición rich-text** →
-   integrar la landing cuando vuelva de Claude Design → Plan/facturación (necesita
-   decisiones externas del usuario: Stripe, precios; el esqueleto ya está: la tabla
-   de organizaciones tiene `plan`/`usoJson`) → asistente IA (punto 6). El blog como
-   sección premium sigue apuntado, NO construir hasta monetizar.
+   (4f2) → ~~multiusuario/Equipo + Tu cuenta~~ ✅ (incremento 6 completo) →
+   ~~edición rich-text~~ ✅ (incremento 7) → ~~asistente IA v1~~ ✅ (incremento 8:
+   proponer→revisar→aplicar; construido ANTES que la landing/Stripe porque esos dos
+   dependen de decisiones del usuario y el asistente no) → **pendientes que dependen
+   del usuario:** integrar la landing cuando vuelva de Claude Design; Plan/facturación
+   (Stripe, precios; el esqueleto ya está: `organizaciones` tiene `plan`/`usoJson`).
+   El blog como sección premium sigue apuntado, NO construir hasta monetizar.
+   Mejoras futuras del asistente (apuntadas, NO empezadas): agente conversacional
+   multi-paso (Claude Agent SDK), cambios estructurales, edición de varias páginas.
    Al desplegar, para activar los correos/Google reales: `RESEND_API_KEY`,
    `EMAIL_FROM`, `PLATFORM_HOST`, `GOOGLE_CLIENT_ID`/`SECRET` (ver `.env.example`).
 
