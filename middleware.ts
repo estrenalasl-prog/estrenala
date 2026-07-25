@@ -33,6 +33,10 @@ export async function middleware(req: NextRequest) {
   }
 
   const { pathname } = req.nextUrl;
+  // La raíz es pública: sin sesión sirve la landing de marketing, con sesión el
+  // panel (lo decide app/page.tsx). Va aparte de RUTAS_PUBLICAS a propósito:
+  // meter "/" en esa lista abriría TODA la app por el startsWith.
+  if (pathname === "/") return NextResponse.next();
   if (RUTAS_PUBLICAS.some((r) => pathname === r || pathname.startsWith(r + "/"))) {
     return NextResponse.next();
   }

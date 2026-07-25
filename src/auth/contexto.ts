@@ -11,6 +11,16 @@ export type Contexto = { userId: string; orgId: string; rol: string };
 // Siempre se valida contra los memberships del usuario: no basta con ponerla.
 export const ORG_COOKIE = "wc_org";
 
+// ¿Hay cookie de sesión válida? Comprobación BARATA (solo HMAC, sin tocar la BD)
+// para decidir qué se pinta en la raíz pública: la landing o el panel.
+export async function haySesion(): Promise<boolean> {
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) return false;
+  const cookie = (await cookies()).get(SESSION_COOKIE)?.value;
+  if (!cookie) return false;
+  return !!(await verificarSesion(secret, cookie, Date.now()));
+}
+
 // El store concreto (que abre la conexión a la BD) se importa de forma perezosa
 // para no arrastrar db/client al bundle de tests que inyectan un store falso.
 export async function getContexto(store?: AccountStore): Promise<Contexto> {

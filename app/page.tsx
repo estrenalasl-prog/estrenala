@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { getContexto } from "@/src/auth/contexto";
+import type { Metadata } from "next";
+import { getContexto, haySesion } from "@/src/auth/contexto";
 import { projectStore } from "@/src/repositories/projects";
 import { accountStore } from "@/src/repositories/accounts";
 import type { ProjectRow } from "@/src/repositories/types";
@@ -7,8 +8,20 @@ import { envioActivo } from "@/src/email/enviar";
 import { ImportDropzone } from "./_components/ImportDropzone";
 import { AppHeader } from "./_components/AppHeader";
 import { BannerVerifica } from "./_components/BannerVerifica";
+import { Landing } from "./_landing/Landing";
 
 export const dynamic = "force-dynamic";
+
+// La raíz es pública: sin sesión enseña la landing de marketing; con sesión, el
+// panel «Tus webs». Por eso el título depende de quién mire.
+export async function generateMetadata(): Promise<Metadata> {
+  if (await haySesion()) return { title: "Tus webs · Estrénala" };
+  return {
+    title: "Estrénala — Tu web hecha con IA, por fin en directo",
+    description:
+      "¿La IA te hizo una web y no sabes cómo subirla? Estrénala la pone online en un clic con dominio y HTTPS, la editas sin código y su blog escribe solo. Gratis para empezar.",
+  };
+}
 
 type Estado = { clase: string; texto: string };
 
@@ -25,6 +38,9 @@ function direccionDe(p: ProjectRow): string {
 }
 
 export default async function Dashboard() {
+  // Visitante sin sesión → landing pública (la raíz no exige candado).
+  if (!(await haySesion())) return <Landing />;
+
   const { orgId, userId } = await getContexto();
   const proyectos = await projectStore.listProjects(orgId);
 
