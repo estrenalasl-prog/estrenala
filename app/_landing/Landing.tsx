@@ -8,8 +8,7 @@ import { Reveal } from "./Reveal";
 //    (servido con <img> normal: next/image lo rompe, ver la guarda del logo).
 //  - El rol «Invitado» del mock de equipos se quita: solo hay propietario y editor.
 //  - Las «640 lecturas» del mock del blog se quitan: no hay analítica de lecturas.
-//  - La columna «Legal» del pie se omite hasta que existan esas páginas (nada de
-//    enlaces rotos); se repondrá con el incremento legal.
+//  - La columna «Legal» del pie enlaza las páginas reales de /legal (incremento 14).
 //  - Los CTA apuntan al registro real (/registro) en vez del ancla #registro.
 //  - «Sube el ZIP» pasa a «Súbela»: desde el incremento 12 también vale un .html
 //    suelto o una carpeta.
@@ -411,6 +410,13 @@ export function Landing() {
                 <a href={CTA}>Sube tu web</a>
                 <a href="/login">Entrar</a>
                 <a href="#faq">Preguntas frecuentes</a>
+              </div>
+              <div className="pie-col">
+                <h4>Legal</h4>
+                <a href="/legal/aviso-legal">Aviso legal</a>
+                <a href="/legal/privacidad">Privacidad</a>
+                <a href="/legal/cookies">Cookies</a>
+                <a href="/legal/terminos">Términos</a>
               </div>
             </div>
           </div>

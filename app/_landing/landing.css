@@ -221,3 +221,25 @@ html:has(.landing){scroll-behavior:auto}
 .landing .reveal{opacity:1;transform:none;transition:none}
 .landing .mock-cinta{animation:none;width:100%}
 }
+/* ---- Documentos legales (aviso legal, privacidad, cookies, términos) ---- */
+.landing .doc-legal{max-width:760px;margin:0 auto}
+.landing .doc-legal h1{font:700 clamp(28px,5vw,40px)/1.1 var(--sans);letter-spacing:-.03em}
+.landing .doc-legal .actualizado{font-size:14px;color:var(--texto-3);margin-top:10px}
+.landing .doc-legal .falta-nif{margin-top:18px;padding:12px 14px;border-radius:var(--radio-c);
+  background:var(--aviso-suave);border:1px solid var(--aviso-borde);color:var(--aviso-texto);font-size:14px}
+.landing .doc-legal .falta-nif code{font-family:var(--mono);font-size:13px}
+.landing .doc-legal h2{font:700 20px/1.25 var(--sans);letter-spacing:-.01em;margin:34px 0 0}
+.landing .doc-legal h3{font:600 16.5px/1.3 var(--sans);margin:22px 0 0}
+.landing .doc-legal p{font-size:16px;color:var(--texto-2);margin-top:12px}
+.landing .doc-legal ul{margin:12px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:8px}
+.landing .doc-legal li{font-size:16px;color:var(--texto-2)}
+.landing .doc-legal b{color:var(--texto)}
+.landing .doc-legal a{text-decoration:underline}
+.landing .doc-legal .datos{margin-top:14px;background:var(--superficie);border:1px solid var(--borde);
+  border-radius:var(--radio-t);padding:18px 20px;box-shadow:var(--sombra-1)}
+.landing .doc-legal .datos p{margin-top:6px}
+.landing .doc-legal .datos p:first-child{margin-top:0}
+.landing .doc-legal table{width:100%;border-collapse:collapse;margin-top:14px;font-size:15px}
+.landing .doc-legal th,.landing .doc-legal td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--borde);color:var(--texto-2);vertical-align:top}
+.landing .doc-legal th{color:var(--texto);font-weight:600;font-size:13.5px}
+.landing .doc-legal .tabla-scroll{overflow-x:auto}
