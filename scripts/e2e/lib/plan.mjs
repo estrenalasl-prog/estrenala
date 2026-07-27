@@ -16,6 +16,19 @@ const postgres = require("postgres");
 
 const PLANES_VALIDOS = ["free", "personal", "agencia"];
 
+// GUARDA DE ENTORNO: si el .env.local apunta el despliegue a Dokploy, publicar
+// desde aquí registraría subdominios de PRUEBA en el Traefik de producción y
+// quemaría certificados del cupo semanal de Let's Encrypt. Los e2e solo corren
+// contra el destino autoservido (no-op). Casi pasa el 2026-07-27.
+{
+  const env = readFileSync(path.join(RAIZ, ".env.local"), "utf8");
+  if (/^DEPLOY_TARGET=dokploy\s*$/m.test(env)) {
+    throw new Error(
+      "e2e ABORTADO: .env.local tiene DEPLOY_TARGET=dokploy. Quítalo: los e2e no pueden tocar el Traefik de producción."
+    );
+  }
+}
+
 function deTests(email) {
   const limpio = String(email ?? "").trim().toLowerCase();
   if (!limpio.endsWith("@wordclicks.local")) {
