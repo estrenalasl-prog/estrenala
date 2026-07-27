@@ -139,6 +139,10 @@ SITES_BASE_DOMAIN=estrenala.com
 DNS_TARGET_IP=TU_IP          # la que se le enseña al cliente para su dominio
 
 # --- Base de datos (igual que en local: el mismo Supabase) ---
+# ⚠️ Si la contraseña lleva $, & o #, va CODIFICADA en la URL ($ → %24). Next.js
+# EXPANDE variables al leer los .env, así que un "$Px92" suelto se convierte en
+# nada y la contraseña llega cortada: el síntoma es «password authentication
+# failed» aunque la contraseña sea correcta. Pasó el 2026-07-27.
 DATABASE_URL=...
 
 # --- Almacenamiento: OBLIGATORIO cambiarlo ---
@@ -221,6 +225,18 @@ https://estrenala.com/api/auth/google/callback
 Y en «Orígenes autorizados de JavaScript»: `https://estrenala.com`.
 
 ---
+
+## 8 bis) 👤 ROTAR las credenciales de Supabase — obligatorio
+
+La contraseña de la base y la clave `service_role` del proyecto de Estrénala se
+escribieron en una conversación el 2026-07-27. Mientras la base estaba vacía daba
+igual; en cuanto haya datos de clientes, no. **Antes de abrir al público:**
+
+1. Supabase → botón `Connect` → **reset database password**. Pon una **sin `$`,
+   `&` ni `#`** y te ahorras el problema de la codificación de arriba.
+2. Supabase → **JWT Keys / API Keys** → rotar la `service_role`.
+3. Actualizar `DATABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` en `.env.local` **y**
+   en las variables de Dokploy, y volver a desplegar.
 
 ## 9) Primer arranque
 
