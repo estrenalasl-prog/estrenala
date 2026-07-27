@@ -10,7 +10,7 @@ export const TITULAR = {
   // denominación social (p. ej. «Estrénala S.L.») y `formaJuridica`.
   nombre: "Sebastián Diego Martín Micucci",
   formaJuridica: "persona física" as "persona física" | "sociedad",
-  nif: "", // ⚠️ PENDIENTE: tu DNI/NIE (o el CIF si pasa a S.L.)
+  nif: "79031692N", // si pasa a S.L., aquí va el CIF de la sociedad
   domicilio: "Calle Perdices 8, Bloque 1",
   cp: "29640",
   localidad: "Fuengirola",
