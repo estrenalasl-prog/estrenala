@@ -3,6 +3,7 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Logo } from "../_components/Logo";
+import { FirmaQuantiva } from "../_components/FirmaQuantiva";
 import { BotonGoogle } from "../_components/BotonGoogle";
 
 function destinoSeguro(next: string | null): string {
@@ -43,6 +44,7 @@ function Formulario({ google }: { google: boolean }) {
           <Logo tono="oscuro" alto={34} />
           <p className="claim">Empieza a estrenar tus webs hoy.</p>
           <p className="sub">Crea tu cuenta gratis: sube tu web, edítala con un clic y déjale el blog a la IA.</p>
+          <FirmaQuantiva tono="oscuro" />
         </aside>
 
         <form className="form-panel" onSubmit={crear}>

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Logo } from "../_components/Logo";
+import { FirmaQuantiva } from "../_components/FirmaQuantiva";
 import { BotonGoogle } from "../_components/BotonGoogle";
 
 // Solo rutas internas: evita redirigir a otro sitio con ?next=//malo.
@@ -45,6 +46,7 @@ export function LoginForm({ google }: { google: boolean }) {
           <Logo tono="oscuro" alto={34} />
           <p className="claim">Tu web hecha con IA, por fin en directo.</p>
           <p className="sub">Súbela online, edítala con un clic y deja que el blog escriba solo.</p>
+          <FirmaQuantiva tono="oscuro" />
         </aside>
 
         <form className="form-panel" onSubmit={entrar}>

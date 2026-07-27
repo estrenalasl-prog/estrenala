@@ -1,5 +1,6 @@
 import "./landing.css";
 import { Reveal } from "./Reveal";
+import { FirmaQuantiva } from "../_components/FirmaQuantiva";
 
 // Landing pública de estrenala.com. Viene del mockup 11-landing.html de la sesión
 // de diseño (Claude Design). Cambios deliberados al integrar, para no prometer
@@ -426,6 +427,7 @@ export function Landing() {
           <div className="pie-abajo">
             <span>© {new Date().getFullYear()} Estrénala · estrenala.com</span>
             <span>Hecho en España · Tu web hecha con IA, por fin en directo.</span>
+            <FirmaQuantiva tono="oscuro" />
           </div>
         </div>
       </footer>
