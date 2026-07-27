@@ -51,7 +51,7 @@ export async function unpublishSite(
 }
 
 export async function cambiarSubdominio(
-  deps: { store: ProjectStore },
+  deps: { store: ProjectStore; deploy: DeployTarget },
   input: { orgId: string; projectId: string; subdominio: string }
 ): Promise<{ subdominio: string }> {
   const project = await deps.store.getProject(input.orgId, input.projectId);
@@ -63,8 +63,23 @@ export async function cambiarSubdominio(
   if (esReservado(sub)) throw new PublishError("Ese subdominio está reservado", 400);
   if (project.subdominio === sub) return { subdominio: sub };
   if (!(await deps.store.subdominioLibre(sub))) throw new PublishError("Ese subdominio ya está en uso", 409);
+  const anterior = project.subdominio;
   const ok = await deps.store.setSubdominio(input.orgId, input.projectId, sub);
   if (!ok) throw new PublishError("Ese subdominio ya está en uso", 409);
+
+  // Si la web estaba publicada, hay que MOVER su ruta en el servidor: dar de alta
+  // la dirección nueva (que además necesita su certificado) y retirar la vieja.
+  // Sin esto, cambiar la dirección dejaba la web inaccesible en producción.
+  // El alta va primero: si fallara, se prefiere que siga viva la dirección
+  // anterior a quedarse sin ninguna.
+  if (project.publishedSnapshotId) {
+    await deps.deploy.publish({ projectId: input.projectId, subdominio: sub });
+    if (anterior) {
+      try {
+        await deps.deploy.unpublish({ projectId: input.projectId, subdominio: anterior });
+      } catch { /* la ruta vieja sobra, pero no molesta: no se arruina el cambio por esto */ }
+    }
+  }
   return { subdominio: sub };
 }
 

@@ -16,28 +16,78 @@ function fetchMock(respuestas: Array<{ ok: boolean; status?: number; json?: unkn
   return { f, llamadas };
 }
 
-const cfg = { url: "https://dok.example", apiKey: "k123", applicationId: "app-1" };
+const cfg = {
+  url: "https://dok.example", apiKey: "k123", applicationId: "app-1",
+  sitesBaseDomain: "estrenala.com",
+};
+// El alta consulta primero los dominios que ya hay (para no duplicar rutas), así
+// que casi toda llamada empieza por esa respuesta.
+const yaHay = (hosts: string[] = []) => ({
+  ok: true, json: hosts.map((h, i) => ({ domainId: `d${i}`, host: h })),
+});
 
 describe("DokployDeploy.connectDomain", () => {
   it("crea el dominio pelado y el www con letsencrypt", async () => {
-    const { f, llamadas } = fetchMock([{ ok: true }, { ok: true }]);
+    const { f, llamadas } = fetchMock([yaHay([]), { ok: true }, { ok: true }]);
     await new DokployDeploy({ ...cfg, fetchImpl: f }).connectDomain({ dominio: "cliente.com" });
-    expect(llamadas).toHaveLength(2);
-    expect(llamadas[0].url).toBe("https://dok.example/api/domain.create");
-    const b0 = JSON.parse(String(llamadas[0].init?.body));
+    expect(llamadas).toHaveLength(3); // consulta + 2 altas
+    expect(llamadas[1].url).toBe("https://dok.example/api/domain.create");
+    const b0 = JSON.parse(String(llamadas[1].init?.body));
     expect(b0).toEqual({
       applicationId: "app-1", host: "cliente.com", port: 3000,
       https: true, certificateType: "letsencrypt", domainType: "application",
     });
-    const b1 = JSON.parse(String(llamadas[1].init?.body));
+    const b1 = JSON.parse(String(llamadas[2].init?.body));
     expect(b1.host).toBe("www.cliente.com");
-    const headers = llamadas[0].init?.headers as Record<string, string>;
+    const headers = llamadas[1].init?.headers as Record<string, string>;
     expect(headers["x-api-key"]).toBe("k123");
   });
+  it("no repite los que ya estaban dados de alta", async () => {
+    const { f, llamadas } = fetchMock([yaHay(["cliente.com"]), { ok: true }]);
+    await new DokployDeploy({ ...cfg, fetchImpl: f }).connectDomain({ dominio: "cliente.com" });
+    expect(llamadas).toHaveLength(2); // consulta + solo el www
+    expect(JSON.parse(String(llamadas[1].init?.body)).host).toBe("www.cliente.com");
+  });
   it("respuesta no-ok → lanza", async () => {
-    const { f } = fetchMock([{ ok: false, status: 500 }]);
+    const { f } = fetchMock([yaHay([]), { ok: false, status: 500 }]);
     await expect(new DokployDeploy({ ...cfg, fetchImpl: f }).connectDomain({ dominio: "cliente.com" }))
       .rejects.toThrow(/domain\.create/);
+  });
+});
+
+describe("DokployDeploy.publish / unpublish (subdominios de las webs)", () => {
+  it("publicar da de alta <sub>.<base> con su certificado", async () => {
+    const { f, llamadas } = fetchMock([yaHay([]), { ok: true }]);
+    const r = await new DokployDeploy({ ...cfg, fetchImpl: f }).publish({ projectId: "p1", subdominio: "micafe" });
+    expect(r).toEqual({ ok: true });
+    expect(llamadas).toHaveLength(2);
+    expect(JSON.parse(String(llamadas[1].init?.body))).toEqual({
+      applicationId: "app-1", host: "micafe.estrenala.com", port: 3000,
+      https: true, certificateType: "letsencrypt", domainType: "application",
+    });
+  });
+
+  it("publicar dos veces NO duplica la ruta en Traefik", async () => {
+    const { f, llamadas } = fetchMock([yaHay(["micafe.estrenala.com"])]);
+    await new DokployDeploy({ ...cfg, fetchImpl: f }).publish({ projectId: "p1", subdominio: "micafe" });
+    expect(llamadas).toHaveLength(1); // solo la consulta: no da de alta nada
+  });
+
+  it("despublicar retira SOLO ese host", async () => {
+    const { f, llamadas } = fetchMock([
+      yaHay(["micafe.estrenala.com", "otra.estrenala.com", "cliente.com"]),
+      { ok: true },
+    ]);
+    await new DokployDeploy({ ...cfg, fetchImpl: f }).unpublish({ projectId: "p1", subdominio: "micafe" });
+    expect(llamadas).toHaveLength(2);
+    expect(JSON.parse(String(llamadas[1].init?.body))).toEqual({ domainId: "d0" });
+  });
+
+  it("el subdominio se compone con la base configurada, no con otra", async () => {
+    const { f, llamadas } = fetchMock([yaHay([]), { ok: true }]);
+    await new DokployDeploy({ ...cfg, sitesBaseDomain: "otrodominio.com", fetchImpl: f })
+      .publish({ projectId: "p1", subdominio: "micafe" });
+    expect(JSON.parse(String(llamadas[1].init?.body)).host).toBe("micafe.otrodominio.com");
   });
 });
 

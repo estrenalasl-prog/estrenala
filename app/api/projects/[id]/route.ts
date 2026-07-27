@@ -71,7 +71,10 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   }
   if (typeof body.subdominio === "string") {
     try {
-      const r = await cambiarSubdominio({ store: projectStore }, { orgId, projectId: id, subdominio: body.subdominio });
+      const r = await cambiarSubdominio(
+        { store: projectStore, deploy: getDeploy() },
+        { orgId, projectId: id, subdominio: body.subdominio }
+      );
       return NextResponse.json(r);
     } catch (e) {
       if (e instanceof PublishError) return NextResponse.json({ error: e.message }, { status: e.status });

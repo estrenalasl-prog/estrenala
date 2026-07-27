@@ -110,21 +110,50 @@ describe("unpublishSite", () => {
 describe("cambiarSubdominio", () => {
   it("cambia un subdominio válido y libre", async () => {
     const store = new FakeStore();
-    const r = await cambiarSubdominio({ store }, { orgId: "org1", projectId: "p1", subdominio: "Nuevo-Sub" });
+    const r = await cambiarSubdominio({ store, deploy: new FakeDeploy() }, { orgId: "org1", projectId: "p1", subdominio: "Nuevo-Sub" });
     expect(r.subdominio).toBe("nuevo-sub"); // normaliza a minúsculas
     expect(store.subdominio).toBe("nuevo-sub");
   });
+  it("si la web ESTÁ publicada, mueve su ruta: alta de la nueva y baja de la vieja", async () => {
+    const store = new FakeStore(); const deploy = new FakeDeploy();
+    store.subdominio = "vieja";
+    store.publishedSnapshotId = "s1"; // publicada
+    await cambiarSubdominio({ store, deploy }, { orgId: "org1", projectId: "p1", subdominio: "nueva" });
+    // El alta va PRIMERO: si fallara, mejor seguir sirviendo por la dirección vieja.
+    expect(deploy.publicados).toEqual(["nueva"]);
+    expect(deploy.despublicados).toEqual(["vieja"]);
+  });
+
+  it("si NO está publicada, no molesta al servidor", async () => {
+    const store = new FakeStore(); const deploy = new FakeDeploy();
+    store.subdominio = "vieja";
+    store.publishedSnapshotId = null;
+    await cambiarSubdominio({ store, deploy }, { orgId: "org1", projectId: "p1", subdominio: "nueva" });
+    expect(deploy.publicados).toEqual([]);
+    expect(deploy.despublicados).toEqual([]);
+  });
+
+  it("si la baja de la vieja falla, el cambio NO se arruina", async () => {
+    const store = new FakeStore(); const deploy = new FakeDeploy();
+    store.subdominio = "vieja";
+    store.publishedSnapshotId = "s1";
+    deploy.unpublish = async () => { throw new Error("Dokploy caído"); };
+    const r = await cambiarSubdominio({ store, deploy }, { orgId: "org1", projectId: "p1", subdominio: "nueva" });
+    expect(r.subdominio).toBe("nueva");
+    expect(deploy.publicados).toEqual(["nueva"]); // la nueva quedó servida
+  });
+
   it("formato inválido → 400", async () => {
-    await expect(cambiarSubdominio({ store: new FakeStore() }, { orgId: "org1", projectId: "p1", subdominio: "-malo-" }))
+    await expect(cambiarSubdominio({ store: new FakeStore(), deploy: new FakeDeploy() }, { orgId: "org1", projectId: "p1", subdominio: "-malo-" }))
       .rejects.toMatchObject({ status: 400 });
   });
   it("reservado → 400 con mensaje de reservado", async () => {
-    await expect(cambiarSubdominio({ store: new FakeStore() }, { orgId: "org1", projectId: "p1", subdominio: "www" }))
+    await expect(cambiarSubdominio({ store: new FakeStore(), deploy: new FakeDeploy() }, { orgId: "org1", projectId: "p1", subdominio: "www" }))
       .rejects.toMatchObject({ status: 400, message: "Ese subdominio está reservado" });
   });
   it("ocupado → 409", async () => {
     const store = new FakeStore(); store.ocupados.add("tomado");
-    await expect(cambiarSubdominio({ store }, { orgId: "org1", projectId: "p1", subdominio: "tomado" }))
+    await expect(cambiarSubdominio({ store, deploy: new FakeDeploy() }, { orgId: "org1", projectId: "p1", subdominio: "tomado" }))
       .rejects.toMatchObject({ status: 409 });
   });
 });
