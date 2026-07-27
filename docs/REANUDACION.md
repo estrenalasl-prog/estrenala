@@ -32,7 +32,7 @@ NO sobrevive a los formateos.
 4. Comprobar `.env.local` restaurado (los NOMBRES esperados están en `.env.example`).
 5. `npm run dev` → login en `http://localhost:3000` → abrir el proyecto «Quantiva
    Technology» y comprobar que la vista previa carga (= storage restaurado bien).
-6. `npx vitest run` (422 tests) y `npx tsc --noEmit` deben salir limpios.
+6. `npx vitest run` (594 tests) y `npx tsc --noEmit` deben salir limpios.
 7. Reconstruir la memoria de Claude a partir de este documento (estado, guardas y
    preferencias de abajo).
 
@@ -54,6 +54,10 @@ Drizzle/Postgres en Supabase, vitest). Flujo de trabajo: spec → plan (docs/sup
 | 4g | **Piloto automático**: radar→redacta→portada→programa, solo; OFF por defecto |
 | 5a | Sistema visual v1 en `docs/design/` (tokens, 4 pantallas, componentes, 404, wordmarks) |
 | 4f2 | Portada «diseño» rasterizada a **PNG real 1200×630** (resvg-wasm + Space Grotesk del repo en `src/blog/portada/fuentes/`): og:image visible en WhatsApp/X. GOTCHAs: el paquete va en `serverExternalPackages` y el `.wasm` se lee por ruta de `process.cwd()` (nunca `require.resolve`, Turbopack casca); fuentes+wasm declarados en `outputFileTracingIncludes` por el standalone |
+| 17 | **El blog es de pago y las webs gratuitas llevan marca**. `src/publish/marca.ts`: insignia «Hecho con Estrénala» con estilos EN LÍNEA y `all:initial` (no puede romper el CSS del cliente ni romperse con él). Se inyecta **al SERVIR**, no al publicar (`getPublishedSiteByHost` trae el plan con un JOIN y `resolvePublicSite` la mete antes del último `</body>` si el plan no incluye `sinMarca`): al mejorar de plan desaparece **sin republicar** y al cancelar vuelve sola. Solo en `.html`; los assets se sirven byte a byte. Blog: `src/planes/guardas.ts` (`exigirBlog`, 402) en **las 25 rutas** del blog, GET incluidos; la interfaz muestra `BlogDePago` con «Ver los planes». El cron del piloto ya no escribe para quien dejó de pagar (`listPilotosActivos` filtra por `PLANES_CON_BLOG`, derivado de `PLANES`); lo ya programado sí se publica. 14 tests + e2e-18 (16/16) |
+| 16 | **Pagos con Stripe** (sin librerías, API REST, igual que Google/Resend): Checkout alojado —la tarjeta NUNCA pasa por la plataforma—, portal de cliente y webhook firmado. `src/pagos/`: `precios.ts` (los price IDs viven en el ENTORNO porque cambian de prueba a producción), `stripe.ts` (`verificarFirmaStripe`: HMAC-SHA256 con `timingSafeEqual`, ±5 min antirreplay y varias firmas `v1` por rotación) y `suscripcion.ts` (**`past_due` MANTIENE el plan**, Stripe aún reintenta; `canceled` vuelve a gratuito). `POST /api/stripe/webhook` es público en el middleware: su candado es la firma. Migración 16: `stripe_customer_id`/`stripe_subscription_id`/`plan_estado`/`plan_hasta`. 21 tests + e2e-16 (11/11, sesiones REALES de Checkout) + e2e-17 (11/11, webhook firmado de punta a punta) |
+| 15 | **Planes y límites**: `src/planes/planes.ts` (puro, sin BD) con Gratis (1 web, subdominio, editor, historial, actualizar desde ZIP), **Personal 9 €/mes o 90 €/año** (3 webs, dominio propio, sin marca, blog) y **Agencia 29 €/mes o 290 €/año** (25 webs, equipo). Se corta con **402** (no 403: la interfaz distingue «te falta plan» de «no tienes permiso») y mensajes byte-exactos. `planDe()` cae a `free` ante cualquier valor desconocido. Sección «Plan y uso» en Configuración con la comparativa. `scripts/plan-org.mjs` para asignar planes a mano. e2e-15 (10/10) |
+| 14 | **Páginas legales públicas** (`/legal/*`: aviso legal, privacidad, cookies, términos) con los datos reales del titular en `src/legal/titular.ts` (LSSI-CE art. 10 exige NIF). La página de cookies documenta las de verdad —`wc_session` (30 d), `wc_org` (400 d), `g_state` (10 min)—: **solo técnicas**, así que por el art. 22.2 LSSI no hace falta banner de consentimiento. La columna «Legal» del pie de la landing vuelve a enlazarlas. e2e-14 (19/19) |
 | 13 | **Landing pública integrada** (`app/_landing/`): la RAÍZ es pública — sin sesión sirve la landing de marketing, con sesión el panel (lo decide `app/page.tsx` con `haySesion()`, solo HMAC sin tocar BD). En `middleware.ts` `"/"` va APARTE de `RUTAS_PUBLICAS` (meterla en la lista abriría toda la app por el `startsWith`). CSS del mockup con **todos los selectores acotados a `.landing`** (la app ya usa `.btn`/`.badge`/`.contenedor`); `html`/`body` → `:has(.landing)`. Correcciones de honestidad al integrar: fuera el rol «Invitado» y las «640 lecturas» (no existen), CTA al registro real, logos `/brand/*.png` con `<img>`. **Pendiente: páginas legales** (la columna Legal del pie se omitió para no dejar enlaces rotos). e2e-13 (14/14) incluye que el panel SIGUE protegido |
 | 12 | **Subir la web como `.html` suelto o carpeta**, además del `.zip` (la landing lo prometía y tenía razón: mucha gente recibe de ChatGPT un `index.html`, no un ZIP). `sanearArchivos` en `unzip.ts` centraliza TODAS las reglas (zip-slip, límites, raíz envolvente) y la comparten las dos vías; `processFiles` para carpeta/archivos. **GOTCHA: sanear dos veces se comía dos niveles de carpeta** — cada vía sanea UNA sola vez (hay test de regresión). `POST /api/projects` acepta varios `file` + `rutas` (JSON paralelo con las rutas relativas). `ImportDropzone` arrastra carpetas (`webkitGetAsEntry` recursivo) y tiene «Elegir carpeta» (`webkitdirectory`). 11 tests + e2e-12 (8/8) |
 | 11 | **Actualizar una web desde un ZIP nuevo**: para quien prefiere editar en SU herramienta (Claude Code, ChatGPT, v0…) y subir la versión nueva (el asistente cuesta tokens; «Estrénala no te encierra»). `src/projects/actualizar.ts` crea un snapshot `tipo:"actualizacion"` (parentId=actual) con el ZIP, lo deja como actual, ajusta `entryPath` si cambia; mantiene proyecto+dirección+Historial (reversible); NO mezcla con lo editado in-app. `POST /api/projects/[id]/actualizar` (editor+propietario). `ActualizarPanel.tsx` + etiqueta «Actualización desde ZIP» en Historial. Mejora: `unzipSafe` envuelve el error de fflate → `ImportError` "El archivo no es un ZIP válido" (400 en crear y actualizar). 6 tests + e2e-11 (10/10) |
@@ -83,8 +87,7 @@ en `scripts/e2e/` (necesitan dev server + .env.local; se ejecutan con `node`).
    en claude.ai con el prompt de `docs/design/prompt-landing-para-claude-design.md`
    (actualizado con la idea fuerza **«Estrénala no te encierra»**: tres formas de
    editar). Mockup en `docs/design/11-landing.html`, integrada en `app/_landing/`.
-   **Pendiente asociado: las páginas legales** (aviso legal, privacidad, cookies,
-   términos) — la columna «Legal» del pie está omitida hasta que existan.
+   Las **páginas legales ya existen** (incremento 14) y el pie vuelve a enlazarlas.
 4. **Decisión de producto (2026-07-24): web primero, nada de app nativa.** La
    plataforma es responsive; si algún día hace falta icono en el móvil, se hace PWA
    (web instalable). App nativa solo se replantearía con usuarios pidiéndola.
@@ -98,27 +101,28 @@ en `scripts/e2e/` (necesitan dev server + .env.local; se ejecutan con `node`).
    usuario a una plataforma de terceros; lo que sí se puede es clave de API
    (Anthropic/OpenRouter), el mismo patrón BYOK que ya usamos. Apuntado, NO empezado.
 7. **Orden de construcción hasta salir** (lo tachado = HECHO): ~~portada SVG→PNG~~ ✅
-   (4f2) → ~~multiusuario/Equipo + Tu cuenta~~ ✅ (incremento 6 completo) →
-   **MONETIZACIÓN (perfilada el 2026-07-25, precios SIN decidir):** el modelo espejo
-   es **WordPress.com**, no .org (el .org no monetiza: el dinero está en el
-   ecosistema). Palanca de conversión = **dominio propio + quitar la marca**, como
-   Wix/Squarespace/Webflow. Reparto propuesto: **gratis** = 1 web, subdominio,
-   editor a mano, historial, actualizar desde ZIP; **premium** = dominio propio,
-   varias webs, quitar marca, blog automático, equipo. Dos ventajas propias: el
-   coste marginal de una web gratis es ínfimo (estáticos) y **la IA no le cuesta a
-   la plataforma** (clave del usuario), así que el margen no depende del uso de IA.
-   El usuario confirmó «una parte gratuita y otra premium»; los importes los decide
-   él (referencia de mercado: 9–15 €/mes personal, 29–49 €/mes agencia).
-   ~~edición rich-text~~ ✅ (incremento 7) → ~~asistente IA v1~~ ✅ (incremento 8:
-   proponer→revisar→aplicar; construido ANTES que la landing/Stripe porque esos dos
-   dependen de decisiones del usuario y el asistente no) → **pendientes que dependen
-   del usuario:** integrar la landing cuando vuelva de Claude Design; Plan/facturación
-   (Stripe, precios; el esqueleto ya está: `organizaciones` tiene `plan`/`usoJson`).
-   El blog como sección premium sigue apuntado, NO construir hasta monetizar.
+   (4f2) → ~~multiusuario/Equipo + Tu cuenta~~ ✅ (6 completo) → ~~edición
+   rich-text~~ ✅ (7) → ~~asistente IA v1~~ ✅ (8) → ~~zona de peligro~~ ✅ (9) →
+   ~~ceder propiedad~~ ✅ (10) → ~~actualizar desde ZIP~~ ✅ (11) → ~~subir .html
+   o carpeta~~ ✅ (12) → ~~landing~~ ✅ (13) → ~~legales~~ ✅ (14) →
+   ~~**MONETIZACIÓN**~~ ✅ (15, 16 y 17, cerrada el 2026-07-27).
+   El modelo espejo es **WordPress.com**, no .org (el .org no monetiza: el dinero
+   está en el ecosistema). Palanca de conversión = **dominio propio + quitar la
+   marca**, como Wix/Squarespace/Webflow. Dos ventajas propias: el coste marginal
+   de una web gratis es ínfimo (estáticos) y **la IA no le cuesta a la plataforma**
+   (clave del usuario), así que el margen no depende del uso de IA. Precios
+   decididos por el usuario el 2026-07-26: 9/90 € Personal y 29/290 € Agencia.
    Mejoras futuras del asistente (apuntadas, NO empezadas): agente conversacional
    multi-paso (Claude Agent SDK), cambios estructurales, edición de varias páginas.
-   Al desplegar, para activar los correos/Google reales: `RESEND_API_KEY`,
-   `EMAIL_FROM`, `PLATFORM_HOST`, `GOOGLE_CLIENT_ID`/`SECRET` (ver `.env.example`).
+8. **LO QUE QUEDA PARA SALIR: DESPLEGAR.** Elegir hosting, apuntar `estrenala.com`
+   y pasar Stripe a producción. Checklist de entorno: `PLATFORM_HOST`,
+   `SITES_BASE_DOMAIN`, `DNS_TARGET_IP`, `DATABASE_URL`, `RESEND_API_KEY`,
+   `EMAIL_FROM`, `GOOGLE_CLIENT_ID`/`SECRET` (redirect URI `<host>/api/auth/google/callback`),
+   `CRON_SECRET`, y de Stripe: `STRIPE_SECRET_KEY` **live**, `STRIPE_WEBHOOK_SECRET`
+   del endpoint real (`<host>/api/stripe/webhook`) y los **4 price IDs de
+   producción** (los de prueba NO valen: por eso viven en el entorno). Ver
+   `.env.example`. Pruebas que le faltan al usuario: «Continuar con Google» y el
+   asistente de IA (espera a recargar OpenRouter).
 
 ## ⚠️ Guardas y preferencias (aprendidas a base de sustos)
 
