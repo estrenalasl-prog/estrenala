@@ -23,6 +23,15 @@ export async function middleware(req: NextRequest) {
   const host = (req.headers.get("host") ?? "").toLowerCase();
   const plat = (process.env.PLATFORM_HOST ?? "localhost:3000").toLowerCase();
   const base = (process.env.SITES_BASE_DOMAIN ?? plat).toLowerCase();
+
+  // www de la plataforma → 301 al dominio pelado. Va ANTES de parseHost porque
+  // con PLATAFORMA.com como base de sitios, "www" parecería el subdominio de un
+  // cliente (está en RESERVADOS, así que nadie puede tenerlo) y acabaría en la
+  // 404 pública. Con el DNS comodín *.PLATAFORMA.com esto pasa de verdad.
+  if (host === `www.${plat}`) {
+    return NextResponse.redirect(`https://${plat}${req.nextUrl.pathname}${req.nextUrl.search}`, 301);
+  }
+
   const info = parseHost(host, plat, base);
 
   if (info.tipo === "raiz") {
