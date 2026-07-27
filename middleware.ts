@@ -9,7 +9,9 @@ import { verificarSesion, SESSION_COOKIE } from "@/src/auth/session-cookie";
 const RUTAS_PUBLICAS = ["/login", "/api/login", "/registro", "/api/registro",
   "/verificar", "/recuperar", "/restablecer", "/api/auth/recuperar", "/api/auth/restablecer",
   "/api/auth/google", "/invitacion", "/cambiar-email", "/api/cuenta/email/confirmar",
-  "/api/health", "/api/cron/publicar", "/api/cron/piloto", "/brand", "/legal"];
+  "/api/health", "/api/cron/publicar", "/api/cron/piloto", "/brand", "/legal",
+  // Lo llama Stripe (sin cookie); su candado es la firma HMAC del cuerpo.
+  "/api/stripe/webhook"];
 
 // 1) Hosts que no son la plataforma → se sirven como sitio publicado (/sites/<host>).
 // 2) La raíz del dominio madre → redirect al panel.

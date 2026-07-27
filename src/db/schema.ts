@@ -5,6 +5,12 @@ export const organizations = pgTable("organizations", {
   nombre: text("nombre").notNull(),
   plan: text("plan").notNull().default("free"),
   usoJson: jsonb("uso_json").notNull().default({}),
+  // Suscripción de Stripe (16). plan_estado: active | trialing | past_due |
+  // canceled | '' (sin suscripción). plan_hasta = fin del periodo pagado.
+  stripeCustomerId: text("stripe_customer_id").unique(),
+  stripeSubscriptionId: text("stripe_subscription_id"),
+  planEstado: text("plan_estado").notNull().default(""),
+  planHasta: timestamp("plan_hasta", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

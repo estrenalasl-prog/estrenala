@@ -120,6 +120,41 @@ export class DrizzleAccountStore implements AccountStore {
     await db.update(organizations).set({ plan }).where(eq(organizations.id, orgId));
   }
 
+  // ---- Suscripción de Stripe (16) ----
+
+  async getSuscripcion(orgId: string): Promise<{
+    plan: string; estado: string; customerId: string | null; subscriptionId: string | null; hasta: string | null;
+  } | null> {
+    const r = await db.select({
+      plan: organizations.plan,
+      estado: organizations.planEstado,
+      customerId: organizations.stripeCustomerId,
+      subscriptionId: organizations.stripeSubscriptionId,
+      hasta: organizations.planHasta,
+    }).from(organizations).where(eq(organizations.id, orgId)).limit(1);
+    const o = r[0];
+    if (!o) return null;
+    return { ...o, hasta: o.hasta ? o.hasta.toISOString() : null };
+  }
+
+  async setSuscripcion(orgId: string, s: {
+    plan: string; estado: string; customerId: string | null; subscriptionId: string | null; hasta: Date | null;
+  }): Promise<void> {
+    await db.update(organizations).set({
+      plan: s.plan,
+      planEstado: s.estado,
+      // El customer se conserva si el evento no lo trae (nunca se pierde el hilo
+      // con Stripe: hace falta para el portal de cliente).
+      ...(s.customerId ? { stripeCustomerId: s.customerId } : {}),
+      stripeSubscriptionId: s.subscriptionId,
+      planHasta: s.hasta,
+    }).where(eq(organizations.id, orgId));
+  }
+
+  async setStripeCustomer(orgId: string, customerId: string): Promise<void> {
+    await db.update(organizations).set({ stripeCustomerId: customerId }).where(eq(organizations.id, orgId));
+  }
+
   async listOrgsDeUsuario(userId: string): Promise<OrgResumen[]> {
     return db
       .select({ orgId: organizations.id, nombre: organizations.nombre, rol: memberships.rol })

@@ -144,12 +144,16 @@ type EstadoPlan = {
   plan: string; rol: string;
   uso: { webs: number; miembros: number };
   limites: LimitesPlan; catalogo: LimitesPlan[];
+  pagos: boolean; suscrito: boolean; estado: string;
 };
 
 // Sección «Plan y uso»: qué plan tiene el espacio, cuánto lleva usado y qué
 // incluye cada plan. El pago todavía no está conectado (llegará con Stripe).
 function SeccionPlan() {
   const [d, setD] = useState<EstadoPlan | null>(null);
+  const [periodo, setPeriodo] = useState<"mes" | "anual">("mes");
+  const [ocupado, setOcupado] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     void (async () => {
@@ -158,7 +162,35 @@ function SeccionPlan() {
     })();
   }, []);
 
+  // Tras volver de Stripe el plan lo activa el webhook: puede tardar un instante.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (new URLSearchParams(window.location.search).get("pago") !== "ok") return;
+    const t = setTimeout(() => {
+      void (async () => {
+        try { const r = await fetch("/api/plan"); if (r.ok) setD((await r.json()) as EstadoPlan); } catch { /* silencioso */ }
+      })();
+    }, 2500);
+    return () => clearTimeout(t);
+  }, []);
+
+  async function ir(url: string, body?: unknown) {
+    setOcupado(true); setError(null);
+    try {
+      const r = await fetch(url, {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify(body ?? {}),
+      });
+      const j = (await r.json().catch(() => ({}))) as { url?: string; error?: string };
+      if (!r.ok || !j.url) { setError(j.error ?? "No se pudo continuar"); return; }
+      window.location.href = j.url; // Checkout / portal alojados por Stripe
+    } catch {
+      setError("Error de conexión");
+    } finally { setOcupado(false); }
+  }
+
   const marca = (v: boolean) => (v ? "✓" : "—");
+  const esOwner = d?.rol === "owner";
 
   return (
     <section className="card-conf" id="plan">
@@ -246,10 +278,48 @@ function SeccionPlan() {
               </table>
             </div>
 
-            <p className="ayuda-campo" style={{ marginTop: 14 }}>
-              Los pagos aún no están activos: por ahora los planes se asignan a mano. Cuando se
-              conecte la pasarela podrás cambiar de plan desde aquí.
-            </p>
+            {error && <div className="aviso-error" role="alert" style={{ marginTop: 14 }}><span className="ico">!</span><span>{error}</span></div>}
+
+            {!d.pagos ? (
+              <p className="ayuda-campo" style={{ marginTop: 14 }}>
+                Los pagos no están configurados en este servidor: los planes se asignan a mano.
+              </p>
+            ) : !esOwner ? (
+              <p className="ayuda-campo" style={{ marginTop: 14 }}>
+                Solo el propietario del espacio puede cambiar el plan.
+              </p>
+            ) : d.suscrito ? (
+              <div style={{ marginTop: 16, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                <button className="btn btn-sec btn-sm" disabled={ocupado} onClick={() => void ir("/api/plan/portal")}>
+                  {ocupado ? "Abriendo…" : "Gestionar suscripción"}
+                </button>
+                <small style={{ color: "var(--color-texto-3)" }}>
+                  Cambia de plan, actualiza la tarjeta o cancela. Se abre en Stripe.
+                </small>
+              </div>
+            ) : (
+              <div style={{ marginTop: 16 }}>
+                <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 10, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 13, color: "var(--color-texto-2)" }}>Cómo quieres pagar:</span>
+                  <select className="campo select-conf" value={periodo}
+                    onChange={(e) => setPeriodo(e.target.value === "anual" ? "anual" : "mes")}>
+                    <option value="mes">Mes a mes</option>
+                    <option value="anual">Anual (2 meses gratis)</option>
+                  </select>
+                </div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {d.catalogo.filter((p) => p.id !== "free" && p.id !== d.plan).map((p) => (
+                    <button key={p.id} className="btn btn-primario btn-sm" disabled={ocupado}
+                      onClick={() => void ir("/api/plan/checkout", { plan: p.id, periodo })}>
+                      {ocupado ? "Abriendo…" : `Pasar a ${p.nombre} · ${periodo === "anual" ? `${p.precioAnual} €/año` : `${p.precioMes} €/mes`}`}
+                    </button>
+                  ))}
+                </div>
+                <p className="ayuda-campo" style={{ marginTop: 10 }}>
+                  El pago se hace en una página segura de Stripe. Puedes cancelar cuando quieras.
+                </p>
+              </div>
+            )}
           </>
         )}
       </div>
