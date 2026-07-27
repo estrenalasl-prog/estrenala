@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  PLANES, planDe, limitesDe, puede, alcanzoLimiteWebs, exigirCapacidad, exigirHuecoDeWeb,
+  PLANES, ORDEN, PLANES_CON_BLOG, planDe, limitesDe, puede, alcanzoLimiteWebs, exigirCapacidad, exigirHuecoDeWeb,
   msgLimiteWebs, MSG_DOMINIO_PLAN, MSG_BLOG_PLAN, MSG_EQUIPO_PLAN,
 } from "@/src/planes/planes";
 import { EditorError } from "@/src/editor/errors";
@@ -94,5 +94,16 @@ describe("exigir… lanza 402 (falta plan), no 403 (falta permiso)", () => {
   it("no lanza cuando el plan sí incluye la capacidad", () => {
     expect(() => exigirCapacidad("personal", "dominioPropio")).not.toThrow();
     expect(() => exigirCapacidad("agencia", "equipo")).not.toThrow();
+  });
+});
+
+describe("PLANES_CON_BLOG", () => {
+  it("sale de PLANES, así que no puede quedarse desfasado", () => {
+    expect(PLANES_CON_BLOG).toEqual(ORDEN.filter((p) => PLANES[p].blog));
+  });
+
+  it("el gratuito nunca entra (lo usa el cron del piloto)", () => {
+    expect(PLANES_CON_BLOG).not.toContain("free");
+    expect(PLANES_CON_BLOG.length).toBeGreaterThan(0);
   });
 });

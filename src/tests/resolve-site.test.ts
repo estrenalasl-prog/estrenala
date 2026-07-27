@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { resolvePublicSite } from "@/src/publish/resolve-site";
+import { conMarca, ID_MARCA, TEXTO_MARCA } from "@/src/publish/marca";
 import type { StorageAdapter } from "@/src/storage/types";
 import type {
   ProjectStore, ProjectRow, SnapshotRow, SnapshotInfo,
@@ -22,7 +23,7 @@ class FakeStorage implements StorageAdapter {
 }
 
 class FakeStore implements ProjectStore {
-  sitios = new Map<string, { entryPath: string; storagePrefix: string }>(); // clave: "sub:x" | "dom:x"
+  sitios = new Map<string, { entryPath: string; storagePrefix: string; plan: string }>(); // clave: "sub:x" | "dom:x"
   async createProjectWithSnapshot(i: CreateProjectInput) { return { projectId: i.projectId }; }
   async getProject(): Promise<ProjectRow | null> { return null; }
   async listProjects(): Promise<ProjectRow[]> { return []; }
@@ -45,13 +46,15 @@ class FakeStore implements ProjectStore {
   async setDominio(): Promise<boolean> { return true; }
 }
 
-function preparado() {
+// plan por defecto: de pago, para que estas pruebas comprueben el HTML tal cual.
+// La marca del plan gratuito tiene su propio bloque más abajo.
+function preparado(plan = "personal") {
   const storage = new FakeStorage();
   storage.files.set(PREFIX + "index.html", Buffer.from(HTML));
   storage.files.set(PREFIX + "css/app.css", Buffer.from("body{}"));
   const store = new FakeStore();
-  store.sitios.set("sub:cafe", { entryPath: "index.html", storagePrefix: PREFIX });
-  store.sitios.set("dom:quantivatechnology.com", { entryPath: "index.html", storagePrefix: PREFIX });
+  store.sitios.set("sub:cafe", { entryPath: "index.html", storagePrefix: PREFIX, plan });
+  store.sitios.set("dom:quantivatechnology.com", { entryPath: "index.html", storagePrefix: PREFIX, plan });
   return { storage, store };
 }
 
@@ -107,11 +110,69 @@ describe("resolvePublicSite", () => {
   });
 });
 
+describe("marca «Hecho con Estrénala» (plan gratuito)", () => {
+  const pedir = (store: ProjectStore, storage: StorageAdapter, segs: string[] = []) =>
+    resolvePublicSite({ store, storage }, { host: "cafe.localhost:3000", platformHost: PLAT, pathSegments: segs });
+
+  it("el HTML del plan gratuito sale con la insignia justo antes de </body>", async () => {
+    const { storage, store } = preparado("free");
+    const html = (await pedir(store, storage)).body.toString();
+    expect(html).toContain(TEXTO_MARCA);
+    expect(html.indexOf(`id="${ID_MARCA}"`)).toBeLessThan(html.indexOf("</body>"));
+    expect(html).toContain("<h1>Hola</h1>"); // no se ha tocado nada del original
+  });
+
+  it("un plan de pago NO lleva marca", async () => {
+    for (const plan of ["personal", "agencia"]) {
+      const { storage, store } = preparado(plan);
+      expect((await pedir(store, storage)).body.toString()).not.toContain(ID_MARCA);
+    }
+  });
+
+  it("un plan desconocido cuenta como gratuito (ante la duda, marca)", async () => {
+    const { storage, store } = preparado("inventado");
+    expect((await pedir(store, storage)).body.toString()).toContain(ID_MARCA);
+  });
+
+  it("los assets que no son HTML se sirven intactos", async () => {
+    const { storage, store } = preparado("free");
+    const r = await pedir(store, storage, ["css", "app.css"]);
+    expect(r.body.toString()).toBe("body{}");
+  });
+
+  it("la 404 pública no duplica la insignia (ya lleva su propia promo)", async () => {
+    const { storage, store } = preparado("free");
+    const r = await resolvePublicSite({ store, storage }, { host: "nadie.localhost:3000", platformHost: PLAT, pathSegments: [] });
+    expect(r.body.toString()).not.toContain(ID_MARCA);
+  });
+});
+
+describe("conMarca", () => {
+  it("sin </body> la añade al final", () => {
+    expect(conMarca("<h1>hola</h1>", PLAT).endsWith("</a>")).toBe(true);
+  });
+
+  it("usa el ÚLTIMO </body> (por si aparece dentro del texto)", () => {
+    const html = "<body>habla de &lt;/body&gt; y esto: </body></html>";
+    const salida = conMarca(html, PLAT);
+    expect(salida.indexOf(ID_MARCA)).toBeGreaterThan(salida.indexOf("y esto:"));
+  });
+
+  it("es idempotente: no mete dos insignias", () => {
+    const una = conMarca(HTML, PLAT);
+    expect(conMarca(una, PLAT)).toBe(una);
+  });
+
+  it("escapa el host de la plataforma", () => {
+    expect(conMarca(HTML, `x"><script>alert(1)</script>`, )).not.toContain("<script>alert(1)");
+  });
+});
+
 describe("redirect www → dominio pelado", () => {
   const storeConDominio = (dominio: string) => ({
     async getPublishedSiteByHost(q: { subdominio: string } | { dominio: string }) {
       if ("dominio" in q && q.dominio === dominio)
-        return { entryPath: "index.html", storagePrefix: "p/" };
+        return { entryPath: "index.html", storagePrefix: "p/", plan: "personal" };
       return null;
     },
   }) as unknown as import("@/src/repositories/types").ProjectStore;

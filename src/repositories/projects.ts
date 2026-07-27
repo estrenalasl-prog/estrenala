@@ -1,7 +1,7 @@
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/src/db/client";
 import {
-  assets, projects, snapshots, posts, scheduledPosts, trendsCache,
+  assets, organizations, projects, snapshots, posts, scheduledPosts, trendsCache,
   blogKeywords, articleDrafts, blogSettings, blogTemplates,
 } from "@/src/db/schema";
 import type {
@@ -167,14 +167,19 @@ export class DrizzleProjectStore implements ProjectStore {
 
   async getPublishedSiteByHost(
     q: { subdominio: string } | { dominio: string }
-  ): Promise<{ entryPath: string; storagePrefix: string } | null> {
+  ): Promise<{ entryPath: string; storagePrefix: string; plan: string } | null> {
     const cond = "subdominio" in q
       ? eq(projects.subdominio, q.subdominio)
       : eq(projects.dominio, q.dominio);
     const r = await db
-      .select({ entryPath: projects.entryPath, storagePrefix: snapshots.storagePrefix })
+      .select({
+        entryPath: projects.entryPath,
+        storagePrefix: snapshots.storagePrefix,
+        plan: organizations.plan, // decide si la web lleva la marca «Hecho con Estrénala»
+      })
       .from(projects)
       .innerJoin(snapshots, eq(projects.publishedSnapshotId, snapshots.id))
+      .innerJoin(organizations, eq(projects.orgId, organizations.id))
       .where(cond)
       .limit(1);
     return r[0] ?? null;

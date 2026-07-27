@@ -1,6 +1,7 @@
 import { and, desc, eq, inArray, lte, sql } from "drizzle-orm";
 import { db } from "@/src/db/client";
-import { articleDrafts, blogKeywords, blogSettings, blogTemplates, posts, projects, scheduledPosts, trendsCache } from "@/src/db/schema";
+import { articleDrafts, blogKeywords, blogSettings, blogTemplates, organizations, posts, projects, scheduledPosts, trendsCache } from "@/src/db/schema";
+import { PLANES_CON_BLOG } from "@/src/planes/planes";
 
 export type PostRow = {
   id: string;
@@ -438,7 +439,10 @@ export class DrizzleBlogStore implements BlogStore {
       ultimoDia: blogSettings.pilotoUltimoDia, ultimoMsg: blogSettings.pilotoUltimoMsg,
     }).from(blogSettings)
       .innerJoin(projects, eq(projects.id, blogSettings.projectId))
-      .where(eq(blogSettings.pilotoActivo, true));
+      // Si el espacio deja de pagar, el piloto deja de escribir: se filtra aquí
+      // y no en el tick para que el cron no tenga que saber de planes.
+      .innerJoin(organizations, eq(organizations.id, projects.orgId))
+      .where(and(eq(blogSettings.pilotoActivo, true), inArray(organizations.plan, PLANES_CON_BLOG)));
   }
 
   async reclamarPiloto(projectId: string, dia: string): Promise<boolean> {

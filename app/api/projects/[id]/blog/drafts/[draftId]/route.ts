@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getContexto } from "@/src/auth/contexto";
+import { exigirBlog } from "@/src/planes/guardas";
 import { blogStore } from "@/src/repositories/blog";
 import { ETAPAS, etapaCompletada, siguienteEtapa } from "@/src/blog/pipeline";
 import { EditorError } from "@/src/editor/errors";
@@ -15,6 +16,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string; dr
   const { id, draftId } = await ctx.params;
   const { orgId } = await getContexto();
   try {
+    await exigirBlog(orgId);
     const draft = await blogStore.getDraft(orgId, id, draftId);
     if (!draft) throw new EditorError("Borrador no encontrado", 404);
     return NextResponse.json({
@@ -29,6 +31,7 @@ export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string;
   const { id, draftId } = await ctx.params;
   const { orgId } = await getContexto();
   try {
+    await exigirBlog(orgId);
     const draft = await blogStore.getDraft(orgId, id, draftId);
     if (!draft) throw new EditorError("Borrador no encontrado", 404);
     await blogStore.deleteDraft(orgId, id, draftId);

@@ -148,7 +148,8 @@ type EstadoPlan = {
 };
 
 // Sección «Plan y uso»: qué plan tiene el espacio, cuánto lleva usado y qué
-// incluye cada plan. El pago todavía no está conectado (llegará con Stripe).
+// incluye cada plan. Pagar y cancelar se hace en Stripe (Checkout y portal): la
+// plataforma nunca ve la tarjeta.
 function SeccionPlan() {
   const [d, setD] = useState<EstadoPlan | null>(null);
   const [periodo, setPeriodo] = useState<"mes" | "anual">("mes");
@@ -230,6 +231,16 @@ function SeccionPlan() {
                 </span>
               </div>
             </div>
+
+            {!d.limites.sinMarca && (
+              <div className="fila-conf">
+                <div className="info">
+                  <b>Marca «Hecho con Estrénala»</b>
+                  <small>Tus webs publicadas llevan una insignia discreta abajo a la derecha. Desaparece al mejorar de plan.</small>
+                </div>
+                <div className="control"><span className="badge badge-neutro"><span className="punto" />Visible</span></div>
+              </div>
+            )}
 
             <div className="fila-conf">
               <div className="info">

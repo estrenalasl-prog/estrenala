@@ -36,6 +36,10 @@ export const PLANES: Record<Plan, Limites> = {
 
 export const ORDEN: Plan[] = ["free", "personal", "agencia"];
 
+// Planes que incluyen blog. Derivado de PLANES para que no se quede desfasado:
+// lo usa el cron del piloto para no generar artículos a quien ya no paga.
+export const PLANES_CON_BLOG: Plan[] = ORDEN.filter((p) => PLANES[p].blog);
+
 // Cualquier valor desconocido (o vacío) cae a "free": ante la duda, el plan que
 // menos concede.
 export function planDe(valor: unknown): Plan {

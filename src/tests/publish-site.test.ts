@@ -35,7 +35,7 @@ class FakeStore implements ProjectStore {
   async getSnapshotById(): Promise<SnapshotRow | null> { return null; }
   async createAsset(_i: CreateAssetInput) {}
   async getAsset(): Promise<AssetRow | null> { return null; }
-  async getPublishedSiteByHost(): Promise<{ entryPath: string; storagePrefix: string } | null> { return null; }
+  async getPublishedSiteByHost(): Promise<{ entryPath: string; storagePrefix: string; plan: string } | null> { return null; }
   async setPublished(_o: string, _p: string, id: string | null) { this.publishedSnapshotId = id; }
   async subdominioLibre(s: string): Promise<boolean> { return !this.ocupados.has(s); }
   async setSubdominio(_o: string, _p: string, s: string): Promise<boolean> {

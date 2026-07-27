@@ -1,4 +1,6 @@
 import { parseHost } from "./host";
+import { conMarca } from "./marca";
+import { puede } from "@/src/planes/planes";
 import type { StorageAdapter } from "@/src/storage/types";
 import type { ProjectStore } from "@/src/repositories/types";
 
@@ -106,10 +108,15 @@ export async function resolvePublicSite(
   if (!file) return pagina404("No encontrado", marca);
 
   // HTML publicado: se sirve TAL CUAL (sin anotar, sin reescribir, sin <base>) — las
-  // rutas root-absolutas resuelven al mismo host → mismo proyecto.
+  // rutas root-absolutas resuelven al mismo host → mismo proyecto. La ÚNICA
+  // excepción es la insignia del plan gratuito, que se añade aquí al vuelo para
+  // que aparezca y desaparezca con el plan sin tener que republicar.
   const esHtml = /\.html?$/i.test(rel);
+  const body = esHtml && !puede(site.plan, "sinMarca")
+    ? Buffer.from(conMarca(file.body.toString("utf-8"), input.platformHost), "utf-8")
+    : file.body;
   return {
-    status: 200, body: file.body, contentType: file.contentType,
+    status: 200, body, contentType: file.contentType,
     cacheControl: esHtml ? "no-cache" : "public, max-age=300",
   };
 }

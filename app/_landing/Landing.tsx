@@ -12,6 +12,8 @@ import { Reveal } from "./Reveal";
 //  - Los CTA apuntan al registro real (/registro) en vez del ancla #registro.
 //  - «Sube el ZIP» pasa a «Súbela»: desde el incremento 12 también vale un .html
 //    suelto o una carpeta.
+//  - La sección del blog dice que va con los planes de pago (incremento 17): sin
+//    precios todavía, pero sin dar a entender que entra en el gratuito.
 
 const CTA = "/registro";
 
@@ -231,7 +233,8 @@ export function Landing() {
                   </div>
                 </div>
                 <div className="aviso-coste reveal d2">
-                  Con tu propia clave de IA · opt-in: tú decides cuándo gastas. Editar a mano es gratis.
+                  El blog va con los planes de pago, y escribe con tu propia clave de IA · opt-in: tú decides
+                  cuándo gastas. Publicar y editar a mano es gratis.
                 </div>
               </div>
 

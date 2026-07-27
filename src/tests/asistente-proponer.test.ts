@@ -109,7 +109,7 @@ class FakeStore implements ProjectStore {
   async getSnapshotById(): Promise<SnapshotRow | null> { return null; }
   async createAsset(_i: CreateAssetInput): Promise<void> {}
   async getAsset(): Promise<AssetRow | null> { return null; }
-  async getPublishedSiteByHost(): Promise<{ entryPath: string; storagePrefix: string } | null> { return null; }
+  async getPublishedSiteByHost(): Promise<{ entryPath: string; storagePrefix: string; plan: string } | null> { return null; }
   async setPublished(): Promise<void> {}
   async subdominioLibre(): Promise<boolean> { return true; }
   async setSubdominio(): Promise<boolean> { return true; }

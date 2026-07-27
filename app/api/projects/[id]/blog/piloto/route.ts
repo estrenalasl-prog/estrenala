@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getContexto } from "@/src/auth/contexto";
+import { exigirBlog } from "@/src/planes/guardas";
 import { projectStore } from "@/src/repositories/projects";
 import { blogStore } from "@/src/repositories/blog";
 import { EditorError } from "@/src/editor/errors";
@@ -17,6 +18,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   const { id } = await ctx.params;
   const { orgId } = await getContexto();
   try {
+    await exigirBlog(orgId);
     const project = await projectStore.getProject(orgId, id);
     if (!project) throw new EditorError("Proyecto no encontrado", 404);
     const piloto = await blogStore.getPiloto(orgId, id);
@@ -29,6 +31,7 @@ export async function PUT(req: Request, ctx: { params: Promise<{ id: string }> }
   const { orgId } = await getContexto();
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   try {
+    await exigirBlog(orgId);
     const project = await projectStore.getProject(orgId, id);
     if (!project) throw new EditorError("Proyecto no encontrado", 404);
     const cadaDias = Number(body.cadaDias);

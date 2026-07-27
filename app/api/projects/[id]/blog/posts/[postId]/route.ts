@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getContexto } from "@/src/auth/contexto";
+import { exigirBlog } from "@/src/planes/guardas";
 import { getStorage } from "@/src/storage/factory";
 import { projectStore } from "@/src/repositories/projects";
 import { blogStore } from "@/src/repositories/blog";
@@ -17,6 +18,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string; po
   const { id, postId } = await ctx.params;
   const { orgId } = await getContexto();
   try {
+    await exigirBlog(orgId);
     const project = await projectStore.getProject(orgId, id);
     if (!project) throw new EditorError("Proyecto no encontrado", 404);
     const post = await blogStore.getPost(orgId, id, postId);
@@ -31,6 +33,7 @@ export async function PUT(req: Request, ctx: { params: Promise<{ id: string; pos
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   const s = (v: unknown) => (typeof v === "string" ? v : "");
   try {
+    await exigirBlog(orgId);
     const r = await guardarPost(
       { store: projectStore, blog: blogStore, storage: getStorage() },
       {
@@ -52,6 +55,7 @@ export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string;
   const { id, postId } = await ctx.params;
   const { orgId } = await getContexto();
   try {
+    await exigirBlog(orgId);
     const r = await borrarPost(
       { store: projectStore, blog: blogStore, storage: getStorage() },
       { orgId, projectId: id, postId }

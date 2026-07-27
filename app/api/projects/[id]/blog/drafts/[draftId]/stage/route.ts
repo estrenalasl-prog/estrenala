@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getContexto } from "@/src/auth/contexto";
+import { exigirBlog } from "@/src/planes/guardas";
 import { projectStore } from "@/src/repositories/projects";
 import { blogStore } from "@/src/repositories/blog";
 import { ETAPAS, ejecutarEtapa, type Etapa } from "@/src/blog/pipeline";
@@ -19,6 +20,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string; dr
   const etapa = typeof body.etapa === "string" ? body.etapa : "";
   const instruccion = (typeof body.instruccion === "string" ? body.instruccion : "").trim();
   try {
+    await exigirBlog(orgId);
     if (!(ETAPAS as readonly string[]).includes(etapa)) throw new EditorError("Etapa desconocida", 400);
     if (instruccion.length > 1000) throw new EditorError("La instrucción es demasiado larga (máx. 1000 caracteres)", 400);
     const r = await ejecutarEtapa(

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getContexto } from "@/src/auth/contexto";
+import { exigirBlog } from "@/src/planes/guardas";
 import { blogStore } from "@/src/repositories/blog";
 import { EditorError } from "@/src/editor/errors";
 
@@ -18,6 +19,7 @@ export async function PUT(req: Request, ctx: { params: Promise<{ id: string; kwI
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   const estado = typeof body.estado === "string" ? body.estado : "";
   try {
+    await exigirBlog(orgId);
     if (!ESTADOS.includes(estado)) throw new EditorError("Estado desconocido", 400);
     const ok = await blogStore.setKeywordEstado(orgId, id, kwId, estado);
     if (!ok) throw new EditorError("Keyword no encontrada", 404);

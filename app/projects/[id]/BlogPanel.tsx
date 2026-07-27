@@ -1,6 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { PLANES } from "@/src/planes/planes";
 import { slugify } from "@/src/blog/slug";
 import { BotonSubir } from "./ToolsPanel";
 import { ArticleAiWorkspace, type DraftDetalle } from "./ArticleAiWorkspace";
@@ -47,6 +49,29 @@ function BadgeRelevancia({ relevancia }: { relevancia: number }) {
 
 function IframePreview({ html }: { html: string }) {
   return <iframe srcDoc={html} sandbox="" className="h-96 w-full rounded-c border border-borde bg-superficie" title="vista previa" />;
+}
+
+// Sin plan que incluya blog no se monta el panel: se enseña qué se pierde y por
+// dónde se consigue. El candado de verdad está en la API (402), esto es cortesía.
+export function BlogDePago() {
+  return (
+    <details className="direccion">
+      <summary>
+        <span className="flecha">▸</span> Blog
+        <span className="estado-dom">Incluido en los planes de pago</span>
+      </summary>
+      <div className="direccion-cuerpo" style={{ display: "block" }}>
+        <div className="tarjeta p-3">
+          <p className="text-sm font-medium">Un blog que escribe solo</p>
+          <p className="mb-2 text-xs text-texto-2">
+            Artículos con el diseño de tu propia web, índice y sitemap al día, y un piloto automático que
+            busca temas y publica cada pocos días. Desde {PLANES.personal.precioMes} €/mes con el plan {PLANES.personal.nombre}.
+          </p>
+          <Link href="/settings#plan" className="btn btn-primario btn-sm">Ver los planes</Link>
+        </div>
+      </div>
+    </details>
+  );
 }
 
 export function BlogPanel({ projectId }: { projectId: string }) {

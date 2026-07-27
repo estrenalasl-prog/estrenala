@@ -72,9 +72,10 @@ export interface ProjectStore {
   getSnapshotById(orgId: string, projectId: string, snapshotId: string): Promise<SnapshotRow | null>;
   createAsset(input: CreateAssetInput): Promise<void>;
   getAsset(orgId: string, projectId: string, assetId: string): Promise<AssetRow | null>;
+  /** `plan` viaja aquí (JOIN con la organización) para decidir la marca al servir sin una segunda consulta. */
   getPublishedSiteByHost(
     q: { subdominio: string } | { dominio: string }
-  ): Promise<{ entryPath: string; storagePrefix: string } | null>;
+  ): Promise<{ entryPath: string; storagePrefix: string; plan: string } | null>;
   setPublished(orgId: string, projectId: string, snapshotId: string | null): Promise<void>;
   subdominioLibre(subdominio: string): Promise<boolean>;
   /** false si el subdominio ya está en uso (violación de unicidad en carrera). */

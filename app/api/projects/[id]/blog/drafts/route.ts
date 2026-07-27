@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getContexto } from "@/src/auth/contexto";
+import { exigirBlog } from "@/src/planes/guardas";
 import { projectStore } from "@/src/repositories/projects";
 import { blogStore } from "@/src/repositories/blog";
 import { EditorError } from "@/src/editor/errors";
@@ -15,6 +16,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   const { id } = await ctx.params;
   const { orgId } = await getContexto();
   try {
+    await exigirBlog(orgId);
     const project = await projectStore.getProject(orgId, id);
     if (!project) throw new EditorError("Proyecto no encontrado", 404);
     const drafts = await blogStore.listDrafts(orgId, id);
@@ -30,6 +32,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   const keyword = (typeof body.keyword === "string" ? body.keyword : "").trim();
   try {
+    await exigirBlog(orgId);
     if (!keyword) throw new EditorError("Escribe una keyword o tema para el artículo", 400);
     if (keyword.length > 200) throw new EditorError("La keyword es demasiado larga (máx. 200 caracteres)", 400);
     const project = await projectStore.getProject(orgId, id);

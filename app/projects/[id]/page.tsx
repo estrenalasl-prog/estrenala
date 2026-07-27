@@ -9,11 +9,13 @@ import { AppHeader } from "../../_components/AppHeader";
 import { PublishBar } from "./PublishBar";
 import { PreviewPane } from "./PreviewPane";
 import { ToolsPanel } from "./ToolsPanel";
-import { BlogPanel } from "./BlogPanel";
+import { BlogPanel, BlogDePago } from "./BlogPanel";
 import { AssistantPanel } from "./AssistantPanel";
 import { ActualizarPanel } from "./ActualizarPanel";
 import { DangerZone } from "./DangerZone";
 import { esOwner } from "@/src/auth/roles";
+import { accountStore } from "@/src/repositories/accounts";
+import { puede } from "@/src/planes/planes";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +30,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
   const { orgId, rol } = await getContexto();
   const project = await projectStore.getProject(orgId, id);
   if (!project) notFound();
+  const plan = await accountStore.getPlan(orgId);
   const pages = await listPages({ store: projectStore, storage: getStorage() }, { orgId, projectId: id });
   const platformHost = process.env.PLATFORM_HOST ?? "localhost:3000";
   const sitesBaseDomain = process.env.SITES_BASE_DOMAIN ?? platformHost;
@@ -56,7 +59,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
         <AssistantPanel projectId={id} pages={pages} entryPath={project.entryPath} />
         <ActualizarPanel projectId={id} />
         <ToolsPanel projectId={id} />
-        <BlogPanel projectId={id} />
+        {puede(plan, "blog") ? <BlogPanel projectId={id} /> : <BlogDePago />}
         <PreviewPane projectId={id} entryPath={project.entryPath} pages={pages} />
         {esOwner(rol) && <DangerZone projectId={id} nombre={project.nombre} />}
       </main>
