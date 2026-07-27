@@ -21,7 +21,8 @@ check("el CTA apunta al registro real", html.includes('href="/registro"'));
 check("no quedan anclas #registro sueltas", !html.includes('href="#registro"'));
 check("mock del blog sin la analítica inventada", !html.includes("640 lecturas"));
 check("equipos sin el rol inexistente «Invitado»", !html.includes("Invitado"));
-check("pie sin enlaces legales rotos", !html.includes("Aviso legal"));
+check("el pie enlaza las páginas legales reales (no anclas vacías)",
+  html.includes('href="/legal/aviso-legal"') && !/<a href="#">/.test(html));
 check("usa el logo real (no base64)", html.includes("/brand/logo-tinta.png") && !html.includes("data:image/png;base64"));
 
 // --- 2) Los logos que usa la landing existen de verdad ---

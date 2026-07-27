@@ -9,6 +9,8 @@ import { PublishError } from "@/src/publish/errors";
 import { esOwner, MSG_SOLO_OWNER } from "@/src/auth/roles";
 import { eliminarProyecto } from "@/src/projects/eliminar";
 import { EditorError } from "@/src/editor/errors";
+import { accountStore } from "@/src/repositories/accounts";
+import { exigirCapacidad } from "@/src/planes/planes";
 
 export const runtime = "nodejs";
 
@@ -53,6 +55,9 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
         await quitarDominio({ store: projectStore, deploy: getDeploy() }, { orgId, projectId: id });
         return NextResponse.json({ dominio: null });
       }
+      // Conectar dominio propio es la palanca de los planes de pago (desconectarlo
+      // se permite siempre, para no atrapar a quien baje de plan).
+      exigirCapacidad(await accountStore.getPlan(orgId), "dominioPropio");
       const r = await conectarDominio(
         { store: projectStore, deploy: getDeploy() },
         { orgId, projectId: id, dominio: body.dominio, platformHost, sitesBaseDomain }
@@ -60,6 +65,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       return NextResponse.json(r);
     } catch (e) {
       if (e instanceof PublishError) return NextResponse.json({ error: e.message }, { status: e.status });
+      if (e instanceof EditorError) return NextResponse.json({ error: e.message }, { status: e.status });
       return NextResponse.json({ error: "Error interno" }, { status: 500 });
     }
   }

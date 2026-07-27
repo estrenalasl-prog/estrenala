@@ -103,10 +103,21 @@ export class DrizzleAccountStore implements AccountStore {
 
   // ---- Equipo (fuera del interfaz AccountStore; las rutas usan el singleton) ----
 
-  async getOrg(orgId: string): Promise<{ id: string; nombre: string } | null> {
-    const r = await db.select({ id: organizations.id, nombre: organizations.nombre })
+  async getOrg(orgId: string): Promise<{ id: string; nombre: string; plan: string } | null> {
+    const r = await db.select({ id: organizations.id, nombre: organizations.nombre, plan: organizations.plan })
       .from(organizations).where(eq(organizations.id, orgId)).limit(1);
     return r[0] ?? null;
+  }
+
+  // Plan del espacio (para los límites). Ante cualquier duda, "free".
+  async getPlan(orgId: string): Promise<string> {
+    const r = await db.select({ plan: organizations.plan })
+      .from(organizations).where(eq(organizations.id, orgId)).limit(1);
+    return r[0]?.plan ?? "free";
+  }
+
+  async setPlan(orgId: string, plan: string): Promise<void> {
+    await db.update(organizations).set({ plan }).where(eq(organizations.id, orgId));
   }
 
   async listOrgsDeUsuario(userId: string): Promise<OrgResumen[]> {

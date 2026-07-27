@@ -4,6 +4,9 @@ import { ImportError } from "@/src/import/unzip";
 import { getContexto } from "@/src/auth/contexto";
 import { getStorage } from "@/src/storage/factory";
 import { projectStore } from "@/src/repositories/projects";
+import { accountStore } from "@/src/repositories/accounts";
+import { exigirHuecoDeWeb } from "@/src/planes/planes";
+import { EditorError } from "@/src/editor/errors";
 
 export const runtime = "nodejs";
 
@@ -33,6 +36,11 @@ export async function POST(req: Request) {
     const rutaDe = (f: File, i: number) => (rutas[i] || f.name || `archivo-${i}`);
 
     const { orgId } = await getContexto();
+    // Límite de webs del plan (se cuenta antes de escribir nada).
+    exigirHuecoDeWeb(
+      await accountStore.getPlan(orgId),
+      (await projectStore.listProjects(orgId)).length
+    );
     const deps = { store: projectStore, storage: getStorage(), orgId };
 
     const esZipUnico = entradas.length === 1 && /\.zip$/i.test(rutaDe(entradas[0], 0));
@@ -49,6 +57,9 @@ export async function POST(req: Request) {
   } catch (e) {
     if (e instanceof ImportError) {
       return NextResponse.json({ error: e.message }, { status: 400 });
+    }
+    if (e instanceof EditorError) {
+      return NextResponse.json({ error: e.message }, { status: e.status });
     }
     const msg = e instanceof Error ? e.message : "Error desconocido";
     return NextResponse.json({ error: msg }, { status: 500 });

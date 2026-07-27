@@ -2,6 +2,7 @@
 // del .zip de siempre). Usuario DESECHABLE; se borra al final.
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
+import { planAgencia } from "./lib/plan.mjs";
 
 const RAIZ = "C:/Users/Sebas/Desktop/Carpeta de Proyectos/Wordclicks";
 const require = createRequire(RAIZ + "/package.json");
@@ -24,6 +25,7 @@ let r = await fetch(`${BASE}/api/registro`, {
 });
 const cookie = (r.headers.get("set-cookie") ?? "").split(";")[0];
 check("registro desechable → sesión", r.ok && cookie.startsWith("wc_session="), String(r.status));
+await planAgencia(email); // este e2e sube 3 webs: el plan gratuito solo deja 1
 const H = { cookie };
 
 // Sube una lista de {ruta, contenido} como archivos sueltos con sus rutas relativas.

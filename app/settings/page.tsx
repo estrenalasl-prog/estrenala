@@ -136,21 +136,122 @@ function TarjetaServicio({ titulo, descripcion, enlace, estado, ocupado, onGuard
   );
 }
 
-// Sección diseñada pero aún no construida: se ve para saber adónde vamos, sin fingir
-// que funciona. Multiusuario y facturación son un salto de arquitectura aparte.
-function SeccionProximamente({ id, titulo, descripcion, porQue }: {
-  id: string; titulo: string; descripcion: string; porQue: string;
-}) {
+type LimitesPlan = {
+  id: string; nombre: string; precioMes: number; precioAnual: number;
+  webs: number; dominioPropio: boolean; sinMarca: boolean; blog: boolean; equipo: boolean;
+};
+type EstadoPlan = {
+  plan: string; rol: string;
+  uso: { webs: number; miembros: number };
+  limites: LimitesPlan; catalogo: LimitesPlan[];
+};
+
+// Sección «Plan y uso»: qué plan tiene el espacio, cuánto lleva usado y qué
+// incluye cada plan. El pago todavía no está conectado (llegará con Stripe).
+function SeccionPlan() {
+  const [d, setD] = useState<EstadoPlan | null>(null);
+
+  useEffect(() => {
+    void (async () => {
+      try { const r = await fetch("/api/plan"); if (r.ok) setD((await r.json()) as EstadoPlan); }
+      catch { /* silencioso */ }
+    })();
+  }, []);
+
+  const marca = (v: boolean) => (v ? "✓" : "—");
+
   return (
-    <section className="card-conf proximamente" id={id}>
+    <section className="card-conf" id="plan">
       <header>
         <div className="tit">
-          <h2>{titulo} <span className="badge badge-neutro"><span className="punto" />Próximamente</span></h2>
-          <p>{descripcion}</p>
+          <h2>Plan y uso</h2>
+          <p>Qué incluye tu plan y cuánto llevas usado en este espacio.</p>
         </div>
       </header>
       <div className="cuerpo">
-        <p className="ayuda-campo" style={{ marginTop: 10 }}>{porQue}</p>
+        {!d ? (
+          <p className="ayuda-campo" style={{ marginTop: 10 }}>Cargando…</p>
+        ) : (
+          <>
+            <div className="fila-conf">
+              <div className="info">
+                <b>Tu plan: {d.limites.nombre}</b>
+                <small>
+                  {d.limites.precioMes === 0
+                    ? "Gratis para siempre."
+                    : `${d.limites.precioMes} €/mes · ${d.limites.precioAnual} €/año (2 meses gratis)`}
+                </small>
+              </div>
+              <div className="control">
+                <span className="badge badge-exito"><span className="punto" />Activo</span>
+              </div>
+            </div>
+
+            <div className="fila-conf">
+              <div className="info">
+                <b>Webs</b>
+                <small>Publicadas en este espacio.</small>
+              </div>
+              <div className="control">
+                <span className={d.uso.webs >= d.limites.webs ? "badge badge-aviso" : "badge badge-neutro"}>
+                  <span className="punto" />{d.uso.webs} de {d.limites.webs}
+                </span>
+              </div>
+            </div>
+
+            <div className="fila-conf">
+              <div className="info">
+                <b>Personas en el espacio</b>
+                <small>{d.limites.equipo ? "Tu plan permite invitar a tu equipo." : "Invitar a más gente es del plan Agencia."}</small>
+              </div>
+              <div className="control"><span className="badge badge-neutro"><span className="punto" />{d.uso.miembros}</span></div>
+            </div>
+
+            <p className="ayuda-campo" style={{ marginTop: 18, marginBottom: 8 }}>Comparativa de planes</p>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+                <thead>
+                  <tr>
+                    <th style={{ textAlign: "left", padding: "8px 10px" }}> </th>
+                    {d.catalogo.map((p) => (
+                      <th key={p.id} style={{ textAlign: "left", padding: "8px 10px" }}>
+                        {p.nombre}{p.id === d.plan ? " ·  tú" : ""}
+                        <br />
+                        <span style={{ fontWeight: 400, color: "var(--color-texto-3)" }}>
+                          {p.precioMes === 0 ? "0 €" : `${p.precioMes} €/mes`}
+                        </span>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {([
+                    ["Webs", (p: LimitesPlan) => String(p.webs)],
+                    ["Editor y historial", () => "✓"],
+                    ["Actualizar desde ZIP", () => "✓"],
+                    ["Asistente de IA (tu clave)", () => "✓"],
+                    ["Tu propio dominio", (p: LimitesPlan) => marca(p.dominioPropio)],
+                    ["Sin marca de Estrénala", (p: LimitesPlan) => marca(p.sinMarca)],
+                    ["Blog automático", (p: LimitesPlan) => marca(p.blog)],
+                    ["Equipo e invitaciones", (p: LimitesPlan) => marca(p.equipo)],
+                  ] as [string, (p: LimitesPlan) => string][]).map(([etq, val]) => (
+                    <tr key={etq}>
+                      <td style={{ padding: "8px 10px", borderTop: "1px solid var(--color-borde)", color: "var(--color-texto-2)" }}>{etq}</td>
+                      {d.catalogo.map((p) => (
+                        <td key={p.id} style={{ padding: "8px 10px", borderTop: "1px solid var(--color-borde)" }}>{val(p)}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <p className="ayuda-campo" style={{ marginTop: 14 }}>
+              Los pagos aún no están activos: por ahora los planes se asignan a mano. Cuando se
+              conecte la pasarela podrás cambiar de plan desde aquí.
+            </p>
+          </>
+        )}
       </div>
     </section>
   );
@@ -522,12 +623,7 @@ export default function SettingsPage() {
             </section>
 
             <SeccionEquipo />
-            <SeccionProximamente
-              id="plan"
-              titulo="Plan y uso"
-              descripcion="Tu plan y el consumo de IA del mes, con facturas."
-              porQue="Llegará cuando la plataforma se monetice. Mientras tanto, el gasto de IA va con tus propias claves y lo controlas desde «Conexiones y claves»."
-            />
+            <SeccionPlan />
             <SeccionCuenta />
 
             <SeccionPeligro />
