@@ -1,14 +1,21 @@
 # Reanudación tras formateo — léeme primero
 
-Actualizado: 2026-07-24 (tras mergear el incremento 5b a master). Este documento es
-la fuente de verdad para retomar: la memoria de Claude en `C:\Users\Sebas\.claude`
-NO sobrevive a los formateos.
+Actualizado: 2026-07-28 (incremento 18). Este documento es la fuente de verdad para
+retomar: la memoria de Claude en `C:\Users\Sebas\.claude` NO sobrevive a los formateos.
+
+**Los otros dos documentos que hay que leer:**
+
+- `docs/DESPLIEGUE.md` — cómo está montado el VPS y qué variables lleva producción.
+- `docs/REPASO-SEO-SEGURIDAD.md` — repaso del 2026-07-28 con lo que falta por
+  arreglar en SEO, seguridad y plugins, **priorizado**. Es la lista de trabajo.
 
 ## ✅ Checklist ANTES de formatear (para Sebas)
 
 1. **Copia LA CARPETA ENTERA** `Desktop\Carpeta de Proyectos\Wordclicks` a un USB o
-   nube. El repo NO tiene remoto: este disco es la única copia. La carpeta incluye
-   tres cosas que NO están en git y son irrecuperables:
+   nube. Desde el 2026-07-27 el código SÍ tiene remoto
+   (`github.com/estrenalasl-prog/estrenala`, rama `main`), así que eso ya está a
+   salvo; lo que sigue sin copia en ningún sitio son estas tres cosas, que NO están
+   en git y son irrecuperables:
    - `.env.local` — las claves (DATABASE_URL, SESSION_SECRET, OPENROUTER_API_KEY,
      OPENROUTER_MODEL). **La joya de la corona.** (PANEL_PASSWORD ya no existe:
      desde el incremento 6 el acceso es por cuenta de usuario.)
