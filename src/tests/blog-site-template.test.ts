@@ -71,6 +71,7 @@ function projectRow(overrides: Partial<ProjectRow> = {}): ProjectRow {
     subdominio: null,
     dominio: null,
     publishedSnapshotId: null,
+    noIndexar: false,
     createdAt: "",
     ...overrides,
   };

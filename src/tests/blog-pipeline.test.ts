@@ -76,7 +76,7 @@ function fakes(opts: { draft?: DraftRow | null; posts?: PostRow[]; nicho?: strin
       return {
         id: PROJECT_ID, orgId: ORG, nombre: "Quantiva", entryPath: "index.html",
         currentSnapshotId: "s1", subdominio: "quantiva", dominio: null,
-        publishedSnapshotId: null, createdAt: "",
+        publishedSnapshotId: null, noIndexar: false, createdAt: "",
       };
     },
   } as unknown as ProjectStore;

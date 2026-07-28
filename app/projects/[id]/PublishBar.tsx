@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 export function PublishBar({
-  projectId, subdominio, dominio, publishedSnapshotId, currentSnapshotId, sitesBaseDomain, dnsTargetIp,
+  projectId, subdominio, dominio, publishedSnapshotId, currentSnapshotId, sitesBaseDomain, dnsTargetIp, noIndexar,
 }: {
   projectId: string;
   subdominio: string | null;
@@ -12,6 +12,7 @@ export function PublishBar({
   currentSnapshotId: string | null;
   sitesBaseDomain: string;
   dnsTargetIp: string;
+  noIndexar: boolean;
 }) {
   const router = useRouter();
   const [sub, setSub] = useState(subdominio ?? "");
@@ -91,6 +92,13 @@ export function PublishBar({
           {host && <button className="copiar" onClick={copiar}>{copiado ? "Copiado" : "Copiar"}</button>}
         </span>
         <div className="derecha">
+          {/* Bien visible: es fácil olvidarse el interruptor puesto y no entender
+              nunca por qué la web no sale en Google. */}
+          {publicado && noIndexar && (
+            <span className="badge badge-aviso" title="Nadie la encontrará buscando en Google. Se cambia en «Dirección y dominio».">
+              <span className="punto" />Oculta en Google
+            </span>
+          )}
           {!publicado && <span className="badge badge-neutro"><span className="punto" />Sin publicar</span>}
           {publicado && !sinPublicar && <span className="exito-inline"><span className="punto" />Publicado</span>}
           {sinPublicar && <span className="aviso-inline"><span className="punto" />Tienes cambios sin publicar</span>}
@@ -145,6 +153,31 @@ export function PublishBar({
                   <button className="btn btn-sec btn-sm" onClick={() => void patch({ dominio: dom })} disabled={ocupado || !dom.trim()}>Conectar</button>
                 </div>
               </>
+            )}
+          </div>
+
+          <div className="grupo">
+            <h4>Visibilidad en Google</h4>
+            <div className="fila-conf">
+              <div className="info">
+                <b>Que Google no la encuentre todavía</b>
+                <small>
+                  {noIndexar
+                    ? "Pedimos a los buscadores que no la muestren. Quítalo cuando la web esté lista."
+                    : "Actívalo mientras la estás preparando. La web sigue online: solo se le pide a los buscadores que no la listen."}
+                </small>
+              </div>
+              <div className="control">
+                <button type="button" role="switch" aria-checked={noIndexar} className="interruptor"
+                  aria-label="Que Google no la encuentre todavía"
+                  onClick={() => void patch({ noIndexar: !noIndexar })} disabled={ocupado} />
+              </div>
+            </div>
+            {noIndexar && (
+              <p style={{ marginTop: 10 }}>
+                No es un candado: quien tenga la dirección seguirá entrando. Si no quieres que la vea
+                <b> nadie</b>, despublica la web.
+              </p>
             )}
           </div>
 

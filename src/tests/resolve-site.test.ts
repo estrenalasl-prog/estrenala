@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { resolvePublicSite } from "@/src/publish/resolve-site";
 import { conMarca, ID_MARCA, TEXTO_MARCA } from "@/src/publish/marca";
+import { ROBOTS_NOINDEX } from "@/src/publish/seo";
 import type { StorageAdapter } from "@/src/storage/types";
 import type {
   ProjectStore, ProjectRow, SnapshotRow, SnapshotInfo,
@@ -22,8 +23,10 @@ class FakeStorage implements StorageAdapter {
   async delete(key: string) { this.files.delete(key); }
 }
 
+type Sitio = { entryPath: string; storagePrefix: string; plan: string; noIndexar: boolean; dominio: string | null };
+
 class FakeStore implements ProjectStore {
-  sitios = new Map<string, { entryPath: string; storagePrefix: string; plan: string }>(); // clave: "sub:x" | "dom:x"
+  sitios = new Map<string, Sitio>(); // clave: "sub:x" | "dom:x"
   async createProjectWithSnapshot(i: CreateProjectInput) { return { projectId: i.projectId }; }
   async getProject(): Promise<ProjectRow | null> { return null; }
   async listProjects(): Promise<ProjectRow[]> { return []; }
@@ -40,6 +43,7 @@ class FakeStore implements ProjectStore {
     return this.sitios.get(clave) ?? null;
   }
   async setPublished(): Promise<void> {}
+  async setNoIndexar(): Promise<void> {}
   async subdominioLibre(): Promise<boolean> { return true; }
   async setSubdominio(): Promise<boolean> { return true; }
   async dominioLibre(): Promise<boolean> { return true; }
@@ -48,13 +52,14 @@ class FakeStore implements ProjectStore {
 
 // plan por defecto: de pago, para que estas pruebas comprueben el HTML tal cual.
 // La marca del plan gratuito tiene su propio bloque más abajo.
-function preparado(plan = "personal") {
+function preparado(plan = "personal", extra: Partial<Sitio> = {}) {
   const storage = new FakeStorage();
   storage.files.set(PREFIX + "index.html", Buffer.from(HTML));
   storage.files.set(PREFIX + "css/app.css", Buffer.from("body{}"));
   const store = new FakeStore();
-  store.sitios.set("sub:cafe", { entryPath: "index.html", storagePrefix: PREFIX, plan });
-  store.sitios.set("dom:quantivatechnology.com", { entryPath: "index.html", storagePrefix: PREFIX, plan });
+  const base = { entryPath: "index.html", storagePrefix: PREFIX, plan, noIndexar: false, dominio: null, ...extra };
+  store.sitios.set("sub:cafe", base);
+  store.sitios.set("dom:quantivatechnology.com", base);
   return { storage, store };
 }
 
@@ -107,6 +112,91 @@ describe("resolvePublicSite", () => {
     const { storage, store } = preparado();
     const r = await resolvePublicSite({ store, storage }, { host: "cafe.localhost:3000", platformHost: PLAT, pathSegments: ["no.html"] });
     expect(r.status).toBe(404);
+  });
+});
+
+describe("«Que Google no la encuentre todavía» (X-Robots-Tag)", () => {
+  const pedir = (store: ProjectStore, storage: StorageAdapter, host: string, segs: string[] = []) =>
+    resolvePublicSite({ store, storage }, { host, platformHost: PLAT, pathSegments: segs });
+
+  it("por defecto NO manda ninguna cabecera de robots (publicar es querer que te vean)", async () => {
+    const { storage, store } = preparado();
+    const r = await pedir(store, storage, "cafe.localhost:3000");
+    expect(r.headers?.["x-robots-tag"]).toBeUndefined();
+  });
+
+  it("con el interruptor puesto, el HTML sale con noindex, nofollow", async () => {
+    const { storage, store } = preparado("personal", { noIndexar: true });
+    const r = await pedir(store, storage, "cafe.localhost:3000");
+    expect(r.status).toBe(200);
+    expect(r.headers?.["x-robots-tag"]).toBe(ROBOTS_NOINDEX);
+  });
+
+  it("también protege lo que no es HTML (un PDF o una imagen se indexan igual)", async () => {
+    const { storage, store } = preparado("personal", { noIndexar: true });
+    const r = await pedir(store, storage, "cafe.localhost:3000", ["css", "app.css"]);
+    expect(r.headers?.["x-robots-tag"]).toBe(ROBOTS_NOINDEX);
+  });
+
+  it("vale igual entrando por el dominio propio", async () => {
+    const { storage, store } = preparado("personal", { noIndexar: true });
+    const r = await pedir(store, storage, "quantivatechnology.com");
+    expect(r.headers?.["x-robots-tag"]).toBe(ROBOTS_NOINDEX);
+  });
+
+  it("no toca el HTML: la web se sirve igual de byte-idéntica", async () => {
+    const { storage, store } = preparado("personal", { noIndexar: true });
+    expect((await pedir(store, storage, "cafe.localhost:3000")).body.toString()).toBe(HTML);
+  });
+});
+
+describe("canónico cuando hay dominio propio", () => {
+  const conDominio = () => preparado("personal", { dominio: "quantivatechnology.com" });
+  const pedir = (store: ProjectStore, storage: StorageAdapter, host: string, segs: string[] = []) =>
+    resolvePublicSite({ store, storage }, { host, platformHost: PLAT, pathSegments: segs });
+
+  it("entrando por el subdominio, apunta al dominio propio", async () => {
+    const { storage, store } = conDominio();
+    const r = await pedir(store, storage, "cafe.localhost:3000");
+    expect(r.headers?.link).toBe('<https://quantivatechnology.com/>; rel="canonical"');
+  });
+
+  it("conserva la ruta y la deja segura para una cabecera", async () => {
+    const { storage, store } = conDominio();
+    storage.files.set(PREFIX + "a b/c.html", Buffer.from(HTML));
+    const r = await pedir(store, storage, "cafe.localhost:3000", ["a b", "c.html"]);
+    expect(r.headers?.link).toBe('<https://quantivatechnology.com/a%20b/c.html>; rel="canonical"');
+  });
+
+  it("NO redirige: el DNS del dominio propio puede no apuntar todavía", async () => {
+    const { storage, store } = conDominio();
+    const r = await pedir(store, storage, "cafe.localhost:3000");
+    expect(r.status).toBe(200);
+    expect(r.location).toBeUndefined();
+  });
+
+  it("entrando ya por el dominio propio, no se anuncia canónico", async () => {
+    const { storage, store } = conDominio();
+    const r = await pedir(store, storage, "quantivatechnology.com");
+    expect(r.headers?.link).toBeUndefined();
+  });
+
+  it("sin dominio propio no hay canónico que anunciar", async () => {
+    const { storage, store } = preparado();
+    expect((await pedir(store, storage, "cafe.localhost:3000")).headers?.link).toBeUndefined();
+  });
+
+  it("los assets no llevan canónico (solo tiene sentido en páginas)", async () => {
+    const { storage, store } = conDominio();
+    const r = await pedir(store, storage, "cafe.localhost:3000", ["css", "app.css"]);
+    expect(r.headers?.link).toBeUndefined();
+  });
+
+  it("con noindex manda el noindex: canónico y noindex juntos se contradicen", async () => {
+    const { storage, store } = preparado("personal", { dominio: "quantivatechnology.com", noIndexar: true });
+    const r = await pedir(store, storage, "cafe.localhost:3000");
+    expect(r.headers?.["x-robots-tag"]).toBe(ROBOTS_NOINDEX);
+    expect(r.headers?.link).toBeUndefined();
   });
 });
 

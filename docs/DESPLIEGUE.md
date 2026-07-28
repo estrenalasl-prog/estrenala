@@ -138,6 +138,15 @@ PLATFORM_HOST=estrenala.com
 SITES_BASE_DOMAIN=estrenala.com
 DNS_TARGET_IP=TU_IP          # la que se le enseña al cliente para su dominio
 
+# --- Candado de pre-lanzamiento: PONER YA, QUITAR AL LANZAR ---
+# Mientras esté puesto, toda la plataforma sale con «X-Robots-Tag: noindex,
+# nofollow» y su robots.txt prohíbe el rastreo entero. Hace falta aunque no le
+# hayas enseñado la web a nadie: al emitir el certificado, Let's Encrypt publica
+# el dominio en los registros de Certificate Transparency, que son públicos y hay
+# bots rastreándolos en busca de dominios nuevos.
+# NO afecta a las webs de los clientes: cada una tiene su interruptor.
+PLATAFORMA_NOINDEX=1
+
 # --- Base de datos (igual que en local: el mismo Supabase) ---
 # ⚠️ Si la contraseña lleva $, & o #, va CODIFICADA en la URL ($ → %24). Next.js
 # EXPANDE variables al leer los .env, así que un "$Px92" suelto se convierte en
@@ -260,6 +269,14 @@ igual; en cuanto haya datos de clientes, no. **Antes de abrir al público:**
 - [ ] Pago real con tarjeta real → el plan sube solo y la insignia desaparece.
 - [ ] Conectar un dominio propio emite su certificado (tarda un par de minutos).
 - [ ] Stripe → Webhooks: el endpoint aparece en verde, sin reintentos.
+- [ ] `https://estrenala.com/robots.txt` responde y dice lo que toca según tengas
+      o no `PLATAFORMA_NOINDEX` (ver punto 6).
+
+### El día que lo abras al público
+
+- [ ] **Quitar `PLATAFORMA_NOINDEX`** de Dokploy y redesplegar. Comprobar que
+      `curl -sI https://estrenala.com | grep -i x-robots-tag` no devuelve nada.
+- [ ] Dar de alta el dominio en Google Search Console y pedir la indexación.
 
 ---
 

@@ -1,10 +1,16 @@
 import { parseHost } from "./host";
 import { conMarca } from "./marca";
+import { ROBOTS_NOINDEX, cabeceraCanonica } from "./seo";
 import { puede } from "@/src/planes/planes";
 import type { StorageAdapter } from "@/src/storage/types";
 import type { ProjectStore } from "@/src/repositories/types";
 
-export type PublicResponse = { status: number; body: Buffer; contentType: string; cacheControl: string; location?: string };
+export type PublicResponse = {
+  status: number; body: Buffer; contentType: string; cacheControl: string;
+  location?: string;
+  /** Cabeceras extra (en minúsculas) que la ruta añade tal cual a la respuesta. */
+  headers?: Record<string, string>;
+};
 
 // El host llega de la cabecera Host: se escapa siempre antes de interpolarlo.
 function esc(s: string): string {
@@ -115,8 +121,19 @@ export async function resolvePublicSite(
   const body = esHtml && !puede(site.plan, "sinMarca")
     ? Buffer.from(conMarca(file.body.toString("utf-8"), input.platformHost), "utf-8")
     : file.body;
+
+  // Lo que se le dice a Google (ver seo.ts). Excluyentes: un noindex con canónico
+  // se contradice, y manda el noindex — el dueño ha pedido no aparecer.
+  const headers: Record<string, string> = {};
+  if (site.noIndexar) {
+    headers["x-robots-tag"] = ROBOTS_NOINDEX;
+  } else if (esHtml && h.tipo === "subdominio" && site.dominio) {
+    headers.link = cabeceraCanonica(site.dominio, input.pathSegments);
+  }
+
   return {
     status: 200, body, contentType: file.contentType,
     cacheControl: esHtml ? "no-cache" : "public, max-age=300",
+    ...(Object.keys(headers).length > 0 ? { headers } : {}),
   };
 }

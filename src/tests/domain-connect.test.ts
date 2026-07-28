@@ -12,7 +12,7 @@ function fakeStore(overrides: Partial<Record<string, unknown>> = {}) {
     async getProject() {
       return { id: "p1", orgId: "o1", nombre: "X", entryPath: "index.html",
         currentSnapshotId: "s1", subdominio: "x", dominio: estado.dominio,
-        publishedSnapshotId: "s1", createdAt: "" };
+        publishedSnapshotId: "s1", noIndexar: false, createdAt: "" };
     },
     async dominioLibre() { return true; },
     async setDominio(_o: string, _p: string, d: string | null) { estado.setLlamadas.push(d); estado.dominio = d; return true; },
@@ -83,7 +83,7 @@ describe("conectarDominio", () => {
     const { store } = fakeStore({
       getProject: async () => ({ id: "p1", orgId: "o1", nombre: "X", entryPath: "index.html",
         currentSnapshotId: "s1", subdominio: "x", dominio: "viejo.com",
-        publishedSnapshotId: "s1", createdAt: "" }),
+        publishedSnapshotId: "s1", noIndexar: false, createdAt: "" }),
     });
     const { deploy, llamadas } = fakeDeploy();
     await conectarDominio({ store, deploy }, { orgId: "o1", projectId: "p1", dominio: "nuevo.com", ...HOSTS });
@@ -93,7 +93,7 @@ describe("conectarDominio", () => {
     const { store } = fakeStore({
       getProject: async () => ({ id: "p1", orgId: "o1", nombre: "X", entryPath: "index.html",
         currentSnapshotId: "s1", subdominio: "x", dominio: "cliente.com",
-        publishedSnapshotId: "s1", createdAt: "" }),
+        publishedSnapshotId: "s1", noIndexar: false, createdAt: "" }),
     });
     const { deploy, llamadas } = fakeDeploy();
     const r = await conectarDominio({ store, deploy }, { orgId: "o1", projectId: "p1", dominio: "cliente.com", ...HOSTS });
@@ -107,7 +107,7 @@ describe("quitarDominio", () => {
     const { store, estado } = fakeStore({
       getProject: async () => ({ id: "p1", orgId: "o1", nombre: "X", entryPath: "index.html",
         currentSnapshotId: "s1", subdominio: "x", dominio: "cliente.com",
-        publishedSnapshotId: "s1", createdAt: "" }),
+        publishedSnapshotId: "s1", noIndexar: false, createdAt: "" }),
     });
     const deploy: DeployTarget = {
       async publish() { return { ok: true }; }, async unpublish() {},

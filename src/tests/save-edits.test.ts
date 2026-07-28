@@ -22,7 +22,7 @@ class FakeStore implements ProjectStore {
   actualFijado: string | null = null;
   async createProjectWithSnapshot(i: CreateProjectInput) { return { projectId: i.projectId }; }
   async getProject(): Promise<ProjectRow | null> {
-    return { id: "p1", orgId: "org1", nombre: "x", entryPath: "index.html", currentSnapshotId: "s0", subdominio: null, dominio: null, publishedSnapshotId: null, createdAt: "" };
+    return { id: "p1", orgId: "org1", nombre: "x", entryPath: "index.html", currentSnapshotId: "s0", subdominio: null, dominio: null, publishedSnapshotId: null, noIndexar: false, createdAt: "" };
   }
   async listProjects(): Promise<ProjectRow[]> { return []; }
   async setEntryPath(): Promise<void> {}
@@ -43,7 +43,8 @@ class FakeStore implements ProjectStore {
   async getAsset(_o: string, _p: string, id: string): Promise<AssetRow | null> {
     return this.assets.get(id) ?? null;
   }
-  async getPublishedSiteByHost(): Promise<{ entryPath: string; storagePrefix: string; plan: string } | null> { return null; }
+  async getPublishedSiteByHost() { return null; }
+  async setNoIndexar(): Promise<void> {}
   async setPublished(): Promise<void> {}
   async subdominioLibre(): Promise<boolean> { return true; }
   async setSubdominio(): Promise<boolean> { return true; }

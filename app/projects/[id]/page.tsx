@@ -55,6 +55,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
           currentSnapshotId={project.currentSnapshotId}
           sitesBaseDomain={sitesBaseDomain}
           dnsTargetIp={dnsTargetIp}
+          noIndexar={project.noIndexar}
         />
         <AssistantPanel projectId={id} pages={pages} entryPath={project.entryPath} />
         <ActualizarPanel projectId={id} />

@@ -64,6 +64,9 @@ export const projects = pgTable("projects", {
   entryPath: text("entry_path").notNull(),
   currentSnapshotId: uuid("current_snapshot_id"),
   publishedSnapshotId: uuid("published_snapshot_id"),
+  // «Que Google no la encuentre todavía»: se sirve con X-Robots-Tag en vez de
+  // tocar el HTML del cliente. Por defecto false: publicar es querer que te vean.
+  noIndexar: boolean("no_indexar").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

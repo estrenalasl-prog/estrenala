@@ -40,6 +40,7 @@ function projectRow(overrides: Partial<ProjectRow> = {}): ProjectRow {
     subdominio: "mi-sitio",
     dominio: null,
     publishedSnapshotId: null,
+    noIndexar: false,
     createdAt: "",
     ...overrides,
   };

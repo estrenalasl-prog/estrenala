@@ -42,11 +42,21 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   const { orgId, rol } = await getContexto();
   const project = await projectStore.getProject(orgId, id);
   if (!project) return NextResponse.json({ error: "Proyecto no encontrado" }, { status: 404 });
-  const body = (await req.json()) as { entryPath?: string; subdominio?: string; dominio?: string | null };
+  const body = (await req.json()) as {
+    entryPath?: string; subdominio?: string; dominio?: string | null; noIndexar?: boolean;
+  };
   // La dirección (subdominio/dominio) es del propietario; la página de inicio
   // (entryPath) es trabajo de edición y lo puede tocar el editor.
   const cambiaDireccion = typeof body.subdominio === "string" || typeof body.dominio === "string" || body.dominio === null;
   if (cambiaDireccion && !esOwner(rol)) return NextResponse.json({ error: MSG_SOLO_OWNER }, { status: 403 });
+
+  // Salir o no en Google es una decisión de dueño, como despublicar. Surte efecto
+  // al momento: se aplica al servir, no al publicar (no hay que republicar).
+  if (typeof body.noIndexar === "boolean") {
+    if (!esOwner(rol)) return NextResponse.json({ error: MSG_SOLO_OWNER }, { status: 403 });
+    await projectStore.setNoIndexar(orgId, id, body.noIndexar);
+    return NextResponse.json({ noIndexar: body.noIndexar });
+  }
   if (typeof body.dominio === "string" || body.dominio === null) {
     const platformHost = process.env.PLATFORM_HOST ?? "localhost:3000";
     const sitesBaseDomain = process.env.SITES_BASE_DOMAIN ?? platformHost;

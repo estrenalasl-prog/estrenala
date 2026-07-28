@@ -19,6 +19,7 @@ function toProjectRow(r: typeof projects.$inferSelect): ProjectRow {
     subdominio: r.subdominio,
     dominio: r.dominio,
     publishedSnapshotId: r.publishedSnapshotId,
+    noIndexar: r.noIndexar,
     createdAt: r.createdAt.toISOString(),
   };
 }
@@ -167,7 +168,7 @@ export class DrizzleProjectStore implements ProjectStore {
 
   async getPublishedSiteByHost(
     q: { subdominio: string } | { dominio: string }
-  ): Promise<{ entryPath: string; storagePrefix: string; plan: string } | null> {
+  ): Promise<{ entryPath: string; storagePrefix: string; plan: string; noIndexar: boolean; dominio: string | null } | null> {
     const cond = "subdominio" in q
       ? eq(projects.subdominio, q.subdominio)
       : eq(projects.dominio, q.dominio);
@@ -176,6 +177,8 @@ export class DrizzleProjectStore implements ProjectStore {
         entryPath: projects.entryPath,
         storagePrefix: snapshots.storagePrefix,
         plan: organizations.plan, // decide si la web lleva la marca «Hecho con Estrénala»
+        noIndexar: projects.noIndexar, // decide la cabecera X-Robots-Tag
+        dominio: projects.dominio, // decide el canónico cuando se entra por el subdominio
       })
       .from(projects)
       .innerJoin(snapshots, eq(projects.publishedSnapshotId, snapshots.id))
@@ -187,6 +190,11 @@ export class DrizzleProjectStore implements ProjectStore {
 
   async setPublished(orgId: string, projectId: string, snapshotId: string | null): Promise<void> {
     await db.update(projects).set({ publishedSnapshotId: snapshotId })
+      .where(and(eq(projects.id, projectId), eq(projects.orgId, orgId)));
+  }
+
+  async setNoIndexar(orgId: string, projectId: string, noIndexar: boolean): Promise<void> {
+    await db.update(projects).set({ noIndexar })
       .where(and(eq(projects.id, projectId), eq(projects.orgId, orgId)));
   }
 

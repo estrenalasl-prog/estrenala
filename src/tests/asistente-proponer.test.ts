@@ -96,7 +96,7 @@ class FakeStore implements ProjectStore {
   actualFijado: string | null = null;
   async createProjectWithSnapshot(i: CreateProjectInput) { return { projectId: i.projectId }; }
   async getProject(): Promise<ProjectRow | null> {
-    return { id: "p1", orgId: "org1", nombre: "Mi web", entryPath: "index.html", currentSnapshotId: "s0", subdominio: null, dominio: null, publishedSnapshotId: null, createdAt: "" };
+    return { id: "p1", orgId: "org1", nombre: "Mi web", entryPath: "index.html", currentSnapshotId: "s0", subdominio: null, dominio: null, publishedSnapshotId: null, noIndexar: false, createdAt: "" };
   }
   async listProjects(): Promise<ProjectRow[]> { return []; }
   async setEntryPath(): Promise<void> {}
@@ -109,7 +109,8 @@ class FakeStore implements ProjectStore {
   async getSnapshotById(): Promise<SnapshotRow | null> { return null; }
   async createAsset(_i: CreateAssetInput): Promise<void> {}
   async getAsset(): Promise<AssetRow | null> { return null; }
-  async getPublishedSiteByHost(): Promise<{ entryPath: string; storagePrefix: string; plan: string } | null> { return null; }
+  async getPublishedSiteByHost() { return null; }
+  async setNoIndexar(): Promise<void> {}
   async setPublished(): Promise<void> {}
   async subdominioLibre(): Promise<boolean> { return true; }
   async setSubdominio(): Promise<boolean> { return true; }

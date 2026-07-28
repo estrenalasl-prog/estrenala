@@ -7,6 +7,7 @@ export type ProjectRow = {
   subdominio: string | null;
   dominio: string | null;
   publishedSnapshotId: string | null;
+  noIndexar: boolean;
   createdAt: string;
 };
 
@@ -72,11 +73,16 @@ export interface ProjectStore {
   getSnapshotById(orgId: string, projectId: string, snapshotId: string): Promise<SnapshotRow | null>;
   createAsset(input: CreateAssetInput): Promise<void>;
   getAsset(orgId: string, projectId: string, assetId: string): Promise<AssetRow | null>;
-  /** `plan` viaja aquí (JOIN con la organización) para decidir la marca al servir sin una segunda consulta. */
+  /**
+   * Todo lo que hace falta para servir la web en una sola consulta: `plan` (JOIN
+   * con la organización) decide la marca, `noIndexar` la cabecera para Google y
+   * `dominio` el canónico cuando además se entra por el subdominio.
+   */
   getPublishedSiteByHost(
     q: { subdominio: string } | { dominio: string }
-  ): Promise<{ entryPath: string; storagePrefix: string; plan: string } | null>;
+  ): Promise<{ entryPath: string; storagePrefix: string; plan: string; noIndexar: boolean; dominio: string | null } | null>;
   setPublished(orgId: string, projectId: string, snapshotId: string | null): Promise<void>;
+  setNoIndexar(orgId: string, projectId: string, noIndexar: boolean): Promise<void>;
   subdominioLibre(subdominio: string): Promise<boolean>;
   /** false si el subdominio ya está en uso (violación de unicidad en carrera). */
   setSubdominio(orgId: string, projectId: string, subdominio: string): Promise<boolean>;

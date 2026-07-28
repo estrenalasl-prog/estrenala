@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { parseHost } from "@/src/publish/host";
 import { verificarSesion, SESSION_COOKIE } from "@/src/auth/session-cookie";
+import { plataformaOculta, ROBOTS_NOINDEX } from "@/src/config/robots-plataforma";
 
 // Rutas del panel accesibles sin sesión. Los cron son para disparadores
 // externos (sin cookie): solo hacen lo que el tick del servidor haría igual en
@@ -9,7 +10,7 @@ import { verificarSesion, SESSION_COOKIE } from "@/src/auth/session-cookie";
 const RUTAS_PUBLICAS = ["/login", "/api/login", "/registro", "/api/registro",
   "/verificar", "/recuperar", "/restablecer", "/api/auth/recuperar", "/api/auth/restablecer",
   "/api/auth/google", "/invitacion", "/cambiar-email", "/api/cuenta/email/confirmar",
-  "/api/health", "/api/cron/publicar", "/api/cron/piloto", "/brand", "/legal",
+  "/api/health", "/api/cron/publicar", "/api/cron/piloto", "/brand", "/legal", "/robots.txt",
   // Lo llama Stripe (sin cookie); su candado es la firma HMAC del cuerpo.
   "/api/stripe/webhook"];
 
@@ -43,13 +44,23 @@ export async function middleware(req: NextRequest) {
     return NextResponse.rewrite(url);
   }
 
+  // Candado de pre-lanzamiento: mientras PLATAFORMA_NOINDEX esté puesto, TODA
+  // respuesta de la plataforma sale con noindex. Aquí abajo ya solo pasan hosts
+  // de la plataforma: las webs publicadas se han desviado arriba y mandan sobre
+  // su propia indexación con el interruptor de cada proyecto.
+  const oculta = plataformaOculta(process.env);
+  const sellar = (res: NextResponse) => {
+    if (oculta) res.headers.set("x-robots-tag", ROBOTS_NOINDEX);
+    return res;
+  };
+
   const { pathname } = req.nextUrl;
   // La raíz es pública: sin sesión sirve la landing de marketing, con sesión el
   // panel (lo decide app/page.tsx). Va aparte de RUTAS_PUBLICAS a propósito:
   // meter "/" en esa lista abriría TODA la app por el startsWith.
-  if (pathname === "/") return NextResponse.next();
+  if (pathname === "/") return sellar(NextResponse.next());
   if (RUTAS_PUBLICAS.some((r) => pathname === r || pathname.startsWith(r + "/"))) {
-    return NextResponse.next();
+    return sellar(NextResponse.next());
   }
   // El preview del panel vive en un iframe con sandbox (origen opaco): el navegador
   // NO adjunta la cookie a sus subrecursos (CSS, imágenes, wc-editor.js). Se permite
@@ -61,20 +72,20 @@ export async function middleware(req: NextRequest) {
     (/^\/api\/projects\/[0-9a-f-]{36}\/(preview(\/|$)|assets\/)/.test(pathname) ||
       pathname === "/wc-editor.js")
   ) {
-    return NextResponse.next();
+    return sellar(NextResponse.next());
   }
   const secret = process.env.SESSION_SECRET;
   const cookie = req.cookies.get(SESSION_COOKIE)?.value;
   const sesion = secret && cookie ? await verificarSesion(secret, cookie, Date.now()) : null;
-  if (sesion) return NextResponse.next();
+  if (sesion) return sellar(NextResponse.next());
 
   if (pathname.startsWith("/api/")) {
-    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    return sellar(NextResponse.json({ error: "No autorizado" }, { status: 401 }));
   }
   const url = req.nextUrl.clone();
   url.pathname = "/login";
   url.search = "";
-  return NextResponse.redirect(url, 307);
+  return sellar(NextResponse.redirect(url, 307));
 }
 
 export const config = {

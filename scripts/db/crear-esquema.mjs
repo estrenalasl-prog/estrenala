@@ -46,6 +46,14 @@ const sentencias = readFileSync(path.join(dir, archivo), "utf8")
 
 console.log(`Esquema: drizzle/${archivo} (${sentencias.length} sentencias)`);
 
+// Y detrás, los scripts incrementales de drizzle/manual: son idempotentes
+// (ADD COLUMN IF NOT EXISTS), así que sobre el esquema base o no hacen nada o
+// añaden lo que se haya cambiado después de generarlo. Sin esto, una base
+// estrenada hoy nacería sin las columnas posteriores al último `generate`.
+const dirManual = path.join(dir, "manual");
+const incrementales = readdirSync(dirManual).filter((f) => f.endsWith(".sql")).sort();
+console.log(`Incrementales: drizzle/manual (${incrementales.length} archivos)`);
+
 const sql = postgres(url, { prepare: false, max: 1 });
 try {
   const previas = await sql`SELECT tablename FROM pg_tables WHERE schemaname = 'public'`;
@@ -55,6 +63,7 @@ try {
     process.exit(1);
   }
   for (const s of sentencias) await sql.unsafe(s);
+  for (const f of incrementales) await sql.unsafe(readFileSync(path.join(dirManual, f), "utf8"));
   const creadas = await sql`SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename`;
   console.log(`\n✔ Creadas ${creadas.length} tablas:`);
   console.log("  " + creadas.map((t) => t.tablename).join(", "));

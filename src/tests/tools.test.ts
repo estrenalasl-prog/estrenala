@@ -25,7 +25,7 @@ function fakes() {
   } as unknown as StorageAdapter;
 
   const store = {
-    async getProject() { return { id: "p1", orgId: "o1", nombre: "X", entryPath: "index.html", currentSnapshotId: current, subdominio: null, dominio: null, publishedSnapshotId: null, createdAt: "" }; },
+    async getProject() { return { id: "p1", orgId: "o1", nombre: "X", entryPath: "index.html", currentSnapshotId: current, subdominio: null, dominio: null, publishedSnapshotId: null, noIndexar: false, createdAt: "" }; },
     async getCurrentSnapshot() { return { ...snapshots[current], projectId: "p1", tipo: "edit" }; },
     async createSnapshot(i: { snapshotId: string; storagePrefix: string }) { snapshots[i.snapshotId] = { id: i.snapshotId, storagePrefix: i.storagePrefix }; },
     async setCurrentSnapshot(_o: string, _p: string, id: string) { current = id; },

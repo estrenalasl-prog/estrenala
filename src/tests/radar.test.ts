@@ -58,7 +58,7 @@ function fakes(opts: { nicho?: string; semillas?: string } = {}) {
       return {
         id: P, orgId: ORG, nombre: "Quantiva", entryPath: "index.html",
         currentSnapshotId: "s1", subdominio: "quantiva", dominio: null,
-        publishedSnapshotId: null, createdAt: "",
+        publishedSnapshotId: null, noIndexar: false, createdAt: "",
       };
     },
   } as unknown as ProjectStore;

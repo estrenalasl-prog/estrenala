@@ -17,7 +17,7 @@ class StubStore implements ProjectStore {
   entryGuardado: string | null = null;
   async createProjectWithSnapshot(i: CreateProjectInput) { return { projectId: i.projectId }; }
   async getProject(): Promise<ProjectRow | null> {
-    return { id: "p1", orgId: "org1", nombre: "x", entryPath: "index.html", currentSnapshotId: "s1", subdominio: null, dominio: null, publishedSnapshotId: null, createdAt: "" };
+    return { id: "p1", orgId: "org1", nombre: "x", entryPath: "index.html", currentSnapshotId: "s1", subdominio: null, dominio: null, publishedSnapshotId: null, noIndexar: false, createdAt: "" };
   }
   async listProjects(): Promise<ProjectRow[]> { return []; }
   async setEntryPath(_o: string, _p: string, e: string) { this.entryGuardado = e; }
@@ -33,7 +33,8 @@ class StubStore implements ProjectStore {
     this.assets.set(i.assetId, { id: i.assetId, projectId: i.projectId, storageKey: i.storageKey, contentType: i.contentType, bytes: i.bytes, createdAt: "" });
   }
   async getAsset(_o: string, _p: string, id: string): Promise<AssetRow | null> { return this.assets.get(id) ?? null; }
-  async getPublishedSiteByHost(): Promise<{ entryPath: string; storagePrefix: string; plan: string } | null> { return null; }
+  async getPublishedSiteByHost() { return null; }
+  async setNoIndexar(): Promise<void> {}
   async setPublished(): Promise<void> {}
   async subdominioLibre(): Promise<boolean> { return true; }
   async setSubdominio(): Promise<boolean> { return true; }
