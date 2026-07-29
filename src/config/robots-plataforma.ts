@@ -3,6 +3,9 @@
 //
 // Módulo puro: lo usan app/robots.ts (Node) y middleware.ts (Edge).
 
+/** Solo se leen un par de claves: no hace falta el ProcessEnv entero de Node. */
+export type Entorno = Record<string, string | undefined>;
+
 /** Valor de X-Robots-Tag mientras la plataforma esté oculta. */
 export const ROBOTS_NOINDEX = "noindex, nofollow";
 
@@ -15,7 +18,7 @@ export const ROBOTS_NOINDEX = "noindex, nofollow";
  * Certificate Transparency, y hay bots que los rastrean buscando dominios nuevos.
  * Se quita el día del lanzamiento.
  */
-export function plataformaOculta(env: NodeJS.ProcessEnv = process.env): boolean {
+export function plataformaOculta(env: Entorno = process.env): boolean {
   const v = (env.PLATAFORMA_NOINDEX ?? "").trim().toLowerCase();
   return v === "1" || v === "true" || v === "si" || v === "sí";
 }

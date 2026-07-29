@@ -10,9 +10,15 @@ import { plataformaOculta, ROBOTS_NOINDEX } from "@/src/config/robots-plataforma
 const RUTAS_PUBLICAS = ["/login", "/api/login", "/registro", "/api/registro",
   "/verificar", "/recuperar", "/restablecer", "/api/auth/recuperar", "/api/auth/restablecer",
   "/api/auth/google", "/invitacion", "/cambiar-email", "/api/cuenta/email/confirmar",
-  "/api/health", "/api/cron/publicar", "/api/cron/piloto", "/brand", "/legal", "/robots.txt",
+  "/api/health", "/api/cron/publicar", "/api/cron/piloto", "/brand", "/legal",
   // Lo llama Stripe (sin cookie); su candado es la firma HMAC del cuerpo.
   "/api/stripe/webhook"];
+
+// Archivos que Next sirve en la raíz por convención de `app/`. Los piden el
+// navegador y los buscadores SIN sesión, así que van por coincidencia EXACTA
+// (no por prefijo como RUTAS_PUBLICAS: no queremos abrir "/icon.png/loquesea").
+// Sin esto acababan en el 307 a /login y el icono no se veía en la landing.
+const ARCHIVOS_PUBLICOS = new Set(["/robots.txt", "/sitemap.xml", "/icon.png", "/apple-icon.png"]);
 
 // 1) Hosts que no son la plataforma → se sirven como sitio publicado (/sites/<host>).
 // 2) La raíz del dominio madre → redirect al panel.
@@ -59,6 +65,7 @@ export async function middleware(req: NextRequest) {
   // panel (lo decide app/page.tsx). Va aparte de RUTAS_PUBLICAS a propósito:
   // meter "/" en esa lista abriría TODA la app por el startsWith.
   if (pathname === "/") return sellar(NextResponse.next());
+  if (ARCHIVOS_PUBLICOS.has(pathname)) return sellar(NextResponse.next());
   if (RUTAS_PUBLICAS.some((r) => pathname === r || pathname.startsWith(r + "/"))) {
     return sellar(NextResponse.next());
   }

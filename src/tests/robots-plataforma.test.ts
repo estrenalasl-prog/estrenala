@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { plataformaOculta, reglasRobots, ZONAS_PRIVADAS, ROBOTS_NOINDEX } from "@/src/config/robots-plataforma";
 
-const env = (v?: string) => ({ PLATAFORMA_NOINDEX: v }) as NodeJS.ProcessEnv;
+const env = (v?: string) => ({ PLATAFORMA_NOINDEX: v });
 
 describe("plataformaOculta", () => {
   it("sin variable, la plataforma está abierta (es lo normal en producción)", () => {

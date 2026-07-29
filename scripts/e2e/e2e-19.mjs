@@ -136,6 +136,22 @@ if (OCULTA) {
     robots.body.includes("Disallow: /api/") && robots.body.includes("Disallow: /projects/"), robots.body);
 }
 
+// ------------------------------------- la tarjeta al compartir y los iconos
+// Todo esto lo piden navegador y buscadores SIN sesión. Iban al 307 de /login
+// hasta el 2026-07-29: el icono no se veía en la landing.
+for (const ruta of ["/icon.png", "/apple-icon.png", "/brand/og.png"]) {
+  const a = await pedir("localhost:3000", ruta);
+  check(`${ruta} se sirve sin sesión`, a.status === 200, String(a.status));
+}
+
+const landing = await pedir("localhost:3000", "/");
+const meta = (p) => landing.body.match(new RegExp(`<meta property="${p}" content="([^"]*)"`))?.[1];
+check("la landing anuncia og:image", !!meta("og:image"), String(meta("og:image")));
+check("y la anuncia ABSOLUTA (si es relativa, WhatsApp no la pinta)",
+  (meta("og:image") ?? "").startsWith("http"), String(meta("og:image")));
+check("con su tamaño declarado 1200×630", meta("og:image:width") === "1200" && meta("og:image:height") === "630");
+check("y tarjeta grande en X", landing.body.includes('name="twitter:card" content="summary_large_image"'));
+
 // limpieza
 await fetch(`${BASE}/api/cuenta`, { method: "DELETE", headers: H });
 
