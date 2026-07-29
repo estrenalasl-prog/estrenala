@@ -1,6 +1,10 @@
 # Repaso antes de abrir: SEO, indexación, seguridad y «plugins»
 
-**Fecha:** 28 de julio de 2026 · **Estado del código:** commit `ba1be6a` (incremento 18)
+**Fecha:** 28 de julio de 2026 · **Última actualización:** 29 de julio · **Código:** incremento 19
+
+> **Estado:** de los 11 hallazgos, **7 están arreglados** (A, B, C, D, E, G, H) y
+> quedan I, J, K y los plugins. Los tres 🔴 de código cayeron el 29 de julio; lo
+> que sigue bloqueando el lanzamiento es el punto 0, que es todo tuyo.
 
 Repaso hecho leyendo el código, no de memoria. Cada hallazgo dice dónde está y
 qué pasa si no se toca. Lo que ya está bien también sale: sirve para no volver a
@@ -235,8 +239,14 @@ siguen anunciando como canónica la dirección `*.estrenala.com`. Le estás dici
 a Google que su dominio bueno es el que no es suyo.
 
 **Arreglo:** al conectar un dominio, reescribir canónicos y sitemap del blog.
-Mientras tanto, el canónico que acabamos de añadir tapa el caso de la web
-principal, pero no el de los artículos ya escritos.
+Mientras tanto, el canónico de la cabecera tapa el caso de la web principal, pero
+no el de los artículos ya escritos.
+
+**Sigue pendiente**, y es el único de la lista que no he tocado. No es difícil,
+pero no es de una línea: hay que recorrer los artículos del snapshot, reescribir
+su `<link rel="canonical">` y rehacer el sitemap, y eso es crear un snapshot
+nuevo — o sea, entra en el historial del cliente. Merece hacerse con calma y con
+su e2e, no de carrerilla al final de una sesión larga.
 
 ### 🟢 J) `/` y `/index.html` son la misma página en dos direcciones
 
