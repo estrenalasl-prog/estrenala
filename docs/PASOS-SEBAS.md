@@ -36,27 +36,38 @@ verdad.
 aplicación arranca igual, pero cuando alguien intente guardar su clave de
 OpenRouter en Configuración le saltará un error.
 
-1. Genera la clave. En la terminal del proyecto:
+> ⚠️ **NO generes una nueva.** Tiene que ser **la misma que ya está en tu
+> `.env.local`**, porque tu entorno local y producción **comparten la misma base
+> de datos** (el proyecto Supabase `ycbdgvirehucnkvlldve`). Con dos claves
+> distintas, lo que se guarde desde un lado no se puede leer desde el otro y sale
+> «No se pudo descifrar una clave guardada».
+
+1. Copia la clave al portapapeles **sin que aparezca en pantalla**. En PowerShell,
+   dentro de la carpeta del proyecto:
+   ```powershell
+   [regex]::Match((Get-Content .env.local -Raw), '(?m)^SECRETS_KEY=(.+)$').Groups[1].Value.Trim() | Set-Clipboard
    ```
-   openssl rand -base64 32
+   *(La carpeta del proyecto es `C:\Users\Sebas\Desktop\Carpeta de Proyectos\Wordclicks`.
+   Si no estás en ella: `cd "C:\Users\Sebas\Desktop\Carpeta de Proyectos\Wordclicks"`.)*
+2. Dokploy → **Estrénala** → **Environment**.
+3. Añade una línea nueva y **pega** (Ctrl+V) el valor detrás del `=`:
    ```
-   Si `openssl` no te funciona en Windows, usa esto en su lugar:
+   SECRETS_KEY=<pegar aquí>
    ```
-   node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
-   ```
-2. Copia el resultado (una línea de 44 caracteres que acaba en `=`).
-3. Dokploy → **Estrénala** → **Environment**.
-4. Añade una línea nueva:
-   ```
-   SECRETS_KEY=lo-que-te-ha-salido
-   ```
+4. Comprueba que lo pegado son **44 caracteres y acaba en `=`**.
 5. **Save**.
 
 - [ ] Hecho.
 
-> **Guárdala donde guardas las demás.** Si algún día la cambias, las claves que
-> tus clientes tengan guardadas dejan de poder leerse y tendrán que volver a
-> pegarlas. No es la misma que `SESSION_SECRET`.
+> **No la pegues nunca en un chat**, ni aquí ni en ningún sitio: es la que
+> protege las credenciales de tus clientes.
+>
+> Si algún día la cambias, las claves que tus clientes tengan guardadas dejan de
+> poder leerse y tendrán que volver a pegarlas. No es la misma que
+> `SESSION_SECRET`.
+>
+> **El día que separes la base de datos de desarrollo de la de producción**
+> —que deberías, más adelante— entonces sí podrán ser distintas.
 
 ---
 

@@ -170,9 +170,11 @@ SESSION_SECRET=...                   # openssl rand -base64 48
 # SerpAPI). Son credenciales de terceros con dinero detrás. Sin esta variable la
 # aplicación arranca igual, pero al intentar guardar una clave devuelve un error
 # que dice justo esto.
-# A diferencia de SESSION_SECRET, esta SÍ conviene que sea la misma que en local
-# si vas a mover datos entre entornos: si cambia, las claves guardadas dejan de
-# poder leerse y hay que volver a pegarlas.
+# A diferencia de SESSION_SECRET, esta TIENE QUE SER LA MISMA que la de tu
+# .env.local mientras local y producción compartan base de datos (hoy la
+# comparten: el mismo proyecto de Supabase). Con dos claves distintas, lo que se
+# guarde desde un lado no se puede leer desde el otro. Si cambia, las claves ya
+# guardadas dejan de poder leerse y sus dueños tienen que volver a pegarlas.
 SECRETS_KEY=...                      # openssl rand -base64 32  (32 bytes exactos)
 
 # --- Correo (igual) ---
