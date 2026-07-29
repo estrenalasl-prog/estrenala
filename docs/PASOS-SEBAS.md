@@ -20,10 +20,8 @@ verdad.
 3. Entra con tu cuenta.
 4. Sal (botón de salir) y vuelve a entrar.
 
-- [ ] **Va bien** → sigue al paso 2.
-- [ ] **No te deja entrar, o entras y te echa** → para aquí y dímelo. Sería que
-      el navegador está rechazando la cookie; se arregla rápido, pero no
-      despliegues hasta que lo miremos.
+- [x] **Comprobado el 2026-07-29: entra y sale sin problema.** El prefijo
+      `__Host-` no molesta en `http://localhost`, como esperábamos.
 
 > Ojo: entra por `localhost`, **no** por `192.168.1.31`. Con el prefijo nuevo la
 > cookie necesita conexión segura, y `localhost` cuenta como tal pero la IP no.
@@ -42,13 +40,28 @@ OpenRouter en Configuración le saltará un error.
 > distintas, lo que se guarde desde un lado no se puede leer desde el otro y sale
 > «No se pudo descifrar una clave guardada».
 
-1. Copia la clave al portapapeles **sin que aparezca en pantalla**. En PowerShell,
-   dentro de la carpeta del proyecto:
+1. Copia la clave al portapapeles **sin que aparezca en pantalla**. Ponte primero
+   en la carpeta del proyecto:
+   ```
+   cd "C:\Users\Sebas\Desktop\Carpeta de Proyectos\Wordclicks"
+   ```
+
+   **Desde el Símbolo del sistema (CMD)** — la ventana negra de siempre:
+   ```
+   powershell -Command "[regex]::Match((Get-Content .env.local -Raw), '(?m)^SECRETS_KEY=(.+)$').Groups[1].Value.Trim() | Set-Clipboard"
+   ```
+
+   **Desde PowerShell** (si la ventana pone «PowerShell» arriba):
    ```powershell
    [regex]::Match((Get-Content .env.local -Raw), '(?m)^SECRETS_KEY=(.+)$').Groups[1].Value.Trim() | Set-Clipboard
    ```
-   *(La carpeta del proyecto es `C:\Users\Sebas\Desktop\Carpeta de Proyectos\Wordclicks`.
-   Si no estás en ella: `cd "C:\Users\Sebas\Desktop\Carpeta de Proyectos\Wordclicks"`.)*
+
+   > Los dos son lo mismo; lo que cambia es dónde lo escribes. CMD **no entiende**
+   > la sintaxis de PowerShell: si te dice «El nombre de archivo, el nombre de
+   > directorio o la sintaxis de la etiqueta del volumen no son correctos», es que
+   > has usado la segunda versión en una ventana de CMD.
+
+   Ninguno de los dos imprime nada: si no da error, ya la tienes copiada.
 2. Dokploy → **Estrénala** → **Environment**.
 3. Añade una línea nueva y **pega** (Ctrl+V) el valor detrás del `=`:
    ```
