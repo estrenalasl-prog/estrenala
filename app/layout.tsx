@@ -11,6 +11,21 @@ const spaceGrotesk = Space_Grotesk({
   display: "swap",
 });
 
+// TODO se renderiza en cada petición, nada se precalcula al construir.
+//
+// No es capricho: las variables de entorno las inyecta Dokploy AL ARRANCAR el
+// contenedor, no al construir la imagen. Una página prerenderizada evalúa
+// `process.env` durante el build, donde esas variables no existen todavía, y se
+// queda con el valor congelado para siempre.
+//
+// Ha mordido dos veces: primero con `metadataBase` (og:image apuntando a
+// localhost) y luego con el botón «Continuar con Google», que NUNCA aparecía en
+// producción aunque el OAuth estuviera perfectamente configurado — la página
+// se había construido con `googleConfigurado()` a false.
+//
+// Aquí no se pierde nada por no precalcular: esto es un panel, no un blog.
+export const dynamic = "force-dynamic";
+
 const TITULO = "Estrénala — Tu web hecha con IA, por fin en directo";
 const DESCRIPCION =
   "Sube la web que te ha hecho la IA, publícala en un clic con su dirección y su " +

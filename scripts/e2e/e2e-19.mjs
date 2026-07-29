@@ -152,6 +152,24 @@ check("y la anuncia ABSOLUTA (si es relativa, WhatsApp no la pinta)",
 check("con su tamaño declarado 1200×630", meta("og:image:width") === "1200" && meta("og:image:height") === "630");
 check("y tarjeta grande en X", landing.body.includes('name="twitter:card" content="summary_large_image"'));
 
+// ------------------------- lo que depende del entorno EN CADA PETICIÓN
+// Guarda de una clase de fallo que ya ha mordido dos veces: si una página se
+// prerenderiza al construir, `process.env` se evalúa en el build —donde Dokploy
+// todavía no ha inyectado nada— y el valor se queda congelado. Así desapareció
+// el botón «Continuar con Google» de producción el 2026-07-29, con el OAuth
+// perfectamente configurado. Se arregla con force-dynamic en el layout.
+if (/^GOOGLE_CLIENT_ID=.+$/m.test(ENV) && /^GOOGLE_CLIENT_SECRET=.+$/m.test(ENV)) {
+  // «Continuar con Google» en el login y «Regístrate con Google» en el registro:
+  // se busca lo que tienen en común para no atarse a la redacción.
+  for (const ruta of ["/registro", "/login"]) {
+    const p = await pedir("localhost:3000", ruta);
+    check(`${ruta} enseña el botón de Google cuando está configurado`,
+      p.body.includes("con Google"), `${p.status}, ${p.body.length} bytes`);
+  }
+} else {
+  console.log("  SKIP  el botón de Google (no hay credenciales en .env.local)");
+}
+
 // ------------------------------------------------- cabeceras de seguridad
 const panel = await pedir("localhost:3000", "/login");
 check("la plataforma manda HSTS", (panel.headers["strict-transport-security"] ?? "").includes("max-age=31536000"), String(panel.headers["strict-transport-security"]));
