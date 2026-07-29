@@ -165,6 +165,16 @@ SUPABASE_STORAGE_BUCKET=sites        # créalo en Supabase → Storage (privado)
 # --- Sesiones: GENERA UNO NUEVO, no reutilices el de desarrollo ---
 SESSION_SECRET=...                   # openssl rand -base64 48
 
+# --- Cifrado de las claves de IA de tus clientes: OBLIGATORIO ---
+# Cifra lo que cada espacio pega en Configuración (claves de OpenRouter y
+# SerpAPI). Son credenciales de terceros con dinero detrás. Sin esta variable la
+# aplicación arranca igual, pero al intentar guardar una clave devuelve un error
+# que dice justo esto.
+# A diferencia de SESSION_SECRET, esta SÍ conviene que sea la misma que en local
+# si vas a mover datos entre entornos: si cambia, las claves guardadas dejan de
+# poder leerse y hay que volver a pegarlas.
+SECRETS_KEY=...                      # openssl rand -base64 32  (32 bytes exactos)
+
 # --- Correo (igual) ---
 RESEND_API_KEY=...
 EMAIL_FROM=Estrénala <no-responder@estrenala.com>

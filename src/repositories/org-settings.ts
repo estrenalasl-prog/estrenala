@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/src/db/client";
 import { orgSettings } from "@/src/db/schema";
+import { cifrar, descifrar } from "@/src/config/secretos";
 
 export type OrgSettings = { openrouterKey: string; serpapiKey: string; modeloIa: string };
 
@@ -10,17 +11,32 @@ export interface OrgSettingsStore {
 }
 
 export class DrizzleOrgSettingsStore implements OrgSettingsStore {
+  // Las claves salen de aquí ya descifradas: quien las use no se entera de nada
+  // (ver src/config/secretos.ts). Lo legado en claro pasa tal cual.
   async getSettings(orgId: string): Promise<OrgSettings | null> {
+    const r = await this.crudo(orgId);
+    if (!r) return null;
+    return {
+      openrouterKey: descifrar(r.openrouterKey),
+      serpapiKey: descifrar(r.serpapiKey),
+      modeloIa: r.modeloIa,
+    };
+  }
+
+  /** La fila TAL CUAL está en la base, sin descifrar. */
+  private async crudo(orgId: string) {
     const r = await db.select().from(orgSettings).where(eq(orgSettings.orgId, orgId)).limit(1);
-    if (!r[0]) return null;
-    return { openrouterKey: r[0].openrouterKey, serpapiKey: r[0].serpapiKey, modeloIa: r[0].modeloIa };
+    return r[0] ?? null;
   }
 
   async setSettings(orgId: string, patch: Partial<OrgSettings>): Promise<void> {
-    const previo = await this.getSettings(orgId);
+    // Los campos que NO se tocan se reescriben con sus bytes de la base, sin
+    // descifrar ni recifrar: así cambiar el modelo de IA —que no es secreto— no
+    // exige tener SECRETS_KEY, y no se recifra por gusto lo que ya estaba bien.
+    const previo = await this.crudo(orgId);
     const valores = {
-      openrouterKey: patch.openrouterKey ?? previo?.openrouterKey ?? "",
-      serpapiKey: patch.serpapiKey ?? previo?.serpapiKey ?? "",
+      openrouterKey: patch.openrouterKey !== undefined ? cifrar(patch.openrouterKey) : previo?.openrouterKey ?? "",
+      serpapiKey: patch.serpapiKey !== undefined ? cifrar(patch.serpapiKey) : previo?.serpapiKey ?? "",
       modeloIa: patch.modeloIa ?? previo?.modeloIa ?? "",
     };
     await db.insert(orgSettings)
