@@ -228,12 +228,15 @@ uno** (mensual y anual), exactamente estos:
 Para el segundo precio de cada producto: entra en el producto ya creado y usa
 **+ Añadir otro precio**, no crees un producto nuevo.
 
-> ⚠️ **En cada precio, «Comportamiento fiscal» (tax behavior) → «Incluido»
-> (IVA incluido).** Esto **no se puede cambiar después**: Stripe lo deja fijo al
-> crear el precio, y si te equivocas hay que crear precios nuevos y migrar a los
-> clientes. Con «Incluido», 9 € es lo que paga el cliente y punto; el día que te
-> des de alta y tengas que desglosar el IVA, todo sigue cuadrando sin tocar
-> precios ni subirle nada a nadie.
+> **Sobre el «Comportamiento fiscal» de los precios** (comprobado el 2026-07-29):
+> ese campo **solo lo enseña el panel si tienes Stripe Tax activado**, y aquí se
+> omitió a propósito. Sin él, los precios nacen como «sin especificar», que es
+> **el único estado que se puede cambiar más adelante**: «Incluido» y «Excluido»
+> se quedan fijos para siempre.
+>
+> O sea que está bien como está y no hay que tocar nada. El día que te des de
+> alta y actives Stripe Tax, ahí eliges «Incluido» (IVA incluido) y todo cuadra
+> sin crear precios nuevos ni subirle el precio a nadie.
 
 Al terminar, de cada uno de los **4 precios** copia su **ID** (empieza por
 `price_`). Apúntalos identificando cuál es cuál.
@@ -242,6 +245,13 @@ Al terminar, de cada uno de los **4 precios** copia su **ID** (empieza por
 
 **Desarrolladores → Claves de API** → copia la **clave secreta** (empieza por
 `sk_live_`). Solo se enseña una vez.
+
+> 🔴 **La `sk_live_` y el `whsec_` NO se pegan en un chat. Nunca.** Ni aquí, ni
+> en un correo, ni en un mensaje. Van del panel de Stripe a Dokploy y de ahí no
+> salen. Con la `sk_live_` cualquiera puede mover dinero de tu cuenta.
+>
+> Los **IDs de precio** (`price_…`) sí se pueden compartir sin problema: no son
+> secretos, viajan al navegador del cliente en cada compra.
 
 ### 5.5 El webhook
 
