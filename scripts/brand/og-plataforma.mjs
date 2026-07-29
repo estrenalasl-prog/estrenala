@@ -25,19 +25,30 @@ const ACENTO_TEXTO = "#5E7300";
 
 const logo = readFileSync(path.join(RAIZ, "public", "brand", "logo-tinta.png")).toString("base64");
 
-// El logo original es 460×115 (proporción 4:1 exacta).
+// COMPOSICIÓN CENTRADA, y no por gusto: WhatsApp no enseña la tarjeta entera,
+// la RECORTA A UN CUADRADO por el centro (visto el 2026-07-29 con la primera
+// versión, que iba alineada a la izquierda: el recorte se comió el logo y dejó
+// un trozo de texto suelto). En 1200×630 ese cuadrado es la franja x=285..915,
+// así que TODO lo que se entienda tiene que caber ahí dentro.
+//
+// X, LinkedIn y Slack sí la enseñan entera en 1200×630, que es el tamaño
+// estándar: por eso no se cambia el lienzo, solo dónde vive el contenido.
+const CENTRO = 600;
+
+// El logo original es 460×115 (proporción 4:1 exacta). A 400 de ancho ocupa
+// x=400..800: dentro de la zona segura con margen de sobra.
 const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
   <rect width="1200" height="630" fill="${LIENZO}"/>
-  <image href="data:image/png;base64,${logo}" x="88" y="132" width="440" height="110"/>
-  <g font-family="Space Grotesk" fill="${TEXTO}" font-weight="700" font-size="58" letter-spacing="-1.6">
-    <text x="88" y="372">Tu web hecha con IA,</text>
-    <text x="88" y="444">por fin en directo.</text>
+  <image href="data:image/png;base64,${logo}" x="400" y="128" width="400" height="100"/>
+  <g font-family="Space Grotesk" fill="${TEXTO}" font-weight="700" font-size="52"
+     letter-spacing="-1.4" text-anchor="middle">
+    <text x="${CENTRO}" y="344">Tu web hecha con IA,</text>
+    <text x="${CENTRO}" y="408">por fin en directo.</text>
   </g>
-  <text x="88" y="534" font-family="Space Grotesk" font-weight="500" font-size="27"
-        fill="${TEXTO_2}">Súbela, edítala haciendo clic sobre ella y su blog escribe solo.</text>
-  <circle cx="96" cy="578" r="7" fill="${ACENTO_TEXTO}"/>
-  <text x="116" y="586" font-family="Space Grotesk" font-weight="700" font-size="26"
-        fill="${ACENTO_TEXTO}" letter-spacing="0.4">estrenala.com</text>
+  <text x="${CENTRO}" y="474" font-family="Space Grotesk" font-weight="500" font-size="25"
+        fill="${TEXTO_2}" text-anchor="middle">Publícala en un clic. Edítala sin código.</text>
+  <text x="${CENTRO}" y="556" font-family="Space Grotesk" font-weight="700" font-size="26"
+        fill="${ACENTO_TEXTO}" text-anchor="middle" letter-spacing="0.4">estrenala.com</text>
   <rect x="0" y="614" width="1200" height="16" fill="${ACENTO}"/>
 </svg>`;
 
