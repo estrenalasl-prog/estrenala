@@ -2,6 +2,7 @@ import "./globals.css";
 import type { Metadata } from "next";
 import { Space_Grotesk } from "next/font/google";
 import { urlPlataforma } from "@/src/config/sitio";
+import { analitica } from "@/src/config/analitica";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -41,8 +42,14 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  // Analítica sin cookies (ver src/config/analitica.ts). Si no está configurada
+  // —desarrollo— no se pinta nada. `defer` para que no retrase la página.
+  const medir = analitica();
   return (
     <html lang="es" className={spaceGrotesk.variable}>
+      <head>
+        {medir && <script defer src={medir.src} data-website-id={medir.websiteId} />}
+      </head>
       <body>{children}</body>
     </html>
   );
