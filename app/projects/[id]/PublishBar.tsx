@@ -2,6 +2,9 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+/** El TXT alternativo que devuelve la API cuando no ve el dominio apuntando aquí. */
+type RegistroTxt = { nombre: string; valor: string };
+
 export function PublishBar({
   projectId, subdominio, dominio, publishedSnapshotId, currentSnapshotId, sitesBaseDomain, dnsTargetIp, noIndexar,
 }: {
@@ -22,6 +25,7 @@ export function PublishBar({
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copiado, setCopiado] = useState(false);
+  const [txt, setTxt] = useState<RegistroTxt | null>(null);
   const [proto, setProto] = useState("http:");
   useEffect(() => { setProto(window.location.protocol); }, []);
 
@@ -50,14 +54,19 @@ export function PublishBar({
   }
 
   async function patch(body: unknown): Promise<boolean> {
-    setOcupado(true); setError(null);
+    setOcupado(true); setError(null); setTxt(null);
     try {
       const res = await fetch(`/api/projects/${projectId}`, {
         method: "PATCH", headers: { "content-type": "application/json" },
         body: JSON.stringify(body),
       });
-      const d = (await res.json().catch(() => ({}))) as { error?: string };
-      if (!res.ok) { setError(d.error ?? "Error"); return false; }
+      const d = (await res.json().catch(() => ({}))) as { error?: string; txt?: RegistroTxt };
+      if (!res.ok) {
+        setError(d.error ?? "Error");
+        // Solo llega cuando falla la comprobación de propiedad del dominio.
+        if (d.txt) setTxt(d.txt);
+        return false;
+      }
       router.refresh();
       return true;
     } finally {
@@ -204,6 +213,22 @@ export function PublishBar({
       </details>
 
       {error && <p className="error-campo" style={{ marginTop: 10 }}>{error}</p>}
+
+      {/* Salida para quien tenga el dominio detrás de un proxy (Cloudflare en
+          naranja): ahí el registro A resuelve al proxy y nunca a nosotros, así
+          que hace falta otra forma de demostrar que el dominio es suyo. */}
+      {txt && (
+        <div className="grupo" style={{ marginTop: 10 }}>
+          <p style={{ marginTop: 0 }}>
+            Si acabas de tocar el DNS, dale unos minutos y vuelve a intentarlo. Y si tu dominio
+            pasa por un proxy (por ejemplo Cloudflare), añade además este registro <b>TXT</b>:
+          </p>
+          <div className="bloque-codigo">
+            <div className="linea"><span className="etiqueta-dns">Nombre</span><span>{txt.nombre}</span></div>
+            <div className="linea"><span className="etiqueta-dns">Valor</span><span>{txt.valor}</span></div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

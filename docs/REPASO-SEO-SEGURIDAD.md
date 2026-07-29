@@ -51,7 +51,7 @@ No es relleno: son decisiones que no hay que revisar.
 - **ZIP**: tope de 2.000 archivos y 50 MB.
 - **La API nunca devuelve las claves**: solo el origen y los últimos 4 caracteres.
 
-### 🔴 A) Las claves de tus clientes están **en claro** en la base
+### ✅ A) Las claves de tus clientes están **en claro** en la base — HECHO
 
 `org_settings.openrouter_key` y `serpapi_key` se guardan tal cual.
 
@@ -63,12 +63,13 @@ para ti: hace dos días una clave de servicio acabó pegada en un chat y hubo qu
 rotarla. Si eso hubiera sido un volcado de `org_settings`, habría que avisar uno
 a uno a los clientes.
 
-**Arreglo:** cifrarlas en reposo con AES-256-GCM y una clave en el entorno
-(`SECRETS_KEY`), con el mismo formato versionado que ya usas en las contraseñas
-(`s1.<iv>.<tag>.<cifrado>`). Es un módulo pequeño y un script de migración que
-recifra lo que haya. Media tarde.
+**Arreglo:** ✅ **hecho el 2026-07-29.** Cifradas en reposo con AES-256-GCM bajo
+`SECRETS_KEY`, con el mismo formato versionado que las contraseñas. Lo que no
+tenga ese formato se trata como legado en claro, así que nada se rompió. Los
+campos que no se tocan no se recifran: cambiar el modelo de IA, que no es
+secreto, no exige tener la clave maestra.
 
-### 🔴 B) Cambiar de subdominio no tiene freno, y cada cambio pide un certificado
+### ✅ B) Cambiar de subdominio no tiene freno, y cada cambio pide un certificado — HECHO
 
 Cada subdominio nuevo se da de alta en Traefik con `certificateType: letsencrypt`.
 No hay límite de cuántas veces puedes renombrar.
@@ -80,10 +81,19 @@ de 50 a la semana). Una cuenta gratuita renombrando su web en bucle deja **a
 todos los clientes** sin poder emitir certificado durante días. Y no hace falta
 mala fe: basta con alguien indeciso.
 
-**Arreglo:** límite por espacio (p. ej. 5 cambios de dirección al día) y no dar
-de alta en Traefik hasta que la web esté publicada de verdad.
+**Arreglo:** ✅ **hecho el 2026-07-29.** Tope de 10 direcciones nuevas al día por
+espacio (`organizations.cambios_direccion`), en una sola sentencia SQL para que
+dos peticiones a la vez no puedan colarse las dos. Se cuenta **justo antes de
+pedir el certificado**, no en cada intento: quien esté peleándose con su DNS no
+gasta cupo. Pedir el subdominio que ya tienes, o uno inválido u ocupado, tampoco.
 
-### 🔴 C) Conectar un dominio no comprueba que sea tuyo
+> **Queda pendiente el arreglo de fondo.** Esto acota el daño, no lo elimina:
+> con suficientes cuentas se sigue pudiendo agotar el cupo. La solución
+> estructural es un **certificado comodín** (`*.estrenala.com` por DNS-01) en
+> vez de uno por web, que fue justo lo que se descartó al desplegar. Merece la
+> pena reconsiderarlo cuando haya volumen.
+
+### ✅ C) Conectar un dominio no comprueba que sea tuyo — HECHO
 
 `conectarDominio` valida el formato y que no lo tenga otro proyecto, y lo
 registra. No comprueba el DNS.
@@ -97,10 +107,23 @@ intento gasta del cupo del punto B.
 No permite robar tráfico —el DNS sigue siendo del dueño—, pero es la puerta de
 entrada a los dos problemas anteriores.
 
-**Arreglo:** verificación por DNS antes de registrar, que es además lo que
-desbloquea el 301 del subdominio al dominio propio que descartamos por esto
-mismo. Se le enseña un registro `TXT` con un token, se comprueba con
-`dns.promises.resolveTxt`, y hasta que no resuelva el dominio queda «pendiente».
+**Arreglo:** ✅ **hecho el 2026-07-29.** Antes de reservar el dominio y de pedir
+su certificado hay que demostrar que es tuyo, y vale cualquiera de dos pruebas:
+
+1. **El dominio ya apunta a nuestra IP** (registro A). Es la normal, y no añade
+   ni un paso: son los mismos registros que la pantalla ya le pedía poner.
+2. **Un TXT en `_estrenala.<dominio>`** con su token. Es la salida para quien
+   tenga el dominio detrás de un proxy (Cloudflare en naranja), donde el
+   registro A resuelve al proxy y nunca a nosotros. Sin esta segunda vía le
+   estaríamos bloqueando un dominio que sí es suyo. El token se **deriva** de la
+   clave maestra y del dominio, así que no hace falta guardarlo en ninguna tabla.
+
+La pantalla enseña el TXT sola, pero solo cuando la primera prueba falla, para
+no marear a quien no lo necesita.
+
+> **Esto desbloquea el 301** del subdominio al dominio propio que dejamos en
+> canónico: ahora que sabemos que el DNS apunta bien, redirigir ya no puede
+> dejar la web inalcanzable. Queda pendiente de decidir.
 
 ### 🟠 D) Una web de cliente puede empujarte una cookie de sesión
 
@@ -144,7 +167,7 @@ de terceros. La regla tiene que excluir `/sites/`.
 Lo del incremento 18 ya está: interruptor por web, canónico hacia el dominio
 propio y candado de plataforma. Esto es lo que sigue faltando.
 
-### 🔴 G) Compartir el enlace de Estrénala no enseña nada
+### ✅ G) Compartir el enlace de Estrénala no enseña nada — HECHO
 
 `app/layout.tsx` solo define `title` y `description`. No hay `metadataBase`, ni
 `openGraph`, ni imagen. Cuando pegues `estrenala.com` en WhatsApp, X o LinkedIn
@@ -154,9 +177,14 @@ pelado, sin tarjeta ni imagen.
 Y es irónico: **ya tienes el generador**. Las portadas del blog se rasterizan a
 PNG 1200×630 con resvg y Space Grotesk (`src/blog/portada/`). Es la misma pieza.
 
-**Arreglo:** `metadataBase` + `openGraph` + `twitter` en el layout, y una imagen
-`app/opengraph-image.png` de 1200×630. Es la mejora con mejor relación
-esfuerzo/impacto de toda esta lista.
+**Arreglo:** ✅ **hecho el 2026-07-29.** `metadataBase` + `openGraph` +
+`twitter`, con la imagen en `public/brand/og.png` generada por
+`scripts/brand/og-plataforma.mjs` con el mismo rasterizador del blog.
+
+Y de paso apareció un fallo que no esperaba: **`/icon.png` y `/apple-icon.png`
+respondían un 307 a `/login`**, porque no estaban entre las rutas públicas del
+middleware. O sea, el favicon no se veía para nadie sin sesión: todo visitante de
+la landing. Arreglado y con e2e para que no vuelva.
 
 ### 🟠 H) Las webs sin blog no tienen `sitemap.xml`
 

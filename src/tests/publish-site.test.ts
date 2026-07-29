@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { publishSite, unpublishSite, cambiarSubdominio } from "@/src/publish/publish-site";
+import {
+  publishSite, unpublishSite, cambiarSubdominio, conectarDominio,
+  MSG_DOMINIO_SIN_VERIFICAR,
+} from "@/src/publish/publish-site";
+import { MSG_CUPO_DIRECCIONES } from "@/src/publish/cupo-direcciones";
 import { PublishError } from "@/src/publish/errors";
 import type { DeployTarget } from "@/src/publish/deploy-target";
 import type {
@@ -10,6 +14,7 @@ import type {
 class FakeStore implements ProjectStore {
   nombre = "Cafetería Aurora";
   subdominio: string | null = null;
+  dominio: string | null = null;
   publishedSnapshotId: string | null = null;
   currentSnapshot: SnapshotRow | null = { id: "s1", projectId: "p1", storagePrefix: "projects/p1/snapshots/s1/", tipo: "edit" };
   ocupados = new Set<string>();
@@ -22,7 +27,7 @@ class FakeStore implements ProjectStore {
     return {
       id: "p1", orgId: "org1", nombre: this.nombre, entryPath: "index.html",
       currentSnapshotId: this.currentSnapshot?.id ?? null,
-      subdominio: this.subdominio, dominio: null, publishedSnapshotId: this.publishedSnapshotId,
+      subdominio: this.subdominio, dominio: this.dominio, publishedSnapshotId: this.publishedSnapshotId,
       noIndexar: false, createdAt: "",
     };
   }
@@ -44,7 +49,7 @@ class FakeStore implements ProjectStore {
     this.subdominio = s; return true;
   }
   async dominioLibre(): Promise<boolean> { return true; }
-  async setDominio(): Promise<boolean> { return true; }
+  async setDominio(_o: string, _p: string, d: string | null): Promise<boolean> { this.dominio = d; return true; }
 }
 
 class FakeDeploy implements DeployTarget {
@@ -156,5 +161,99 @@ describe("cambiarSubdominio", () => {
     const store = new FakeStore(); store.ocupados.add("tomado");
     await expect(cambiarSubdominio({ store, deploy: new FakeDeploy() }, { orgId: "org1", projectId: "p1", subdominio: "tomado" }))
       .rejects.toMatchObject({ status: 409 });
+  });
+});
+
+describe("cupo de direcciones (freno del cupo de certificados)", () => {
+  // Cada dirección nueva pide un certificado a Let's Encrypt y ese cupo es
+  // COMPARTIDO por todos los clientes: sin freno, una cuenta en bucle deja a
+  // todo el mundo sin poder emitir.
+  const lleno = async () => false;
+  const libre = async () => true;
+
+  it("con cupo libre, el cambio sale adelante y se da de alta la dirección", async () => {
+    const store = new FakeStore(); store.publishedSnapshotId = "s1";
+    const deploy = new FakeDeploy();
+    await cambiarSubdominio({ store, deploy, cupo: libre }, { orgId: "org1", projectId: "p1", subdominio: "nuevo" });
+    expect(deploy.publicados).toContain("nuevo");
+  });
+
+  it("sin cupo → 429 y NO se toca el subdominio guardado", async () => {
+    const store = new FakeStore(); store.subdominio = "el-de-antes";
+    const deploy = new FakeDeploy();
+    await expect(cambiarSubdominio({ store, deploy, cupo: lleno }, { orgId: "org1", projectId: "p1", subdominio: "nuevo" }))
+      .rejects.toMatchObject({ status: 429, message: MSG_CUPO_DIRECCIONES });
+    expect(store.subdominio).toBe("el-de-antes");
+    expect(deploy.publicados).toEqual([]);
+  });
+
+  it("pedir el subdominio que YA tienes no gasta cupo", async () => {
+    const store = new FakeStore(); store.subdominio = "mi-web";
+    let llamadas = 0;
+    const cupo = async () => { llamadas++; return true; };
+    const r = await cambiarSubdominio({ store, deploy: new FakeDeploy(), cupo }, { orgId: "org1", projectId: "p1", subdominio: "mi-web" });
+    expect(r.subdominio).toBe("mi-web");
+    expect(llamadas).toBe(0);
+  });
+
+  it("un subdominio inválido u ocupado tampoco gasta cupo", async () => {
+    let llamadas = 0;
+    const cupo = async () => { llamadas++; return true; };
+    const store = new FakeStore(); store.ocupados.add("tomado");
+    await expect(cambiarSubdominio({ store, deploy: new FakeDeploy(), cupo }, { orgId: "org1", projectId: "p1", subdominio: "MAL!" }))
+      .rejects.toMatchObject({ status: 400 });
+    await expect(cambiarSubdominio({ store, deploy: new FakeDeploy(), cupo }, { orgId: "org1", projectId: "p1", subdominio: "tomado" }))
+      .rejects.toMatchObject({ status: 409 });
+    expect(llamadas).toBe(0);
+  });
+});
+
+describe("conectarDominio: hay que demostrar que el dominio es tuyo", () => {
+  const entrada = {
+    orgId: "org1", projectId: "p1", dominio: "sucafeteria.com",
+    platformHost: "estrenala.com", sitesBaseDomain: "estrenala.com",
+  };
+  const siEsSuyo = async () => ({ ok: true as const, via: "a" as const });
+  const noEsSuyo = async () => ({ ok: false as const, motivo: "no-apunta" as const, apuntaA: ["1.2.3.4"] });
+
+  it("si el DNS no apunta aquí → 409 y NO se registra ni se guarda", async () => {
+    const store = new FakeStore(); const deploy = new FakeDeploy();
+    let conectados = 0;
+    deploy.connectDomain = async () => { conectados++; };
+    await expect(conectarDominio({ store, deploy, verificar: noEsSuyo }, entrada))
+      .rejects.toMatchObject({ status: 409, message: MSG_DOMINIO_SIN_VERIFICAR });
+    expect(conectados).toBe(0);
+    expect(store.dominio).toBeNull();
+  });
+
+  it("fallar la comprobación NO gasta cupo (el DNS tarda en propagarse)", async () => {
+    let llamadas = 0;
+    const cupo = async () => { llamadas++; return true; };
+    await expect(conectarDominio({ store: new FakeStore(), deploy: new FakeDeploy(), verificar: noEsSuyo, cupo }, entrada))
+      .rejects.toMatchObject({ status: 409 });
+    expect(llamadas).toBe(0);
+  });
+
+  it("si el DNS apunta aquí, se conecta", async () => {
+    const store = new FakeStore();
+    const r = await conectarDominio({ store, deploy: new FakeDeploy(), verificar: siEsSuyo }, entrada);
+    expect(r.dominio).toBe("sucafeteria.com");
+    expect(store.dominio).toBe("sucafeteria.com");
+  });
+
+  it("sin verificador (local/autoservido) se conecta como siempre", async () => {
+    const store = new FakeStore();
+    const r = await conectarDominio({ store, deploy: new FakeDeploy() }, entrada);
+    expect(r.dominio).toBe("sucafeteria.com");
+  });
+
+  it("verificado pero sin cupo → 429 y no se registra", async () => {
+    const store = new FakeStore(); const deploy = new FakeDeploy();
+    let conectados = 0;
+    deploy.connectDomain = async () => { conectados++; };
+    await expect(conectarDominio({ store, deploy, verificar: siEsSuyo, cupo: async () => false }, entrada))
+      .rejects.toMatchObject({ status: 429 });
+    expect(conectados).toBe(0);
+    expect(store.dominio).toBeNull();
   });
 });

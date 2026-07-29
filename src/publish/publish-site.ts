@@ -1,8 +1,24 @@
 import { slugify, esSlugValido, formatoSlugValido, esReservado } from "./slug";
 import { normalizarDominio, formatoDominioValido, dominioProhibido } from "./domain";
 import { PublishError } from "./errors";
+import { MSG_CUPO_DIRECCIONES } from "./cupo-direcciones";
 import type { DeployTarget } from "./deploy-target";
+import type { Veredicto } from "./verificar-dominio";
 import type { ProjectStore } from "@/src/repositories/types";
+
+/** Comprueba que el dominio es de quien lo conecta (ver verificar-dominio.ts). */
+export type VerificarDominio = (dominio: string) => Promise<Veredicto>;
+
+/**
+ * Apunta que se va a estrenar una dirección y dice si cabía en el cupo del día
+ * (ver cupo-direcciones.ts). Se llama SOLO justo antes de pedir el certificado:
+ * así el que esté peleándose con su DNS no gasta cupo en cada intento fallido.
+ */
+export type Cupo = () => Promise<boolean>;
+
+// Fijado literalmente: la pantalla lo reconoce para enseñar el TXT de respaldo.
+export const MSG_DOMINIO_SIN_VERIFICAR =
+  "Todavía no veo que ese dominio apunte aquí. Añade los registros DNS y vuelve a intentarlo en unos minutos.";
 
 export async function generarSubdominio(store: ProjectStore, nombre: string): Promise<string> {
   const base = slugify(nombre);
@@ -51,7 +67,7 @@ export async function unpublishSite(
 }
 
 export async function cambiarSubdominio(
-  deps: { store: ProjectStore; deploy: DeployTarget },
+  deps: { store: ProjectStore; deploy: DeployTarget; cupo?: Cupo },
   input: { orgId: string; projectId: string; subdominio: string }
 ): Promise<{ subdominio: string }> {
   const project = await deps.store.getProject(input.orgId, input.projectId);
@@ -63,6 +79,8 @@ export async function cambiarSubdominio(
   if (esReservado(sub)) throw new PublishError("Ese subdominio está reservado", 400);
   if (project.subdominio === sub) return { subdominio: sub };
   if (!(await deps.store.subdominioLibre(sub))) throw new PublishError("Ese subdominio ya está en uso", 409);
+  // A partir de aquí el cambio va a salir adelante y va a pedir certificado.
+  if (deps.cupo && !(await deps.cupo())) throw new PublishError(MSG_CUPO_DIRECCIONES, 429);
   const anterior = project.subdominio;
   const ok = await deps.store.setSubdominio(input.orgId, input.projectId, sub);
   if (!ok) throw new PublishError("Ese subdominio ya está en uso", 409);
@@ -84,8 +102,10 @@ export async function cambiarSubdominio(
 }
 
 export async function conectarDominio(
-  deps: { store: ProjectStore; deploy: DeployTarget },
-  input: { orgId: string; projectId: string; dominio: string; platformHost: string; sitesBaseDomain: string }
+  deps: { store: ProjectStore; deploy: DeployTarget; verificar?: VerificarDominio; cupo?: Cupo },
+  input: {
+    orgId: string; projectId: string; dominio: string; platformHost: string; sitesBaseDomain: string;
+  }
 ): Promise<{ dominio: string }> {
   const project = await deps.store.getProject(input.orgId, input.projectId);
   if (!project) throw new PublishError("Proyecto no encontrado", 404);
@@ -97,6 +117,14 @@ export async function conectarDominio(
   if (!(await deps.store.dominioLibre(dom))) {
     throw new PublishError("Ese dominio ya está conectado a otro proyecto", 409);
   }
+  // La prueba de que el dominio es suyo va ANTES de reservarlo y antes de pedir
+  // su certificado: es lo que impide bloquear dominios ajenos y quemar el cupo
+  // de Let's Encrypt, que es compartido por todos los clientes.
+  if (deps.verificar) {
+    const v = await deps.verificar(dom);
+    if (!v.ok) throw new PublishError(MSG_DOMINIO_SIN_VERIFICAR, 409);
+  }
+  if (deps.cupo && !(await deps.cupo())) throw new PublishError(MSG_CUPO_DIRECCIONES, 429);
   try {
     await deps.deploy.connectDomain({ dominio: dom });
   } catch {

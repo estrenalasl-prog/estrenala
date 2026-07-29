@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, lt, ne, or, sql } from "drizzle-orm";
 import { db } from "@/src/db/client";
 import { users, organizations, memberships, authTokens, orgSettings } from "@/src/db/schema";
 
@@ -118,6 +118,27 @@ export class DrizzleAccountStore implements AccountStore {
 
   async setPlan(orgId: string, plan: string): Promise<void> {
     await db.update(organizations).set({ plan }).where(eq(organizations.id, orgId));
+  }
+
+  /**
+   * Apunta un cambio de dirección del día y dice si cabía dentro del límite.
+   *
+   * Va en UNA sola sentencia a propósito: leer-y-luego-escribir permitiría que
+   * dos peticiones a la vez pasaran ambas el control. La condición del WHERE es
+   * la que frena: o el día es otro (y el conteo se reinicia a 1), o queda hueco.
+   */
+  async registrarCambioDireccion(orgId: string, dia: string, limite: number): Promise<boolean> {
+    const r = await db.update(organizations)
+      .set({
+        cambiosDireccion: sql`CASE WHEN ${organizations.cambiosDireccionDia} = ${dia} THEN ${organizations.cambiosDireccion} + 1 ELSE 1 END`,
+        cambiosDireccionDia: dia,
+      })
+      .where(and(
+        eq(organizations.id, orgId),
+        or(ne(organizations.cambiosDireccionDia, dia), lt(organizations.cambiosDireccion, limite)),
+      ))
+      .returning({ id: organizations.id });
+    return r.length > 0;
   }
 
   // ---- Suscripción de Stripe (16) ----

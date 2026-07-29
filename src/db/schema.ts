@@ -7,6 +7,11 @@ export const organizations = pgTable("organizations", {
   usoJson: jsonb("uso_json").notNull().default({}),
   // Suscripción de Stripe (16). plan_estado: active | trialing | past_due |
   // canceled | '' (sin suscripción). plan_hasta = fin del periodo pagado.
+  // Freno del cupo de certificados (19): cada dirección nueva pide uno a Let's
+  // Encrypt y ese cupo semanal es COMPARTIDO por todos los clientes. El día se
+  // guarda como AAAA-MM-DD para poder reiniciar el conteo sin ningún cron.
+  cambiosDireccion: integer("cambios_direccion").notNull().default(0),
+  cambiosDireccionDia: text("cambios_direccion_dia").notNull().default(""),
   stripeCustomerId: text("stripe_customer_id").unique(),
   stripeSubscriptionId: text("stripe_subscription_id"),
   planEstado: text("plan_estado").notNull().default(""),
