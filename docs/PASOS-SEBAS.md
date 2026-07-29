@@ -7,7 +7,7 @@ Si algo no coincide con lo que ves en pantalla, para y dímelo antes de seguir.
 
 ---
 
-## 1) Comprobar que entrar y salir sigue funcionando ⏱️ 2 min
+## 1) Comprobar que entrar y salir sigue funcionando ⏱️ 2 min ✅
 
 **Por qué:** he cambiado el nombre de las cookies (a `__Host-wc_session`) para
 tapar un agujero. Eso **cierra todas las sesiones abiertas**, y es lo único de
@@ -28,7 +28,7 @@ verdad.
 
 ---
 
-## 2) `SECRETS_KEY` en Dokploy ⏱️ 3 min
+## 2) `SECRETS_KEY` en Dokploy ⏱️ 3 min ✅
 
 **Por qué:** es la clave que cifra las claves de IA de tus clientes. Sin ella la
 aplicación arranca igual, pero cuando alguien intente guardar su clave de
@@ -70,7 +70,7 @@ OpenRouter en Configuración le saltará un error.
 4. Comprueba que lo pegado son **44 caracteres y acaba en `=`**.
 5. **Save**.
 
-- [ ] Hecho.
+- [x] **Hecho el 2026-07-29.**
 
 > **No la pegues nunca en un chat**, ni aquí ni en ningún sitio: es la que
 > protege las credenciales de tus clientes.
@@ -96,14 +96,20 @@ Cuando termine, comprueba estas cuatro cosas:
    candado de pre-lanzamiento está puesto y Google no va a entrar.
 4. Pega **https://estrenala.com** en un chat de WhatsApp contigo mismo: tiene que
    salir la **tarjeta con el logo** y «Tu web hecha con IA, por fin en directo».
-   *(Si no sale, WhatsApp puede tener el enlace cacheado: prueba con
-   `https://estrenala.com/?1`.)*
 
-- [ ] Hecho y las cuatro comprobaciones pasan.
+   > ⚠️ **WhatsApp se guarda la vista previa y no la vuelve a pedir.** Si ya
+   > compartiste el enlace antes, te seguirá enseñando la vieja aunque esté
+   > cambiada. Para ver la nueva, manda una dirección distinta:
+   > `https://estrenala.com/?2` (y a la siguiente `?3`, y así).
+
+- [x] **Hecho el 2026-07-29.** La tarjeta salía, pero recortada: WhatsApp la
+      corta a un cuadrado por el centro y la primera versión iba alineada a la
+      izquierda. Rehecha centrada el mismo día → hay que **volver a desplegar**
+      para verla.
 
 ---
 
-## 4) Google: la dirección de producción ⏱️ 5 min
+## 4) Google: la dirección de producción ⏱️ 5 min ✅
 
 **Por qué:** el botón «Continuar con Google» solo funciona en las direcciones que
 Google tiene apuntadas. Ahora mismo solo tiene la de local.
@@ -123,10 +129,13 @@ Google tiene apuntadas. Ahora mismo solo tiene la de local.
 7. ⚠️ **NO borres las de `localhost`**: son las que usas para desarrollar.
 8. **GUARDAR**.
 
+> **Comprobado el 2026-07-29: ya estaban puestas de antes**, las dos. No hubo
+> que tocar nada.
+
 > Google tarda a veces unos minutos en aplicarlo. Si al probar te da
 > `redirect_uri_mismatch`, espera cinco minutos y reintenta.
 
-- [ ] Hecho.
+- [x] **Hecho el 2026-07-29** (ya estaba).
 
 ---
 
