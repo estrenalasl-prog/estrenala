@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { parseHost } from "@/src/publish/host";
 import { verificarSesion, SESSION_COOKIE } from "@/src/auth/session-cookie";
-import { plataformaOculta, ROBOTS_NOINDEX } from "@/src/config/robots-plataforma";
+import { plataformaOculta, ROBOTS_NOINDEX, CABECERAS_SEGURIDAD } from "@/src/config/robots-plataforma";
 
 // Rutas del panel accesibles sin sesión. Los cron son para disparadores
 // externos (sin cookie): solo hacen lo que el tick del servidor haría igual en
@@ -50,12 +50,16 @@ export async function middleware(req: NextRequest) {
     return NextResponse.rewrite(url);
   }
 
-  // Candado de pre-lanzamiento: mientras PLATAFORMA_NOINDEX esté puesto, TODA
-  // respuesta de la plataforma sale con noindex. Aquí abajo ya solo pasan hosts
-  // de la plataforma: las webs publicadas se han desviado arriba y mandan sobre
-  // su propia indexación con el interruptor de cada proyecto.
+  // De aquí abajo ya solo pasan hosts de la plataforma: las webs publicadas se
+  // han desviado arriba. Por eso este es el sitio donde poner las cabeceras de
+  // seguridad y no next.config.ts, que no puede distinguir unas de otras.
+  //
+  // Y el candado de pre-lanzamiento: mientras PLATAFORMA_NOINDEX esté puesto,
+  // toda respuesta de la plataforma sale con noindex. Las webs de clientes
+  // mandan sobre su propia indexación con el interruptor de cada proyecto.
   const oculta = plataformaOculta(process.env);
   const sellar = (res: NextResponse) => {
+    for (const [k, v] of Object.entries(CABECERAS_SEGURIDAD)) res.headers.set(k, v);
     if (oculta) res.headers.set("x-robots-tag", ROBOTS_NOINDEX);
     return res;
   };

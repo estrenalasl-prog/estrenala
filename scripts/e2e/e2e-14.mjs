@@ -38,7 +38,7 @@ check("avisa de que falta el NIF (hasta que se rellene)", avisoNif.includes("fal
 
 // Cookies: refleja las reales de la plataforma
 const ck = await (await fetch(`${BASE}/legal/cookies`)).text();
-for (const c of ["wc_session", "wc_org", "g_state"]) {
+for (const c of ["__Host-wc_session", "__Host-wc_org", "g_state"]) {
   check(`la política de cookies documenta ${c}`, ck.includes(c));
 }
 check("declara que no hay cookies de seguimiento", ck.includes("No usamos cookies de analítica"));

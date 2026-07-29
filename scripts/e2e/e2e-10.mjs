@@ -23,7 +23,7 @@ let r = await fetch(`${BASE}/api/registro`, {
   method: "POST", headers: J, body: JSON.stringify({ nombre: "E2E Transf", email, password }),
 });
 const cookie = (r.headers.get("set-cookie") ?? "").split(";")[0];
-check("registro desechable → sesión", r.ok && cookie.startsWith("wc_session="), String(r.status));
+check("registro desechable → sesión", r.ok && cookie.startsWith("__Host-wc_session="), String(r.status));
 const HJ = { cookie, "content-type": "application/json" };
 
 // yo mismo: mi userId lo saco del equipo (soy el único miembro, propietario)

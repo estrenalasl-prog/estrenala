@@ -24,7 +24,7 @@ let r = await fetch(`${BASE}/api/registro`, {
   body: JSON.stringify({ nombre: "E2E Planes", email, password: "e2e-clave-fija-para-pruebas-123" }),
 });
 const cookie = (r.headers.get("set-cookie") ?? "").split(";")[0];
-check("registro desechable → sesión", r.ok && cookie.startsWith("wc_session="), String(r.status));
+check("registro desechable → sesión", r.ok && cookie.startsWith("__Host-wc_session="), String(r.status));
 const H = { cookie };
 const HJ = { cookie, "content-type": "application/json" };
 

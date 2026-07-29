@@ -125,7 +125,7 @@ no marear a quien no lo necesita.
 > canónico: ahora que sabemos que el DNS apunta bien, redirigir ya no puede
 > dejar la web inalcanzable. Queda pendiente de decidir.
 
-### 🟠 D) Una web de cliente puede empujarte una cookie de sesión
+### ✅ D) Una web de cliente puede empujarte una cookie de sesión — HECHO
 
 Las webs publicadas viven en `*.estrenala.com` y ejecutan **el JavaScript que su
 dueño haya subido**. Tu cookie de sesión es host-only, así que **no pueden
@@ -137,19 +137,34 @@ No sirve para suplantar a nadie —la cookie va firmada y no pueden falsificarla
 pero sí para **meterte en la sesión del atacante** sin que lo notes: subirías tu
 web a la cuenta de otro.
 
-**Arreglo:** renombrar la cookie a `__Host-wc_session`. Ese prefijo hace que el
-navegador **rechace** cualquier cookie con ese nombre que lleve `Domain`. Es
-cambiar una constante y forzar que todos vuelvan a entrar una vez.
+**Arreglo:** ✅ **hecho el 2026-07-29.** Las dos cookies pasan a `__Host-wc_session`
+y `__Host-wc_org`. Ese prefijo hace que el navegador **rechace** cualquier cookie
+de ese nombre que traiga `Domain`, así que el empujón deja de ser posible.
 
-### 🟠 E) La plataforma no manda ninguna cabecera de seguridad
+A cambio, `__Host-` exige `Secure` **siempre**, también en local: por eso ya no
+depende de `NODE_ENV`. En `http://localhost` no estorba (cuenta como origen de
+confianza), pero entrar por la IP de red en vez de por localhost sí dejaría de
+funcionar.
+
+Cambiar el nombre **cierra todas las sesiones abiertas**. Se ha hecho ahora justo
+por eso: en producción todavía no hay ni un usuario real a quien molestar.
+
+### ✅ E) La plataforma no manda ninguna cabecera de seguridad — HECHO
 
 `next.config.ts` no tiene bloque `headers()`. Faltan `Strict-Transport-Security`,
 `X-Content-Type-Options: nosniff`, `Referrer-Policy` y `frame-ancestors`.
 
-**Ojo con el matiz:** estas cabeceras van **solo en la plataforma**. Las webs
-publicadas se sirven desde la misma aplicación, y meterles `frame-ancestors` o
-un CSP rompería a clientes que legítimamente incrustan su web o cargan scripts
-de terceros. La regla tiene que excluir `/sites/`.
+**Arreglo:** ✅ **hecho el 2026-07-29.** HSTS, `nosniff`, `Referrer-Policy`,
+`frame-ancestors none` y `Permissions-Policy`.
+
+**Y aquí casi la lío:** las puse primero en `next.config.ts`, que es donde se
+ponen normalmente. Está mal: `headers()` casa contra la ruta que ENTRA, y las
+webs de clientes entran por `/` con su propio Host —el rewrite a `/sites/` lo
+hace el middleware después—. O sea que se las habría comido también un cliente, y
+un HSTS con `includeSubDomains` sobre **su** dominio le impone HTTPS en todo su
+dominio, subdominios que ni servimos incluidos. Van en el middleware, que es el
+único sitio donde ya se sabe si el host es la plataforma. El e2e lo comprueba por
+los dos lados.
 
 ### 🟢 F) Riesgos asumidos (documentados, no olvidados)
 

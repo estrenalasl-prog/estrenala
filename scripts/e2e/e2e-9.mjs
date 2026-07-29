@@ -25,7 +25,7 @@ let r = await fetch(`${BASE}/api/registro`, {
   method: "POST", headers: J, body: JSON.stringify({ nombre: "E2E Borrar", email, password }),
 });
 const cookie = (r.headers.get("set-cookie") ?? "").split(";")[0];
-check("registro de usuario desechable → sesión", r.ok && cookie.startsWith("wc_session="), String(r.status));
+check("registro de usuario desechable → sesión", r.ok && cookie.startsWith("__Host-wc_session="), String(r.status));
 const H = { cookie };
 
 function zipDe(t) {

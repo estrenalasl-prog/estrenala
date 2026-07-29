@@ -24,7 +24,7 @@ let r = await fetch(`${BASE}/api/registro`, {
   method: "POST", headers: J, body: JSON.stringify({ nombre: "E2E Subida", email, password }),
 });
 const cookie = (r.headers.get("set-cookie") ?? "").split(";")[0];
-check("registro desechable → sesión", r.ok && cookie.startsWith("wc_session="), String(r.status));
+check("registro desechable → sesión", r.ok && cookie.startsWith("__Host-wc_session="), String(r.status));
 await planAgencia(email); // este e2e sube 3 webs: el plan gratuito solo deja 1
 const H = { cookie };
 

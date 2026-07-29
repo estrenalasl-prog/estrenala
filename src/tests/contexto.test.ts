@@ -30,10 +30,10 @@ function fakeStore(membership: MembershipInfo | null): AccountStore {
 }
 
 function ponerCookie(value: string | undefined) {
-  // Solo responde a la cookie de sesión (wc_session); wc_org no está puesta en
+  // Solo responde a la cookie de sesión (__Host-wc_session); wc_org no está puesta en
   // estas pruebas, así que el contexto usa el primer membership del usuario.
   vi.mocked(cookies).mockResolvedValue(
-    { get: (name: string) => (name === "wc_session" && value ? { value } : undefined) } as unknown as Awaited<ReturnType<typeof cookies>>
+    { get: (name: string) => (name === "__Host-wc_session" && value ? { value } : undefined) } as unknown as Awaited<ReturnType<typeof cookies>>
   );
 }
 

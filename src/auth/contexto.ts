@@ -9,7 +9,9 @@ export type Contexto = { userId: string; orgId: string; rol: string };
 
 // Cookie hermana con la organización activa (un usuario puede estar en varias).
 // Siempre se valida contra los memberships del usuario: no basta con ponerla.
-export const ORG_COOKIE = "wc_org";
+// Lleva `__Host-` por lo mismo que la de sesión: que una web publicada en
+// *.estrenala.com no pueda empujarte otro espacio activo.
+export const ORG_COOKIE = "__Host-wc_org";
 
 // ¿Hay cookie de sesión válida? Comprobación BARATA (solo HMAC, sin tocar la BD)
 // para decidir qué se pinta en la raíz pública: la landing o el panel.

@@ -18,7 +18,7 @@ export async function iniciarSesionE2e(base) {
     });
   }
   const cookie = (r.headers.get("set-cookie") ?? "").split(";")[0];
-  if (!cookie.startsWith("wc_session=")) {
+  if (!cookie.startsWith("__Host-wc_session=")) {
     throw new Error(`e2e: no se pudo iniciar sesión (status ${r.status})`);
   }
   // El espacio de pruebas va en plan «agencia»: los límites del plan gratuito

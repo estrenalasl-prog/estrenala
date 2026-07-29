@@ -26,13 +26,13 @@ export default function Cookies() {
           </thead>
           <tbody>
             <tr>
-              <td><code>wc_session</code></td>
+              <td><code>__Host-wc_session</code></td>
               <td>Mantener tu sesión iniciada de forma segura (va firmada criptográficamente)</td>
               <td>30 días</td>
               <td>Técnica propia</td>
             </tr>
             <tr>
-              <td><code>wc_org</code></td>
+              <td><code>__Host-wc_org</code></td>
               <td>Recordar en qué espacio de trabajo estás, si perteneces a varios</td>
               <td>Hasta 400 días</td>
               <td>Técnica propia</td>

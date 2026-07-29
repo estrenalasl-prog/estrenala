@@ -54,7 +54,7 @@ let r = await fetch(`${BASE}/api/registro`, {
   body: JSON.stringify({ nombre: "E2E NoIndex", email, password: "e2e-clave-fija-para-pruebas-123" }),
 });
 const cookie = (r.headers.get("set-cookie") ?? "").split(";")[0];
-check("registro desechable → sesión", r.ok && cookie.startsWith("wc_session="), String(r.status));
+check("registro desechable → sesión", r.ok && cookie.startsWith("__Host-wc_session="), String(r.status));
 const H = { cookie };
 const HJ = { cookie, "content-type": "application/json" };
 
@@ -151,6 +151,21 @@ check("y la anuncia ABSOLUTA (si es relativa, WhatsApp no la pinta)",
   (meta("og:image") ?? "").startsWith("http"), String(meta("og:image")));
 check("con su tamaño declarado 1200×630", meta("og:image:width") === "1200" && meta("og:image:height") === "630");
 check("y tarjeta grande en X", landing.body.includes('name="twitter:card" content="summary_large_image"'));
+
+// ------------------------------------------------- cabeceras de seguridad
+const panel = await pedir("localhost:3000", "/login");
+check("la plataforma manda HSTS", (panel.headers["strict-transport-security"] ?? "").includes("max-age=31536000"), String(panel.headers["strict-transport-security"]));
+check("y nosniff, referrer-policy y antisecuestro de clics",
+  panel.headers["x-content-type-options"] === "nosniff" &&
+  panel.headers["referrer-policy"] === "strict-origin-when-cross-origin" &&
+  panel.headers["content-security-policy"] === "frame-ancestors 'none'");
+
+// LO IMPORTANTE: esas cabeceras NO pueden salpicar a las webs de los clientes.
+// Un HSTS con includeSubDomains sobre el dominio de un cliente le impondría
+// HTTPS en TODO su dominio, incluidos subdominios que no servimos nosotros.
+const deCliente = await pedir(HOST);
+check("una web de cliente NO recibe HSTS", deCliente.headers["strict-transport-security"] === undefined, String(deCliente.headers["strict-transport-security"]));
+check("ni frame-ancestors (romperia a quien incruste su propia web)", deCliente.headers["content-security-policy"] === undefined, String(deCliente.headers["content-security-policy"]));
 
 // limpieza
 await fetch(`${BASE}/api/cuenta`, { method: "DELETE", headers: H });

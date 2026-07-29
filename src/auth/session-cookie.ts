@@ -4,7 +4,16 @@
 // del panel monousuario) dejaron de valer en el incremento 6a.
 // La cookie se emite SIN atributo Domain (host-only): no puede filtrarse a los
 // subdominios de sitios ni a dominios de clientes.
-export const SESSION_COOKIE = "wc_session";
+//
+// El prefijo `__Host-` no es decorativo (19): las webs publicadas viven en
+// *.estrenala.com y ejecutan el JavaScript que su dueño haya subido. Leer esta
+// cookie no podían (es host-only), pero sí ESCRIBIR una `wc_session` con
+// `Domain=.estrenala.com`, que el navegador mandaría también a la plataforma.
+// No sirve para suplantar a nadie —va firmada—, pero sí para meterte en la
+// sesión del atacante sin que lo notes y que subas tu web a su cuenta.
+// Con `__Host-`, el navegador RECHAZA cualquier cookie de ese nombre que traiga
+// `Domain`. A cambio exige `Secure` y `Path=/` siempre (ver cookie-http.ts).
+export const SESSION_COOKIE = "__Host-wc_session";
 export const SESSION_DURACION_MS = 30 * 24 * 60 * 60 * 1000; // 30 días
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;

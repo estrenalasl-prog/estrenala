@@ -20,6 +20,16 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: process.cwd(),
   },
+
+  // Las cabeceras de seguridad NO van aquí, sino en middleware.ts.
+  //
+  // `headers()` casa contra la ruta que ENTRA, y las webs publicadas de los
+  // clientes entran por "/" con su propio Host: el rewrite a /sites/... lo hace
+  // el middleware después. O sea que desde aquí no hay forma de distinguirlas, y
+  // colarles estas cabeceras sería grave: un `Strict-Transport-Security` con
+  // includeSubDomains sobre el dominio de un cliente le obliga a HTTPS TODO su
+  // dominio, subdominios que no servimos nosotros incluidos. En el middleware sí
+  // se sabe si el host es la plataforma.
 };
 
 export default nextConfig;
