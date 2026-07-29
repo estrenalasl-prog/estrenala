@@ -150,3 +150,47 @@ describe("interpretarEvento", () => {
     expect(interpretarEvento({})).toBeNull();
   });
 });
+
+// Stripe MOVIÓ `current_period_end` de la raíz de la suscripción a cada línea a
+// partir de la versión de API 2025-03-31. La cuenta de producción nació con una
+// muy posterior (2026-06-24), así que esta es la forma que llega DE VERDAD.
+describe("interpretarEvento con la forma nueva de Stripe (sin current_period_end en la raíz)", () => {
+  const nuevo = (over: Record<string, unknown> = {}) => ({
+    type: "customer.subscription.updated",
+    data: {
+      object: {
+        id: "sub_1", customer: "cus_1", status: "active",
+        metadata: { orgId: "org-1" },
+        items: { data: [{ price: { id: "price_pm" }, current_period_end: 1_800_000_000 }] },
+        ...over,
+      },
+    },
+  });
+
+  it("lee el fin del periodo de la línea de la suscripción", () => {
+    const c = interpretarEvento(nuevo())!;
+    expect(c.plan).toBe("personal");
+    expect(c.hasta?.getTime()).toBe(1_800_000_000 * 1000);
+  });
+
+  it("con varias líneas se queda con la que vence más tarde", () => {
+    const c = interpretarEvento(nuevo({
+      items: { data: [
+        { price: { id: "price_pm" }, current_period_end: 1_700_000_000 },
+        { price: { id: "price_pm" }, current_period_end: 1_900_000_000 },
+      ] },
+    }))!;
+    expect(c.hasta?.getTime()).toBe(1_900_000_000 * 1000);
+  });
+
+  it("la raíz sigue mandando si viene (versiones viejas)", () => {
+    const c = interpretarEvento(nuevo({ current_period_end: 1_500_000_000 }))!;
+    expect(c.hasta?.getTime()).toBe(1_500_000_000 * 1000);
+  });
+
+  it("si no viene por ningún lado, queda sin fecha en vez de romperse", () => {
+    const c = interpretarEvento(nuevo({ items: { data: [{ price: { id: "price_pm" } }] } }))!;
+    expect(c.hasta).toBeNull();
+    expect(c.plan).toBe("personal"); // el plan se aplica igual
+  });
+});
