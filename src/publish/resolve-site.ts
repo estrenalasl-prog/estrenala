@@ -1,6 +1,6 @@
 import { parseHost } from "./host";
 import { conMarca } from "./marca";
-import { ROBOTS_NOINDEX, cabeceraCanonica } from "./seo";
+import { ROBOTS_NOINDEX, cabeceraCanonica, sitemapDeLasPaginas } from "./seo";
 import { puede } from "@/src/planes/planes";
 import type { StorageAdapter } from "@/src/storage/types";
 import type { ProjectStore } from "@/src/repositories/types";
@@ -111,6 +111,22 @@ export async function resolvePublicSite(
 
   const rel = input.pathSegments.length > 0 ? input.pathSegments.join("/") : site.entryPath;
   const file = await deps.storage.get(site.storagePrefix + rel);
+
+  // Sitemap de emergencia: solo si la web no trae el suyo (ni del ZIP ni escrito
+  // por el blog). A quien ha pedido no salir en Google no se le fabrica ninguno.
+  if (!file && rel === "sitemap.xml" && !site.noIndexar) {
+    const base = `https://${site.dominio ?? input.host}`;
+    const xml = sitemapDeLasPaginas({
+      claves: await deps.storage.list(site.storagePrefix),
+      prefijo: site.storagePrefix,
+      base,
+      entryPath: site.entryPath,
+    });
+    return {
+      status: 200, body: Buffer.from(xml, "utf-8"),
+      contentType: "application/xml; charset=utf-8", cacheControl: "public, max-age=3600",
+    };
+  }
   if (!file) return pagina404("No encontrado", marca);
 
   // HTML publicado: se sirve TAL CUAL (sin anotar, sin reescribir, sin <base>) — las

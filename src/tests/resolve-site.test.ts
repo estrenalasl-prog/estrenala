@@ -200,6 +200,47 @@ describe("canónico cuando hay dominio propio", () => {
   });
 });
 
+describe("sitemap de emergencia (webs sin blog)", () => {
+  const pedir = (store: ProjectStore, storage: StorageAdapter, host = "cafe.localhost:3000") =>
+    resolvePublicSite({ store, storage }, { host, platformHost: PLAT, pathSegments: ["sitemap.xml"] });
+
+  it("una web sin sitemap recibe uno hecho con sus páginas", async () => {
+    const { storage, store } = preparado();
+    storage.files.set(PREFIX + "contacto.html", Buffer.from(HTML));
+    const r = await pedir(store, storage);
+    expect(r.status).toBe(200);
+    expect(r.contentType).toContain("application/xml");
+    const xml = r.body.toString();
+    expect(xml).toContain("<loc>https://cafe.localhost:3000/</loc>"); // la entrada, como "/"
+    expect(xml).toContain("<loc>https://cafe.localhost:3000/contacto.html</loc>");
+    expect(xml).not.toContain("index.html"); // no se anuncia dos veces la portada
+  });
+
+  it("no incluye lo que no son páginas", async () => {
+    const { storage, store } = preparado();
+    const xml = (await pedir(store, storage)).body.toString();
+    expect(xml).not.toContain("app.css");
+  });
+
+  it("si la web YA trae su sitemap, manda el suyo y no se fabrica nada", async () => {
+    const { storage, store } = preparado();
+    storage.files.set(PREFIX + "sitemap.xml", Buffer.from("<urlset>el mío</urlset>"));
+    expect((await pedir(store, storage)).body.toString()).toBe("<urlset>el mío</urlset>");
+  });
+
+  it("con dominio propio, el sitemap apunta al dominio propio", async () => {
+    const { storage, store } = preparado("personal", { dominio: "quantivatechnology.com" });
+    const xml = (await pedir(store, storage)).body.toString();
+    expect(xml).toContain("<loc>https://quantivatechnology.com/</loc>");
+    expect(xml).not.toContain("cafe.localhost");
+  });
+
+  it("a quien pidió no salir en Google NO se le fabrica sitemap", async () => {
+    const { storage, store } = preparado("personal", { noIndexar: true });
+    expect((await pedir(store, storage)).status).toBe(404);
+  });
+});
+
 describe("marca «Hecho con Estrénala» (plan gratuito)", () => {
   const pedir = (store: ProjectStore, storage: StorageAdapter, segs: string[] = []) =>
     resolvePublicSite({ store, storage }, { host: "cafe.localhost:3000", platformHost: PLAT, pathSegments: segs });

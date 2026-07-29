@@ -201,7 +201,7 @@ respondían un 307 a `/login`**, porque no estaban entre las rutas públicas del
 middleware. O sea, el favicon no se veía para nadie sin sesión: todo visitante de
 la landing. Arreglado y con e2e para que no vuelva.
 
-### 🟠 H) Las webs sin blog no tienen `sitemap.xml`
+### ✅ H) Las webs sin blog no tienen `sitemap.xml` — HECHO
 
 El sitemap solo se genera al publicar artículos.
 
@@ -212,9 +212,16 @@ generó incluyera uno (y entonces apuntará a direcciones inventadas). Google se
 apaña rastreando enlaces, pero para un sitio nuevo sin enlaces entrantes el
 sitemap es lo que acelera la indexación.
 
-**Arreglo:** generarlo al publicar, recorriendo los `.html` del snapshot —el
-recorrido ya existe en `src/editor/walk.ts`— y respetando el interruptor de
-no indexar.
+**Arreglo:** ✅ **hecho el 2026-07-29.** Se fabrica **al servir**, como la marca y
+el noindex, mirando qué páginas hay dentro: no hay que republicar para que una
+página nueva aparezca en él. Se usa **solo si la web no trae el suyo** —si el
+cliente subió uno, o si el blog ya lo escribió, manda el suyo—, apunta al dominio
+propio cuando lo hay, y a quien pidió no salir en Google no se le fabrica ninguno.
+
+> Un matiz que dejo dicho: si el ZIP del cliente trae un `sitemap.xml` con
+> direcciones inventadas (cosa que la IA hace), se respeta. Sobrescribir un
+> archivo suyo sin avisar me parece peor. Si esto resulta ser un problema real,
+> lo suyo sería avisarlo en la pantalla, no pisarlo a la callada.
 
 ### 🟠 I) Conectar un dominio **después** deja el blog apuntando al subdominio
 
