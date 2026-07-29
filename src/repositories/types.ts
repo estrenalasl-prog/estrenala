@@ -80,7 +80,10 @@ export interface ProjectStore {
    */
   getPublishedSiteByHost(
     q: { subdominio: string } | { dominio: string }
-  ): Promise<{ entryPath: string; storagePrefix: string; plan: string; noIndexar: boolean; dominio: string | null } | null>;
+  ): Promise<{
+    entryPath: string; storagePrefix: string; plan: string; noIndexar: boolean;
+    dominio: string | null; subdominio: string | null;
+  } | null>;
   setPublished(orgId: string, projectId: string, snapshotId: string | null): Promise<void>;
   setNoIndexar(orgId: string, projectId: string, noIndexar: boolean): Promise<void>;
   subdominioLibre(subdominio: string): Promise<boolean>;

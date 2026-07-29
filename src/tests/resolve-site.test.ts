@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { resolvePublicSite } from "@/src/publish/resolve-site";
 import { conMarca, ID_MARCA, TEXTO_MARCA } from "@/src/publish/marca";
-import { ROBOTS_NOINDEX } from "@/src/publish/seo";
+import { ROBOTS_NOINDEX, reapuntarCanonicos } from "@/src/publish/seo";
 import type { StorageAdapter } from "@/src/storage/types";
 import type {
   ProjectStore, ProjectRow, SnapshotRow, SnapshotInfo,
@@ -23,7 +23,10 @@ class FakeStorage implements StorageAdapter {
   async delete(key: string) { this.files.delete(key); }
 }
 
-type Sitio = { entryPath: string; storagePrefix: string; plan: string; noIndexar: boolean; dominio: string | null };
+type Sitio = {
+  entryPath: string; storagePrefix: string; plan: string; noIndexar: boolean;
+  dominio: string | null; subdominio: string | null;
+};
 
 class FakeStore implements ProjectStore {
   sitios = new Map<string, Sitio>(); // clave: "sub:x" | "dom:x"
@@ -57,7 +60,7 @@ function preparado(plan = "personal", extra: Partial<Sitio> = {}) {
   storage.files.set(PREFIX + "index.html", Buffer.from(HTML));
   storage.files.set(PREFIX + "css/app.css", Buffer.from("body{}"));
   const store = new FakeStore();
-  const base = { entryPath: "index.html", storagePrefix: PREFIX, plan, noIndexar: false, dominio: null, ...extra };
+  const base = { entryPath: "index.html", storagePrefix: PREFIX, plan, noIndexar: false, dominio: null, subdominio: "cafe", ...extra };
   store.sitios.set("sub:cafe", base);
   store.sitios.set("dom:quantivatechnology.com", base);
   return { storage, store };
@@ -197,6 +200,67 @@ describe("canónico cuando hay dominio propio", () => {
     const r = await pedir(store, storage, "cafe.localhost:3000");
     expect(r.headers?.["x-robots-tag"]).toBe(ROBOTS_NOINDEX);
     expect(r.headers?.link).toBeUndefined();
+  });
+});
+
+describe("canónicos del blog al conectar un dominio después", () => {
+  // El blog congela la dirección pública dentro del HTML al escribir el artículo.
+  const POST = '<html><head><link rel="canonical" href="https://cafe.localhost:3000/blog/x.html">' +
+    '<meta property="og:url" content="https://cafe.localhost:3000/blog/x.html">' +
+    '<script type="application/ld+json">{"image":"https://cafe.localhost:3000/blog/img/x.png"}</script>' +
+    "</head><body>art</body></html>";
+
+  function conBlog(extra: Partial<Sitio> = {}) {
+    const { storage, store } = preparado("personal", { subdominio: "cafe", ...extra });
+    storage.files.set(PREFIX + "blog/x.html", Buffer.from(POST));
+    return { storage, store };
+  }
+  const pedir = (store: ProjectStore, storage: StorageAdapter, host: string) =>
+    resolvePublicSite({ store, storage }, { host, platformHost: PLAT, pathSegments: ["blog", "x.html"] });
+
+  it("sin dominio propio, el HTML sale tal cual", async () => {
+    const { storage, store } = conBlog();
+    expect((await pedir(store, storage, "cafe.localhost:3000")).body.toString()).toBe(POST);
+  });
+
+  it("con dominio propio, el canónico pasa a apuntar al dominio propio", async () => {
+    const { storage, store } = conBlog({ dominio: "quantivatechnology.com" });
+    const html = (await pedir(store, storage, "quantivatechnology.com")).body.toString();
+    expect(html).toContain('href="https://quantivatechnology.com/blog/x.html"');
+    expect(html).not.toContain("cafe.localhost:3000");
+  });
+
+  it("también el og:url y la imagen del JSON-LD", async () => {
+    const { storage, store } = conBlog({ dominio: "quantivatechnology.com" });
+    const html = (await pedir(store, storage, "quantivatechnology.com")).body.toString();
+    expect(html).toContain('content="https://quantivatechnology.com/blog/x.html"');
+    expect(html).toContain('"https://quantivatechnology.com/blog/img/x.png"');
+  });
+
+  it("entrando por el subdominio dice lo mismo: si no, serían dos canónicos que se contradicen", async () => {
+    const { storage, store } = conBlog({ dominio: "quantivatechnology.com" });
+    const r = await pedir(store, storage, "cafe.localhost:3000");
+    const html = r.body.toString();
+    expect(html).toContain('href="https://quantivatechnology.com/blog/x.html"');
+    // La cabecera y el HTML tienen que decir lo MISMO.
+    expect(r.headers?.link).toBe('<https://quantivatechnology.com/blog/x.html>; rel="canonical"');
+  });
+});
+
+describe("reapuntarCanonicos", () => {
+  it("no toca un dominio que solo empiece igual", () => {
+    const html = 'a href="https://cafe.localhost:3000.malo.com/x"';
+    expect(reapuntarCanonicos(html, "https://cafe.localhost:3000", "https://bueno.com")).toBe(html);
+  });
+
+  it("cambia la base seguida de barra, comilla o final", () => {
+    expect(reapuntarCanonicos('"https://a.com/x"', "https://a.com", "https://b.com")).toBe('"https://b.com/x"');
+    expect(reapuntarCanonicos('"https://a.com"', "https://a.com", "https://b.com")).toBe('"https://b.com"');
+    expect(reapuntarCanonicos("https://a.com", "https://a.com", "https://b.com")).toBe("https://b.com");
+  });
+
+  it("si las dos bases son la misma, no hace nada", () => {
+    expect(reapuntarCanonicos("https://a.com/x", "https://a.com", "https://a.com")).toBe("https://a.com/x");
   });
 });
 

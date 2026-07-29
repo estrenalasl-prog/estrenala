@@ -2,9 +2,10 @@
 
 **Fecha:** 28 de julio de 2026 · **Última actualización:** 29 de julio · **Código:** incremento 19
 
-> **Estado:** de los 11 hallazgos, **7 están arreglados** (A, B, C, D, E, G, H) y
-> quedan I, J, K y los plugins. Los tres 🔴 de código cayeron el 29 de julio; lo
-> que sigue bloqueando el lanzamiento es el punto 0, que es todo tuyo.
+> **Estado:** de los 11 hallazgos, **8 están arreglados** (A, B, C, D, E, G, H, I).
+> Quedan J y K, que son menores, y los plugins, que son producto y no una
+> corrección. Todo el código que bloqueaba el lanzamiento está hecho: lo que
+> queda es el punto 0, que es todo tuyo.
 
 Repaso hecho leyendo el código, no de memoria. Cada hallazgo dice dónde está y
 qué pasa si no se toca. Lo que ya está bien también sale: sirve para no volver a
@@ -227,7 +228,7 @@ propio cuando lo hay, y a quien pidió no salir en Google no se le fabrica ningu
 > archivo suyo sin avisar me parece peor. Si esto resulta ser un problema real,
 > lo suyo sería avisarlo en la pantalla, no pisarlo a la callada.
 
-### 🟠 I) Conectar un dominio **después** deja el blog apuntando al subdominio
+### ✅ I) Conectar un dominio **después** deja el blog apuntando al subdominio — HECHO
 
 `basePublica` decide la dirección pública **en el momento de escribir** el
 artículo, y esa dirección se congela dentro del HTML y del sitemap.
@@ -238,15 +239,21 @@ Si un cliente escribe diez artículos y luego conecta `sucafeteria.com`, los die
 siguen anunciando como canónica la dirección `*.estrenala.com`. Le estás diciendo
 a Google que su dominio bueno es el que no es suyo.
 
-**Arreglo:** al conectar un dominio, reescribir canónicos y sitemap del blog.
-Mientras tanto, el canónico de la cabecera tapa el caso de la web principal, pero
-no el de los artículos ya escritos.
+**Y era peor de lo que puse aquí el día 28.** Desde que mandamos la cabecera
+`Link ... rel="canonical"`, dejarlo así no era «estar desactualizado»: eran **dos
+canónicos distintos para la misma página** —uno en el HTML apuntando al
+subdominio, otro en la cabecera apuntando al dominio propio—, y ante esa
+contradicción Google no hace caso a ninguno de los dos.
 
-**Sigue pendiente**, y es el único de la lista que no he tocado. No es difícil,
-pero no es de una línea: hay que recorrer los artículos del snapshot, reescribir
-su `<link rel="canonical">` y rehacer el sitemap, y eso es crear un snapshot
-nuevo — o sea, entra en el historial del cliente. Merece hacerse con calma y con
-su e2e, no de carrerilla al final de una sesión larga.
+**Arreglo:** ✅ **hecho el 2026-07-29.** Se reapunta **al servir**, como la marca y
+el noindex, en vez de reescribir lo guardado. Descarté crear un snapshot nuevo:
+ensuciaría el historial del cliente, le dejaría la web en «cambios sin publicar»
+sin haber tocado nada, y habría que deshacerlo al desconectar el dominio. Así se
+arregla solo en las dos direcciones y se revierte solo.
+
+Alcanza al `<link rel="canonical">`, al `og:url` y a la imagen del JSON-LD, y la
+sustitución solo pega cuando la base va seguida de `/`, comilla o final, para no
+tocar un dominio que la contenga como prefijo.
 
 ### 🟢 J) `/` y `/index.html` son la misma página en dos direcciones
 

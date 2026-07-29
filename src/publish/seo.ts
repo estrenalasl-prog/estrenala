@@ -24,6 +24,31 @@ export function cabeceraCanonica(dominio: string, pathSegments: string[]): strin
 }
 
 /**
+ * Reapunta al dominio propio las direcciones absolutas que el blog dejó escritas
+ * dentro del HTML.
+ *
+ * El blog calcula la dirección pública EN EL MOMENTO de escribir el artículo
+ * (`basePublica`) y la congela en el `<link rel="canonical">`, en el `og:url` y
+ * en el JSON-LD. Si el cliente escribe diez artículos y DESPUÉS conecta su
+ * dominio, esos diez siguen diciéndole a Google que la buena es la dirección
+ * `*.estrenala.com` — le estaríamos señalando como canónica una que no es suya.
+ *
+ * Y desde que mandamos también la cabecera `Link ... rel="canonical"`, dejarlo
+ * así es peor que estar mal: serían DOS canónicos distintos para la misma
+ * página, y ante esa contradicción Google no hace caso a ninguno.
+ *
+ * Se arregla al servir, no reescribiendo lo guardado: así no hay que republicar,
+ * no se ensucia el historial del cliente y se deshace solo si desconecta el
+ * dominio. La sustitución solo pega cuando la base va seguida de `/`, de comilla
+ * o del final, para no tocar un dominio que la contenga como prefijo.
+ */
+export function reapuntarCanonicos(html: string, baseVieja: string, baseNueva: string): string {
+  if (baseVieja === baseNueva) return html;
+  const escapada = baseVieja.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return html.replace(new RegExp(`${escapada}(?=[/"'\\s>]|$)`, "g"), baseNueva);
+}
+
+/**
  * Sitemap de emergencia para las webs que no tienen ninguno.
  *
  * Hasta ahora solo se generaba `sitemap.xml` al publicar artículos del blog, así

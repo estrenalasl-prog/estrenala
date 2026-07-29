@@ -1,6 +1,6 @@
 import { parseHost } from "./host";
 import { conMarca } from "./marca";
-import { ROBOTS_NOINDEX, cabeceraCanonica, sitemapDeLasPaginas } from "./seo";
+import { ROBOTS_NOINDEX, cabeceraCanonica, sitemapDeLasPaginas, reapuntarCanonicos } from "./seo";
 import { puede } from "@/src/planes/planes";
 import type { StorageAdapter } from "@/src/storage/types";
 import type { ProjectStore } from "@/src/repositories/types";
@@ -134,9 +134,22 @@ export async function resolvePublicSite(
   // excepción es la insignia del plan gratuito, que se añade aquí al vuelo para
   // que aparezca y desaparezca con el plan sin tener que republicar.
   const esHtml = /\.html?$/i.test(rel);
-  const body = esHtml && !puede(site.plan, "sinMarca")
-    ? Buffer.from(conMarca(file.body.toString("utf-8"), input.platformHost), "utf-8")
-    : file.body;
+  let body = file.body;
+  if (esHtml) {
+    let html = body.toString("utf-8");
+    // Con dominio propio, el blog dejó escrito dentro del HTML el canónico
+    // apuntando al subdominio: se reapunta aquí (ver seo.ts). Va ANTES de la
+    // marca para no tocarla, que ya nace con la dirección buena.
+    if (site.dominio && site.subdominio) {
+      html = reapuntarCanonicos(
+        html,
+        `https://${site.subdominio}.${input.sitesBaseDomain ?? input.platformHost}`,
+        `https://${site.dominio}`
+      );
+    }
+    if (!puede(site.plan, "sinMarca")) html = conMarca(html, input.platformHost);
+    body = Buffer.from(html, "utf-8");
+  }
 
   // Lo que se le dice a Google (ver seo.ts). Excluyentes: un noindex con canónico
   // se contradice, y manda el noindex — el dueño ha pedido no aparecer.

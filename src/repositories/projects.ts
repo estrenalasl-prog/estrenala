@@ -168,7 +168,10 @@ export class DrizzleProjectStore implements ProjectStore {
 
   async getPublishedSiteByHost(
     q: { subdominio: string } | { dominio: string }
-  ): Promise<{ entryPath: string; storagePrefix: string; plan: string; noIndexar: boolean; dominio: string | null } | null> {
+  ): Promise<{
+    entryPath: string; storagePrefix: string; plan: string; noIndexar: boolean;
+    dominio: string | null; subdominio: string | null;
+  } | null> {
     const cond = "subdominio" in q
       ? eq(projects.subdominio, q.subdominio)
       : eq(projects.dominio, q.dominio);
@@ -179,6 +182,7 @@ export class DrizzleProjectStore implements ProjectStore {
         plan: organizations.plan, // decide si la web lleva la marca «Hecho con Estrénala»
         noIndexar: projects.noIndexar, // decide la cabecera X-Robots-Tag
         dominio: projects.dominio, // decide el canónico cuando se entra por el subdominio
+        subdominio: projects.subdominio, // la dirección VIEJA que el blog dejó escrita dentro del HTML
       })
       .from(projects)
       .innerJoin(snapshots, eq(projects.publishedSnapshotId, snapshots.id))
