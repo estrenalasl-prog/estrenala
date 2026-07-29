@@ -144,10 +144,69 @@ Google tiene apuntadas. Ahora mismo solo tiene la de local.
 **Por qué:** ahora mismo está en modo prueba. Las claves y los productos de
 prueba **no valen** en producción: hay que rehacerlos.
 
-### 5.1 Activar la cuenta
+> **Situación fiscal (decidida el 2026-07-29):** Sebas no está dado de alta como
+> autónomo y no va a darse de alta hasta ver si esto genera ingresos reales; ya
+> fue autónomo antes sin clientes y perdió la bonificación de nuevos autónomos.
+> Cuando entre dinero, gestor y regularizar. Por eso en Stripe se declara
+> **«Particular»**, que es lo que es: Stripe verifica identidad con el DNI, no
+> el alta en Hacienda. **No declarar una situación que no se tiene.**
 
-En **dashboard.stripe.com**, completa la activación (datos fiscales, cuenta
-bancaria). Hasta que Stripe no la apruebe no puedes cobrar de verdad.
+### 5.1 Activar la cuenta — campo por campo
+
+En **dashboard.stripe.com** → «Activa tu cuenta». Los datos salen de
+`src/legal/titular.ts`, que es lo que ya está publicado en las páginas legales:
+**tienen que coincidir**.
+
+**1 · Tipo de empresa**
+- Ubicación: **España** (ya viene fija).
+- Tipo de empresa: **Vendedor**. Pregunta si vendes lo tuyo o si eres un
+  marketplace que cobra por cuenta de terceros. Tú vendes tus suscripciones.
+
+**1 · Datos de la empresa**
+- Estructura: **Particular** (ni «Empresa» ni «Sociedad limitada»).
+- NIF: `79031692N`
+- Dirección: `Calle Perdices 8, Bloque 1` · `29640` · `Fuengirola` · `Málaga`
+- Sector: **Software** → **Software como servicio (SaaS)**.
+- Sitio web: `https://estrenala.com`
+
+> ⚠️ **Stripe entra en tu web a mirarla.** Si no ve qué vendes, a qué precio y
+> con qué condiciones, te pide más información y se retrasa. Antes de enviar,
+> comprueba que la landing enseña los planes con sus precios y que
+> `estrenala.com/legal/terminos` está accesible. El candado `PLATAFORMA_NOINDEX`
+> no estorba: solo dice a Google que no indexe, la web se ve igual.
+
+**1 · Representante de la cuenta**
+Tú: nombre completo, fecha de nacimiento, DNI, la misma dirección y tu teléfono.
+
+**1 · Productos o servicios** — puedes pegar esto:
+> Plataforma web por suscripción (SaaS) que publica en internet sitios web
+> creados con inteligencia artificial, permite editarlos sin programar y genera
+> contenido para su blog. Suscripción mensual o anual recurrente. No hay envío
+> de productos físicos.
+
+Si pregunta cuándo se cobra: **al momento de la suscripción, y luego cada
+periodo**. Importe medio del pedido: **9 €**.
+
+**1 · Datos públicos** (lo que ve el cliente)
+- Nombre: `Estrénala`
+- Web: `estrenala.com`
+- Correo de soporte: `estrenala.sl@gmail.com`
+
+**1 · Descripción del cargo en el extracto bancario** ← *importante*
+- Pon: **`ESTRENALA`**
+- Es lo que tu cliente verá en el banco. Si no lo reconoce, llama al banco y
+  reclama el cargo — y cada reclamación te cuesta 15 € y penaliza tu cuenta.
+  Máximo 22 caracteres, sin acentos ni eñes.
+
+**2 · Añade tu banco**
+IBAN **a tu nombre** (tiene que coincidir con el titular declarado).
+
+**3 · Asegura tu cuenta**
+Verificación en dos pasos. Usa una app de autenticación y **guarda los códigos de
+recuperación** donde guardas las claves: si pierdes el móvil y no los tienes,
+recuperar la cuenta es un calvario.
+
+**4-5 · Revisar y enviar.** La aprobación suele tardar de minutos a un par de días.
 
 ### 5.2 Ponte en modo producción
 
@@ -168,6 +227,13 @@ uno** (mensual y anual), exactamente estos:
 
 Para el segundo precio de cada producto: entra en el producto ya creado y usa
 **+ Añadir otro precio**, no crees un producto nuevo.
+
+> ⚠️ **En cada precio, «Comportamiento fiscal» (tax behavior) → «Incluido»
+> (IVA incluido).** Esto **no se puede cambiar después**: Stripe lo deja fijo al
+> crear el precio, y si te equivocas hay que crear precios nuevos y migrar a los
+> clientes. Con «Incluido», 9 € es lo que paga el cliente y punto; el día que te
+> des de alta y tengas que desglosar el IVA, todo sigue cuadrando sin tocar
+> precios ni subirle nada a nadie.
 
 Al terminar, de cada uno de los **4 precios** copia su **ID** (empieza por
 `price_`). Apúntalos identificando cuál es cuál.
