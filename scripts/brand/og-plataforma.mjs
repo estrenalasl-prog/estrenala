@@ -33,30 +33,30 @@ const logo = readFileSync(path.join(RAIZ, "public", "brand", "logo-tinta.png")).
 //
 // X, LinkedIn y Slack sí la enseñan entera en 1200×630, que es el tamaño
 // estándar: por eso no se cambia el lienzo, solo dónde vive el contenido.
-const CENTRO = 600;
-
-// Y POCO TEXTO, Y GRANDE. WhatsApp Web no enseña la tarjeta a tamaño completo:
-// la mete en una miniatura de ~80 px de lado. Ahí un texto de 50 px del original
-// acaba midiendo 3 px: ilegible, se ponga como se ponga.
+// SOLO LA MARCA, SIN TEXTO. Y no es pereza: es la única salida.
 //
-// La clave es que en esa vista WhatsApp YA enseña el título y la descripción
-// como texto de verdad, perfectamente legibles, al lado de la miniatura. O sea
-// que la imagen no tiene que contar nada: tiene que ser RECONOCIBLE. Por eso
-// manda el logo, a lo grande, y sobra todo lo demás — la dirección la escribe
-// WhatsApp sola debajo, y el subtítulo solo era ruido.
+// WhatsApp mete la tarjeta en una miniatura de ~80 px de lado —comprobado el
+// 2026-07-29 en la app del móvil y en la web: las dos igual—, y ahí un texto de
+// 46 px del original acaba midiendo 3 px. No hay diseño que lo arregle: solo
+// añade un borrón debajo del logo.
 //
-// A tamaño completo (X, LinkedIn, WhatsApp del móvil) el reclamo sigue estando.
+// Y no se pierde nada al quitarlo, porque WhatsApp YA escribe al lado, como
+// texto de verdad y perfectamente legible, el título («Estrénala — Tu web hecha
+// con IA, por fin en directo»), la descripción y la dirección. Repetirlo dentro
+// de la imagen era decir dos veces lo mismo, una de ellas ilegible.
+//
+// Así que la imagen hace lo único que una miniatura puede hacer: que te suene
+// de qué marca es. A tamaño completo (X, LinkedIn) queda una tarjeta de marca
+// limpia, que es exactamente lo que es.
 
-// El logo original es 460×115 (proporción 4:1 exacta). A 620 de ancho ocupa
-// x=290..910, justo dentro del cuadrado central seguro (285..915).
+// El logo original es 460×115 (proporción 4:1 exacta). A 570 de ancho ocupa
+// x=315..885: llena el cuadrado seguro (285..915) dejando 30 de aire a cada
+// lado, que en la miniatura son ~4 px. Más grande tocaría los bordes; el PNG de
+// marca viene recortado a su contenido y no trae margen propio.
+// La `y` lo centra en vertical, subido un pelo para compensar la barra de abajo.
 const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
   <rect width="1200" height="630" fill="${LIENZO}"/>
-  <image href="data:image/png;base64,${logo}" x="290" y="158" width="620" height="155"/>
-  <g font-family="Space Grotesk" fill="${TEXTO}" font-weight="700" font-size="46"
-     letter-spacing="-1.2" text-anchor="middle">
-    <text x="${CENTRO}" y="424">Tu web hecha con IA,</text>
-    <text x="${CENTRO}" y="482">por fin en directo.</text>
-  </g>
+  <image href="data:image/png;base64,${logo}" x="315" y="236" width="570" height="143"/>
   <rect x="0" y="614" width="1200" height="16" fill="${ACENTO}"/>
 </svg>`;
 
