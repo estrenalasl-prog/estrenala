@@ -78,7 +78,13 @@ export function sitemapDeLasPaginas(input: {
 
   const rutas = new Set<string>();
   for (const rel of paginas) {
-    rutas.add(rel === input.entryPath ? "/" : "/" + rel.split("/").map(encodeURIComponent).join("/"));
+    if (rel === input.entryPath) { rutas.add("/"); continue; }
+    // `blog/index.html` se sirve TAMBIÉN en `/blog` desde el incremento 21 (ver
+    // resolve-site.ts), y `/blog` es la dirección que usan los menús. Anunciar
+    // aquí la otra sería ofrecerle a Google dos direcciones con el mismo
+    // contenido, que es justo lo que un sitemap debería estar evitando.
+    const sinIndice = rel.replace(/(^|\/)index\.html?$/i, "");
+    rutas.add("/" + sinIndice.split("/").filter(Boolean).map(encodeURIComponent).join("/"));
   }
 
   const urls = [...rutas].sort().map((r) => `  <url><loc>${input.base}${r}</loc></url>`).join("\n");

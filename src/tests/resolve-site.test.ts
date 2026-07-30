@@ -14,8 +14,10 @@ const HTML = `<!doctype html><html><head><title>t</title></head><body><h1>Hola</
 
 class FakeStorage implements StorageAdapter {
   files = new Map<string, Buffer>();
+  lecturas = 0; // para comprobar que resolver rutas no cuesta lecturas de más
   async put(key: string, body: Buffer | string) { this.files.set(key, Buffer.isBuffer(body) ? body : Buffer.from(body)); }
   async get(key: string) {
+    this.lecturas++;
     const b = this.files.get(key);
     return b ? { body: b, contentType: key.endsWith(".css") ? "text/css; charset=utf-8" : "text/html; charset=utf-8" } : null;
   }
@@ -115,6 +117,110 @@ describe("resolvePublicSite", () => {
     const { storage, store } = preparado();
     const r = await resolvePublicSite({ store, storage }, { host: "cafe.localhost:3000", platformHost: PLAT, pathSegments: ["no.html"] });
     expect(r.status).toBe(404);
+  });
+});
+
+// Sin esto, la plataforma solo servía el archivo cuando la URL coincidía letra
+// por letra con su nombre guardado. Una web con blog o multipágina —o sea, la
+// mayoría— se caía a trozos: la portada cargaba y el resto daba 404. Lo detectó
+// el CTO de Quantiva preparando su web (2026-07-30).
+describe("resolución de carpetas y URLs limpias", () => {
+  // Una web como las de verdad: un blog en su carpeta y páginas sueltas.
+  function conWeb(plan = "personal", extra: Partial<Sitio> = {}) {
+    const { storage, store } = preparado(plan, extra);
+    storage.files.set(PREFIX + "blog/index.html", Buffer.from("<html><body>ÍNDICE DEL BLOG</body></html>"));
+    storage.files.set(PREFIX + "blog/mi-articulo.html", Buffer.from("<html><body>EL ARTÍCULO</body></html>"));
+    storage.files.set(PREFIX + "contacto.html", Buffer.from("<html><body>CONTACTO</body></html>"));
+    return { storage, store };
+  }
+  const pedir = (store: ProjectStore, storage: StorageAdapter, segs: string[], host = "cafe.localhost:3000") =>
+    resolvePublicSite({ store, storage }, { host, platformHost: PLAT, pathSegments: segs });
+
+  it("/blog sirve blog/index.html", async () => {
+    const { storage, store } = conWeb();
+    const r = await pedir(store, storage, ["blog"]);
+    expect(r.status).toBe(200);
+    expect(r.body.toString()).toContain("ÍNDICE DEL BLOG");
+    expect(r.contentType).toContain("text/html");
+  });
+
+  it("/blog/ (con barra final) sirve lo mismo", async () => {
+    const { storage, store } = conWeb();
+    const r = await pedir(store, storage, ["blog", ""]);
+    expect(r.status).toBe(200);
+    expect(r.body.toString()).toContain("ÍNDICE DEL BLOG");
+  });
+
+  it("/blog/mi-articulo (URL limpia) sirve blog/mi-articulo.html", async () => {
+    const { storage, store } = conWeb();
+    const r = await pedir(store, storage, ["blog", "mi-articulo"]);
+    expect(r.status).toBe(200);
+    expect(r.body.toString()).toContain("EL ARTÍCULO");
+  });
+
+  it("/contacto y /contacto/ sirven contacto.html", async () => {
+    const { storage, store } = conWeb();
+    for (const segs of [["contacto"], ["contacto", ""]]) {
+      const r = await pedir(store, storage, segs);
+      expect(r.status).toBe(200);
+      expect(r.body.toString()).toContain("CONTACTO");
+    }
+  });
+
+  it("la carpeta gana a la página suelta: subir blog.html y luego activar el blog enseña el blog", async () => {
+    const { storage, store } = conWeb();
+    storage.files.set(PREFIX + "blog.html", Buffer.from("<html><body>EL VIEJO</body></html>"));
+    expect((await pedir(store, storage, ["blog"])).body.toString()).toContain("ÍNDICE DEL BLOG");
+  });
+
+  it("un slug que acaba en punto y número NO se confunde con un archivo", async () => {
+    // /\.\w+$/ habría dado esto por una extensión y devuelto 404.
+    const { storage, store } = conWeb();
+    storage.files.set(PREFIX + "precios-2024.5.html", Buffer.from("<html><body>PRECIOS</body></html>"));
+    expect((await pedir(store, storage, ["precios-2024.5"])).body.toString()).toContain("PRECIOS");
+  });
+
+  it("lo servido así SIGUE llevando la insignia del plan gratuito", async () => {
+    const { storage, store } = conWeb("free");
+    const html = (await pedir(store, storage, ["blog"])).body.toString();
+    expect(html).toContain(ID_MARCA);
+    expect(html).toContain("ÍNDICE DEL BLOG");
+  });
+
+  it("y sigue siendo HTML para el resto: no-cache y canónico del dominio propio", async () => {
+    const { storage, store } = conWeb("personal", { dominio: "quantivatechnology.com" });
+    const r = await pedir(store, storage, ["blog"]);
+    expect(r.cacheControl).toBe("no-cache");
+    // El canónico es la URL que han PEDIDO, no el archivo interno que la sirve.
+    expect(r.headers?.link).toBe('<https://quantivatechnology.com/blog>; rel="canonical"');
+  });
+
+  it("una ruta que no existe de ninguna de las formas sigue dando 404", async () => {
+    const { storage, store } = conWeb();
+    expect((await pedir(store, storage, ["no-existe"])).status).toBe(404);
+    expect((await pedir(store, storage, ["blog", "tampoco"])).status).toBe(404);
+  });
+
+  it("no pisa el sitemap de emergencia", async () => {
+    const { storage, store } = conWeb();
+    const r = await pedir(store, storage, ["sitemap.xml"]);
+    expect(r.status).toBe(200);
+    expect(r.contentType).toContain("application/xml");
+  });
+
+  it("a una web que va bien no le cuesta ni una lectura de más", async () => {
+    const { storage, store } = conWeb();
+    storage.lecturas = 0;
+    await pedir(store, storage, ["contacto.html"]);
+    expect(storage.lecturas).toBe(1);
+  });
+
+  it("un archivo conocido que falta tampoco: /favicon.ico lo pide el navegador en cada visita", async () => {
+    const { storage, store } = conWeb();
+    storage.lecturas = 0;
+    const r = await pedir(store, storage, ["favicon.ico"]);
+    expect(r.status).toBe(404);
+    expect(storage.lecturas).toBe(1);
   });
 });
 
@@ -278,6 +384,16 @@ describe("sitemap de emergencia (webs sin blog)", () => {
     expect(xml).toContain("<loc>https://cafe.localhost:3000/</loc>"); // la entrada, como "/"
     expect(xml).toContain("<loc>https://cafe.localhost:3000/contacto.html</loc>");
     expect(xml).not.toContain("index.html"); // no se anuncia dos veces la portada
+  });
+
+  it("el índice de una carpeta se anuncia como la carpeta, no como su index.html", async () => {
+    // Desde el 21 `blog/index.html` se sirve en las dos, así que anunciar la del
+    // archivo sería regalarle a Google contenido duplicado.
+    const { storage, store } = preparado();
+    storage.files.set(PREFIX + "blog/index.html", Buffer.from(HTML));
+    const xml = (await pedir(store, storage)).body.toString();
+    expect(xml).toContain("<loc>https://cafe.localhost:3000/blog</loc>");
+    expect(xml).not.toContain("/blog/index.html");
   });
 
   it("no incluye lo que no son páginas", async () => {

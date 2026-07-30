@@ -2,6 +2,7 @@ import { parseHost } from "./host";
 import { conMarca } from "./marca";
 import { ROBOTS_NOINDEX, cabeceraCanonica, sitemapDeLasPaginas, reapuntarCanonicos } from "./seo";
 import { puede } from "@/src/planes/planes";
+import { tieneExtensionConocida } from "@/src/storage/content-type";
 import type { StorageAdapter } from "@/src/storage/types";
 import type { ProjectStore } from "@/src/repositories/types";
 
@@ -109,8 +110,13 @@ export async function resolvePublicSite(
     : await deps.store.getPublishedSiteByHost({ dominio: h.valor });
   if (!site) return pagina404("Esta web no está publicada", marca);
 
-  const rel = input.pathSegments.length > 0 ? input.pathSegments.join("/") : site.entryPath;
-  const file = await deps.storage.get(site.storagePrefix + rel);
+  // `rel` y `file` no son const a propósito: si la ruta no casa con ningún
+  // archivo, más abajo se reintenta como carpeta o como URL limpia y AMBOS se
+  // reasignan al archivo que se acabe sirviendo. Que `rel` acabe valiendo la ruta
+  // REAL es lo que hace que todo lo de después siga siendo verdad: el `esHtml`,
+  // la insignia del plan gratuito y el reapuntado de canónicos.
+  let rel = input.pathSegments.length > 0 ? input.pathSegments.join("/") : site.entryPath;
+  let file = await deps.storage.get(site.storagePrefix + rel);
 
   // Sitemap de emergencia: solo si la web no trae el suyo (ni del ZIP ni escrito
   // por el blog). A quien ha pedido no salir en Google no se le fabrica ninguno.
@@ -127,6 +133,37 @@ export async function resolvePublicSite(
       contentType: "application/xml; charset=utf-8", cacheControl: "public, max-age=3600",
     };
   }
+  // Resolución tipo servidor estático. Sin esto, la plataforma solo encuentra el
+  // archivo cuando la URL coincide LETRA POR LETRA con su nombre guardado, y una
+  // web perfectamente válida se cae a trozos: `/blog/` (una carpeta) o `/contacto`
+  // (URL limpia, sin .html) daban 404 aunque `blog/index.html` y `contacto.html`
+  // estuvieran subidos y correctos. Cualquier servidor estático —Nginx, Netlify,
+  // Vercel, hasta `python -m http.server`— resuelve estas dos formas, así que las
+  // webs vienen escritas dándolas por hechas. Es la mayoría de las webs con blog
+  // o multipágina, no un caso raro.
+  //
+  // Se prueba la CARPETA antes que la página suelta: si existieran a la vez
+  // `blog.html` y `blog/index.html`, gana el índice de la carpeta. No es un
+  // empate teórico — es justo lo que pasa cuando alguien sube una web con su
+  // `blog.html` y luego activa el blog de la plataforma, que escribe
+  // `blog/index.html`. Lo que quiere ver entonces es su blog nuevo.
+  //
+  // Solo entra en el camino de «no encontrado», así que a las webs que van bien
+  // no les cuesta ni una lectura de más. Y se salta si la ruta pide un archivo
+  // conocido (`/favicon.ico`, que el navegador pide en cada visita y muchas webs
+  // no traen) para no gastar dos lecturas inútiles en cada página vista.
+  if (!file && !tieneExtensionConocida(rel)) {
+    const base = rel.replace(/\/+$/, "");
+    // Los segmentos ya pasaron el guard de traversal de arriba; estos dos sufijos
+    // son constantes nuestras, no entran por la URL.
+    if (base) {
+      for (const candidato of [`${base}/index.html`, `${base}.html`]) {
+        const alt = await deps.storage.get(site.storagePrefix + candidato);
+        if (alt) { file = alt; rel = candidato; break; }
+      }
+    }
+  }
+
   if (!file) return pagina404("No encontrado", marca);
 
   // HTML publicado: se sirve TAL CUAL (sin anotar, sin reescribir, sin <base>) — las
