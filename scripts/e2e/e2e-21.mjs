@@ -74,6 +74,18 @@ r = await fetch(`${BASE}/api/projects`, { method: "POST", headers: H, body: fd }
 const { projectId } = await r.json();
 check("crear la web → 201", r.status === 201 && !!projectId, String(r.status));
 
+// Una web RECIÉN creada, todavía sin dirección: el estado en el que el campo
+// para ponerle la primera no aparecía (estaba condicionado a ya tener una), y
+// lo único visible era «Dominio propio», que es de pago. Nadie del plan
+// gratuito podía publicar. Se mira el HTML de la pantalla porque el fallo
+// estaba en una condición de la vista, no en la lógica: la API iba bien y por
+// eso el resto de e2e pasaban con el bug puesto.
+const pantalla = await fetch(`${BASE}/projects/${projectId}`, { headers: H });
+const htmlPantalla = await pantalla.text();
+check("la web nueva enseña el campo del subdominio", htmlPantalla.includes("mi-subdominio"),
+  `${pantalla.status}, ${htmlPantalla.length} bytes`);
+check("y no solo el dominio propio, que es de pago", htmlPantalla.includes("Subdominio"));
+
 await marcarVerificado(email);
 r = await fetch(`${BASE}/api/projects/${projectId}`, { method: "PATCH", headers: HJ, body: JSON.stringify({ subdominio: sub }) });
 check("asignar subdominio → 200", r.ok, String(r.status));

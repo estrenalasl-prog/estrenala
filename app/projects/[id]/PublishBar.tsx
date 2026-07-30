@@ -121,18 +121,23 @@ export function PublishBar({
       <details className="direccion">
         <summary><span className="flecha">▸</span> Dirección y dominio <span className="estado-dom">{estadoDom}</span></summary>
         <div className="direccion-cuerpo">
-          {subdominio !== null && (
-            <div className="grupo">
-              <h4>Subdominio</h4>
-              <p>La dirección gratuita de tu web en Estrénala.</p>
-              <div className="fila">
-                <input className="campo" style={{ width: 240, maxWidth: "100%" }} value={sub}
-                  onChange={(e) => setSub(e.target.value)} placeholder="mi-subdominio" />
-                <span style={{ color: "var(--color-texto-3)", fontSize: 13 }}>.{sitesBaseDomain}</span>
-                <button className="btn btn-sec btn-sm" onClick={() => void patch({ subdominio: sub })} disabled={ocupado}>Cambiar</button>
-              </div>
+          {/* SIEMPRE visible, tenga dirección o no. Estuvo condicionado a
+              `subdominio !== null`, y como una web recién creada nace sin
+              subdominio, el campo para ponerle la primera dirección no aparecía
+              nunca: lo único que se veía era «Dominio propio», que es de pago.
+              O sea que nadie del plan gratuito podía publicar. */}
+          <div className="grupo">
+            <h4>Subdominio</h4>
+            <p>La dirección gratuita de tu web en Estrénala.</p>
+            <div className="fila">
+              <input className="campo" style={{ width: 240, maxWidth: "100%" }} value={sub}
+                onChange={(e) => setSub(e.target.value)} placeholder="mi-subdominio" />
+              <span style={{ color: "var(--color-texto-3)", fontSize: 13 }}>.{sitesBaseDomain}</span>
+              <button className="btn btn-sec btn-sm" onClick={() => void patch({ subdominio: sub })} disabled={ocupado}>
+                {subdominio ? "Cambiar" : "Guardar"}
+              </button>
             </div>
-          )}
+          </div>
 
           <div className="grupo">
             <h4>Dominio propio <span className="quees" title="Los registros DNS son como la dirección postal de tu dominio.">?</span></h4>
