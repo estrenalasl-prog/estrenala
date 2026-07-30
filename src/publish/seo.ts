@@ -18,9 +18,22 @@ export const ROBOTS_NOINDEX = "noindex, nofollow";
  * el DNS (ver conectarDominio), así que redirigir dejaría la web inalcanzable por
  * ambos lados mientras el DNS no apunte. El canónico resuelve el SEO sin ese riesgo.
  */
-export function cabeceraCanonica(dominio: string, pathSegments: string[]): string {
-  const ruta = pathSegments.length > 0 ? "/" + pathSegments.map(encodeURIComponent).join("/") : "/";
+export function cabeceraCanonica(dominio: string, ruta: string): string {
   return `<https://${dominio}${ruta}>; rel="canonical"`;
+}
+
+/**
+ * La dirección pública de una página, con o sin barra final.
+ *
+ * La barra no es cosmética: decide dónde caen los enlaces RELATIVOS, porque el
+ * navegador los resuelve contra la URL y no contra el archivo. El índice de una
+ * carpeta la necesita (`/blog/` + `foto.html` → `/blog/foto.html`) y una URL
+ * limpia la estorba (`/contacto/` + `equipo.html` → `/contacto/equipo.html`).
+ * Ver resolve-site.ts, que redirige a la forma correcta.
+ */
+export function rutaPublica(pathSegments: string[], conBarra: boolean): string {
+  const ruta = "/" + pathSegments.filter((s) => s !== "").map(encodeURIComponent).join("/");
+  return conBarra && ruta !== "/" ? `${ruta}/` : ruta;
 }
 
 /**
@@ -83,8 +96,12 @@ export function sitemapDeLasPaginas(input: {
     // resolve-site.ts), y `/blog` es la dirección que usan los menús. Anunciar
     // aquí la otra sería ofrecerle a Google dos direcciones con el mismo
     // contenido, que es justo lo que un sitemap debería estar evitando.
-    const sinIndice = rel.replace(/(^|\/)index\.html?$/i, "");
-    rutas.add("/" + sinIndice.split("/").filter(Boolean).map(encodeURIComponent).join("/"));
+    const esIndice = /(^|\/)index\.html?$/i.test(rel);
+    const partes = rel.replace(/(^|\/)index\.html?$/i, "").split("/").filter(Boolean);
+    const ruta = "/" + partes.map(encodeURIComponent).join("/");
+    // Con barra final, que es donde acaba sirviéndose (allí resuelven bien sus
+    // enlaces relativos) y por tanto la única dirección buena de esa página.
+    rutas.add(esIndice && partes.length > 0 ? `${ruta}/` : ruta);
   }
 
   const urls = [...rutas].sort().map((r) => `  <url><loc>${input.base}${r}</loc></url>`).join("\n");

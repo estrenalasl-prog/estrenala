@@ -4,8 +4,11 @@ import { resolvePublicSite } from "@/src/publish/resolve-site";
 
 export const runtime = "nodejs";
 
-export async function GET(_req: Request, ctx: { params: Promise<{ host: string; path?: string[] }> }) {
+export async function GET(req: Request, ctx: { params: Promise<{ host: string; path?: string[] }> }) {
   const { host, path } = await ctx.params;
+  // La barra final se lee de la URL, NO de `path`: el catch-all de Next se come
+  // el segmento vacío y entrega ["blog"] tanto para /blog como para /blog/.
+  const url = new URL(req.url);
   const r = await resolvePublicSite(
     { store: projectStore, storage: getStorage() },
     {
@@ -13,6 +16,10 @@ export async function GET(_req: Request, ctx: { params: Promise<{ host: string; 
       platformHost: process.env.PLATFORM_HOST ?? "localhost:3000",
       sitesBaseDomain: process.env.SITES_BASE_DOMAIN ?? process.env.PLATFORM_HOST ?? "localhost:3000",
       pathSegments: path ?? [],
+      conBarra: url.pathname.endsWith("/"),
+      // Para que una redirección (barra final, www→pelado) no se coma el
+      // `?utm_source=...` con el que llega la gente desde una campaña.
+      search: url.search,
     }
   );
   const headers: Record<string, string> = { "content-type": r.contentType, "cache-control": r.cacheControl, ...r.headers };

@@ -1,6 +1,6 @@
 import { parseHost } from "./host";
 import { conMarca } from "./marca";
-import { ROBOTS_NOINDEX, cabeceraCanonica, sitemapDeLasPaginas, reapuntarCanonicos } from "./seo";
+import { ROBOTS_NOINDEX, cabeceraCanonica, sitemapDeLasPaginas, reapuntarCanonicos, rutaPublica } from "./seo";
 import { puede } from "@/src/planes/planes";
 import { tieneExtensionConocida } from "@/src/storage/content-type";
 import type { StorageAdapter } from "@/src/storage/types";
@@ -79,9 +79,24 @@ ${plataforma ? `<a class="btn btn-primario" href="//${plataforma}">Entrar en Est
   return { status: 404, body: Buffer.from(html, "utf-8"), contentType: "text/html; charset=utf-8", cacheControl: "no-cache" };
 }
 
+/** Cómo se ha llegado al archivo: tal cual, por índice de carpeta, o por URL limpia. */
+type Forma = "exacta" | "carpeta" | "limpia";
+
 export async function resolvePublicSite(
   deps: { store: ProjectStore; storage: StorageAdapter },
-  input: { host: string; platformHost: string; sitesBaseDomain?: string; pathSegments: string[] }
+  input: {
+    host: string; platformHost: string; sitesBaseDomain?: string; pathSegments: string[];
+    /**
+     * Si la URL pedida acababa en «/». Viene aparte y NO se deduce de
+     * `pathSegments` porque el catch-all de Next se come el segmento vacío: para
+     * `/blog/` entrega `["blog"]`, igual que para `/blog`. Deducirlo de ahí hacía
+     * que la redirección de más abajo apuntara a una dirección que vuelve a
+     * llegar igual — un bucle infinito, medido en e2e-21 antes de desplegarlo.
+     */
+    conBarra?: boolean;
+    /** La query tal cual (`?utm_source=x`), para no perderla al redirigir. */
+    search?: string;
+  }
 ): Promise<PublicResponse> {
   const h = parseHost(input.host, input.platformHost, input.sitesBaseDomain ?? input.platformHost);
   const marca = { host: input.host, platformHost: input.platformHost };
@@ -100,7 +115,7 @@ export async function resolvePublicSite(
       const ruta = input.pathSegments.length > 0 ? "/" + input.pathSegments.join("/") : "/";
       return {
         status: 301, body: Buffer.alloc(0), contentType: "text/plain; charset=utf-8",
-        cacheControl: "no-cache", location: `https://${pelado}${ruta}`,
+        cacheControl: "no-cache", location: `https://${pelado}${ruta}${input.search ?? ""}`,
       };
     }
   }
@@ -115,6 +130,8 @@ export async function resolvePublicSite(
   // reasignan al archivo que se acabe sirviendo. Que `rel` acabe valiendo la ruta
   // REAL es lo que hace que todo lo de después siga siendo verdad: el `esHtml`,
   // la insignia del plan gratuito y el reapuntado de canónicos.
+  const pedidaConBarra = input.conBarra ?? false;
+
   let rel = input.pathSegments.length > 0 ? input.pathSegments.join("/") : site.entryPath;
   let file = await deps.storage.get(site.storagePrefix + rel);
 
@@ -152,19 +169,47 @@ export async function resolvePublicSite(
   // no les cuesta ni una lectura de más. Y se salta si la ruta pide un archivo
   // conocido (`/favicon.ico`, que el navegador pide en cada visita y muchas webs
   // no traen) para no gastar dos lecturas inútiles en cada página vista.
+  let forma: Forma = "exacta";
   if (!file && !tieneExtensionConocida(rel)) {
     const base = rel.replace(/\/+$/, "");
     // Los segmentos ya pasaron el guard de traversal de arriba; estos dos sufijos
     // son constantes nuestras, no entran por la URL.
     if (base) {
-      for (const candidato of [`${base}/index.html`, `${base}.html`]) {
+      const candidatos: [string, Forma][] = [[`${base}/index.html`, "carpeta"], [`${base}.html`, "limpia"]];
+      for (const [candidato, comoSeLlego] of candidatos) {
         const alt = await deps.storage.get(site.storagePrefix + candidato);
-        if (alt) { file = alt; rel = candidato; break; }
+        if (alt) { file = alt; rel = candidato; forma = comoSeLlego; break; }
       }
     }
   }
 
   if (!file) return pagina404("No encontrado", marca);
+
+  // La barra final no es cosmética: decide dónde caen los enlaces RELATIVOS de
+  // la página que estamos sirviendo, porque el navegador los resuelve contra la
+  // URL, no contra el archivo.
+  //
+  //   blog/index.html en /blog   → href="foto.html" cae en /foto.html      ✗
+  //   blog/index.html en /blog/  → href="foto.html" cae en /blog/foto.html ✓
+  //   contacto.html  en /contacto  → href="equipo.html" → /equipo.html      ✓
+  //   contacto.html  en /contacto/ → href="equipo.html" → /contacto/equipo.html ✗
+  //
+  // O sea que el índice de una carpeta la necesita y una URL limpia la estorba.
+  // Por eso se redirige a la forma correcta en vez de servir en cualquiera de
+  // las dos: además de arreglar los enlaces, deja UNA sola dirección buena por
+  // página y no le regala a Google contenido duplicado. Es lo que hacen Apache
+  // y Nginx, y la razón de apagar la normalización de Next (ver next.config.ts).
+  // Solo la quiere el índice de una carpeta. Un archivo servido tal cual tampoco
+  // la quiere, así que `/contacto.html/` también se normaliza: así cada página
+  // tiene UNA dirección buena y no dos con el mismo contenido.
+  const laQuiere = forma === "carpeta";
+  if (input.pathSegments.length > 0 && pedidaConBarra !== laQuiere) {
+    return {
+      status: 301, body: Buffer.alloc(0), contentType: "text/plain; charset=utf-8",
+      cacheControl: "no-cache",
+      location: rutaPublica(input.pathSegments, laQuiere) + (input.search ?? ""),
+    };
+  }
 
   // HTML publicado: se sirve TAL CUAL (sin anotar, sin reescribir, sin <base>) — las
   // rutas root-absolutas resuelven al mismo host → mismo proyecto. La ÚNICA
@@ -194,7 +239,9 @@ export async function resolvePublicSite(
   if (site.noIndexar) {
     headers["x-robots-tag"] = ROBOTS_NOINDEX;
   } else if (esHtml && h.tipo === "subdominio" && site.dominio) {
-    headers.link = cabeceraCanonica(site.dominio, input.pathSegments);
+    // La dirección tal cual se sirve, con su barra o sin ella: si el canónico
+    // dijera la otra forma, estaría señalando la que redirige.
+    headers.link = cabeceraCanonica(site.dominio, rutaPublica(input.pathSegments, laQuiere));
   }
 
   return {

@@ -21,6 +21,24 @@ const nextConfig: NextConfig = {
     root: process.cwd(),
   },
 
+  // La barra final la decidimos NOSOTROS, no Next.
+  //
+  // Next normaliza siempre igual (`/blog/` → 308 → `/blog`), y para las webs de
+  // los clientes esa regla única está mal la mitad de las veces, porque de la
+  // barra final depende dónde caen sus enlaces RELATIVOS:
+  //
+  //   `blog/index.html` servido en `/blog`   → href="foto.html" cae en /foto.html      ✗
+  //   `blog/index.html` servido en `/blog/`  → href="foto.html" cae en /blog/foto.html ✓
+  //   `contacto.html`  servido en `/contacto`  → href="equipo.html" → /equipo.html      ✓
+  //   `contacto.html`  servido en `/contacto/` → href="equipo.html" → /contacto/equipo.html ✗
+  //
+  // O sea que el índice de una carpeta la quiere y una URL limpia no. Por eso
+  // `trailingSlash: true` tampoco vale: arregla el primer caso y rompe el
+  // tercero. Se apaga la automática y cada camino la resuelve a su manera:
+  // resolve-site.ts para las webs publicadas, middleware.ts para la plataforma
+  // (que se queda como estaba: sin barra).
+  skipTrailingSlashRedirect: true,
+
   // Las cabeceras de seguridad NO van aquí, sino en middleware.ts.
   //
   // `headers()` casa contra la ruta que ENTRA, y las webs publicadas de los

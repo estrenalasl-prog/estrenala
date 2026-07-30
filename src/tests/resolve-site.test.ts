@@ -133,22 +133,70 @@ describe("resolución de carpetas y URLs limpias", () => {
     storage.files.set(PREFIX + "contacto.html", Buffer.from("<html><body>CONTACTO</body></html>"));
     return { storage, store };
   }
-  const pedir = (store: ProjectStore, storage: StorageAdapter, segs: string[], host = "cafe.localhost:3000") =>
-    resolvePublicSite({ store, storage }, { host, platformHost: PLAT, pathSegments: segs });
+  // `conBarra` va aparte de los segmentos a propósito: el catch-all de Next se
+  // come el vacío y da ["blog"] tanto para /blog como para /blog/. Los tests
+  // piden como pide Next, o no probarían lo que pasa de verdad.
+  const pedir = (store: ProjectStore, storage: StorageAdapter, segs: string[], conBarra = false) =>
+    resolvePublicSite({ store, storage }, { host: "cafe.localhost:3000", platformHost: PLAT, pathSegments: segs, conBarra });
 
-  it("/blog sirve blog/index.html", async () => {
+  it("/blog/ sirve blog/index.html", async () => {
     const { storage, store } = conWeb();
-    const r = await pedir(store, storage, ["blog"]);
+    const r = await pedir(store, storage, ["blog"], true);
     expect(r.status).toBe(200);
     expect(r.body.toString()).toContain("ÍNDICE DEL BLOG");
     expect(r.contentType).toContain("text/html");
   });
 
-  it("/blog/ (con barra final) sirve lo mismo", async () => {
+  it("/blog (sin barra) redirige a /blog/ para que sus enlaces relativos caigan bien", async () => {
+    // href="foto.html" desde /blog iría a /foto.html; desde /blog/, a /blog/foto.html.
     const { storage, store } = conWeb();
-    const r = await pedir(store, storage, ["blog", ""]);
-    expect(r.status).toBe(200);
-    expect(r.body.toString()).toContain("ÍNDICE DEL BLOG");
+    const r = await pedir(store, storage, ["blog"]);
+    expect(r.status).toBe(301);
+    expect(r.location).toBe("/blog/");
+  });
+
+  it("y al revés: una URL limpia con barra se redirige a quitarla", async () => {
+    // contacto.html en /contacto/ haría que href="equipo.html" fuese a
+    // /contacto/equipo.html. La forma buena es sin barra.
+    const { storage, store } = conWeb();
+    const r = await pedir(store, storage, ["contacto"], true);
+    expect(r.status).toBe(301);
+    expect(r.location).toBe("/contacto");
+  });
+
+  it("un archivo pedido con barra también se normaliza", async () => {
+    const { storage, store } = conWeb();
+    const r = await pedir(store, storage, ["contacto.html"], true);
+    expect(r.status).toBe(301);
+    expect(r.location).toBe("/contacto.html");
+  });
+
+  it("la redirección no se come la query de una campaña", async () => {
+    const { storage, store } = conWeb();
+    const r = await resolvePublicSite({ store, storage }, {
+      host: "cafe.localhost:3000", platformHost: PLAT, pathSegments: ["blog"], search: "?utm_source=instagram",
+    });
+    expect(r.location).toBe("/blog/?utm_source=instagram");
+  });
+
+  it("redirigir NO es un bucle: la dirección de destino ya se sirve", async () => {
+    // El fallo que casi se despliega: si la barra no llega, se redirige a una
+    // dirección que vuelve a entrar igual y el navegador da vueltas para siempre.
+    const { storage, store } = conWeb();
+    const salto = await pedir(store, storage, ["blog"]);
+    expect(salto.location).toBe("/blog/");
+    const destino = await pedir(store, storage, ["blog"], true); // como llegaría /blog/
+    expect(destino.status).toBe(200);
+  });
+
+  it("un archivo que existe tal cual NUNCA se redirige", async () => {
+    // Si alguien enlaza /contacto.html, se le sirve y punto: no somos quién para
+    // imponerle URLs limpias a una web que no las usa.
+    const { storage, store } = conWeb();
+    for (const segs of [["contacto.html"], ["css", "app.css"], ["blog", "mi-articulo.html"]]) {
+      const r = await pedir(store, storage, segs);
+      expect(r.status).toBe(200);
+    }
   });
 
   it("/blog/mi-articulo (URL limpia) sirve blog/mi-articulo.html", async () => {
@@ -158,19 +206,17 @@ describe("resolución de carpetas y URLs limpias", () => {
     expect(r.body.toString()).toContain("EL ARTÍCULO");
   });
 
-  it("/contacto y /contacto/ sirven contacto.html", async () => {
+  it("/contacto (sin .html) sirve contacto.html", async () => {
     const { storage, store } = conWeb();
-    for (const segs of [["contacto"], ["contacto", ""]]) {
-      const r = await pedir(store, storage, segs);
-      expect(r.status).toBe(200);
-      expect(r.body.toString()).toContain("CONTACTO");
-    }
+    const r = await pedir(store, storage, ["contacto"]);
+    expect(r.status).toBe(200);
+    expect(r.body.toString()).toContain("CONTACTO");
   });
 
   it("la carpeta gana a la página suelta: subir blog.html y luego activar el blog enseña el blog", async () => {
     const { storage, store } = conWeb();
     storage.files.set(PREFIX + "blog.html", Buffer.from("<html><body>EL VIEJO</body></html>"));
-    expect((await pedir(store, storage, ["blog"])).body.toString()).toContain("ÍNDICE DEL BLOG");
+    expect((await pedir(store, storage, ["blog"], true)).body.toString()).toContain("ÍNDICE DEL BLOG");
   });
 
   it("un slug que acaba en punto y número NO se confunde con un archivo", async () => {
@@ -182,17 +228,17 @@ describe("resolución de carpetas y URLs limpias", () => {
 
   it("lo servido así SIGUE llevando la insignia del plan gratuito", async () => {
     const { storage, store } = conWeb("free");
-    const html = (await pedir(store, storage, ["blog"])).body.toString();
+    const html = (await pedir(store, storage, ["blog"], true)).body.toString();
     expect(html).toContain(ID_MARCA);
     expect(html).toContain("ÍNDICE DEL BLOG");
   });
 
   it("y sigue siendo HTML para el resto: no-cache y canónico del dominio propio", async () => {
     const { storage, store } = conWeb("personal", { dominio: "quantivatechnology.com" });
-    const r = await pedir(store, storage, ["blog"]);
+    const r = await pedir(store, storage, ["blog"], true);
     expect(r.cacheControl).toBe("no-cache");
-    // El canónico es la URL que han PEDIDO, no el archivo interno que la sirve.
-    expect(r.headers?.link).toBe('<https://quantivatechnology.com/blog>; rel="canonical"');
+    // El canónico es la URL que han PEDIDO —con su barra—, no el archivo interno.
+    expect(r.headers?.link).toBe('<https://quantivatechnology.com/blog/>; rel="canonical"');
   });
 
   it("una ruta que no existe de ninguna de las formas sigue dando 404", async () => {
@@ -392,7 +438,8 @@ describe("sitemap de emergencia (webs sin blog)", () => {
     const { storage, store } = preparado();
     storage.files.set(PREFIX + "blog/index.html", Buffer.from(HTML));
     const xml = (await pedir(store, storage)).body.toString();
-    expect(xml).toContain("<loc>https://cafe.localhost:3000/blog</loc>");
+    // Con barra: es la forma en la que se sirve y la única buena de esa página.
+    expect(xml).toContain("<loc>https://cafe.localhost:3000/blog/</loc>");
     expect(xml).not.toContain("/blog/index.html");
   });
 

@@ -65,6 +65,22 @@ export async function middleware(req: NextRequest) {
   };
 
   const { pathname } = req.nextUrl;
+
+  // Al apagar la normalización automática de Next (skipTrailingSlashRedirect,
+  // ver next.config.ts) la PLATAFORMA se quedaría sin ella y `/login/` pasaría a
+  // ser una segunda dirección con el mismo contenido. Aquí se restaura tal cual
+  // estaba: el panel no lleva barra final. Las webs de los clientes ya se han
+  // desviado arriba y no llegan a esta línea — las suyas las decide resolve-site,
+  // que sí distingue un índice de carpeta de una URL limpia.
+  // Se construye sobre `new URL(req.url)` y no sobre `req.nextUrl.clone()`:
+  // NextURL recuerda que la ruta venía con barra y la vuelve a poner al
+  // serializar, con lo que la redirección apuntaría a sí misma.
+  if (pathname.length > 1 && pathname.endsWith("/")) {
+    const destino = new URL(req.url);
+    destino.pathname = pathname.replace(/\/+$/, "") || "/";
+    return sellar(NextResponse.redirect(destino, 308));
+  }
+
   // La raíz es pública: sin sesión sirve la landing de marketing, con sesión el
   // panel (lo decide app/page.tsx). Va aparte de RUTAS_PUBLICAS a propósito:
   // meter "/" en esa lista abriría TODA la app por el startsWith.
