@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { plataformaOculta, reglasRobots, ZONAS_PRIVADAS, ROBOTS_NOINDEX } from "@/src/config/robots-plataforma";
+import {
+  plataformaOculta, reglasRobots, ZONAS_PRIVADAS, ROBOTS_NOINDEX,
+  CABECERAS_SEGURIDAD, CABECERAS_SEGURIDAD_INCRUSTABLE,
+} from "@/src/config/robots-plataforma";
 
 const env = (v?: string) => ({ PLATAFORMA_NOINDEX: v });
 
@@ -49,5 +52,29 @@ describe("reglasRobots", () => {
 describe("ROBOTS_NOINDEX", () => {
   it("es el valor literal que espera Google", () => {
     expect(ROBOTS_NOINDEX).toBe("noindex, nofollow");
+  });
+});
+
+describe("cabeceras de seguridad", () => {
+  it("el panel no lo puede incrustar NADIE", () => {
+    expect(CABECERAS_SEGURIDAD["content-security-policy"]).toBe("frame-ancestors 'none'");
+  });
+
+  it("pero lo que el panel enseña en su iframe sí puede incrustarlo ÉL", () => {
+    // Con 'none' el panel se bloqueaba a sí mismo y el preview salía en blanco
+    // («estrenala.com ha rechazado la conexión»), porque 'none' prohíbe también
+    // al ancestro del mismo origen.
+    expect(CABECERAS_SEGURIDAD_INCRUSTABLE["content-security-policy"]).toBe("frame-ancestors 'self'");
+  });
+
+  it("y no puede incrustarlo nadie más: 'self' nunca puede aflojarse a '*'", () => {
+    expect(CABECERAS_SEGURIDAD_INCRUSTABLE["content-security-policy"]).not.toContain("*");
+  });
+
+  it("lo demás (HSTS, nosniff, referrer, permissions) es idéntico en las dos", () => {
+    for (const k of Object.keys(CABECERAS_SEGURIDAD)) {
+      if (k === "content-security-policy") continue;
+      expect(CABECERAS_SEGURIDAD_INCRUSTABLE[k]).toBe(CABECERAS_SEGURIDAD[k]);
+    }
   });
 });

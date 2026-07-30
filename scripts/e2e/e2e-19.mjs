@@ -185,6 +185,22 @@ const deCliente = await pedir(HOST);
 check("una web de cliente NO recibe HSTS", deCliente.headers["strict-transport-security"] === undefined, String(deCliente.headers["strict-transport-security"]));
 check("ni frame-ancestors (romperia a quien incruste su propia web)", deCliente.headers["content-security-policy"] === undefined, String(deCliente.headers["content-security-policy"]));
 
+// El panel enseña la web dentro de un <iframe> del MISMO origen. Con
+// `frame-ancestors 'none'` se bloqueaba a sí mismo y el preview salía en blanco
+// con «estrenala.com ha rechazado la conexión» (2026-07-30). Un test sobre la
+// constante no lo habría cazado: el fallo estaba en el cableado del middleware,
+// así que se pide la ruta de verdad.
+const vista = await fetch(`${BASE}/api/projects/${projectId}/preview/index.html`, { headers: H });
+const cspVista = vista.headers.get("content-security-policy");
+check("el preview se sirve", vista.ok, String(vista.status));
+check("y el panel PUEDE incrustarlo (si no, sale en blanco)",
+  cspVista === "frame-ancestors 'self'", String(cspVista));
+check("pero nadie más: sigue habiendo frame-ancestors",
+  (cspVista ?? "").includes("frame-ancestors") && !(cspVista ?? "").includes("*"), String(cspVista));
+check("y conserva el resto de cabeceras de seguridad",
+  vista.headers.get("x-content-type-options") === "nosniff" &&
+  (vista.headers.get("strict-transport-security") ?? "").includes("max-age=31536000"));
+
 // limpieza
 await fetch(`${BASE}/api/cuenta`, { method: "DELETE", headers: H });
 

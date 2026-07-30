@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { parseHost } from "@/src/publish/host";
 import { verificarSesion, SESSION_COOKIE } from "@/src/auth/session-cookie";
-import { plataformaOculta, ROBOTS_NOINDEX, CABECERAS_SEGURIDAD } from "@/src/config/robots-plataforma";
+import { plataformaOculta, ROBOTS_NOINDEX, CABECERAS_SEGURIDAD, CABECERAS_SEGURIDAD_INCRUSTABLE } from "@/src/config/robots-plataforma";
 
 // Rutas del panel accesibles sin sesión. Los cron son para disparadores
 // externos (sin cookie): solo hacen lo que el tick del servidor haría igual en
@@ -58,8 +58,8 @@ export async function middleware(req: NextRequest) {
   // toda respuesta de la plataforma sale con noindex. Las webs de clientes
   // mandan sobre su propia indexación con el interruptor de cada proyecto.
   const oculta = plataformaOculta(process.env);
-  const sellar = (res: NextResponse) => {
-    for (const [k, v] of Object.entries(CABECERAS_SEGURIDAD)) res.headers.set(k, v);
+  const sellar = (res: NextResponse, cabeceras = CABECERAS_SEGURIDAD) => {
+    for (const [k, v] of Object.entries(cabeceras)) res.headers.set(k, v);
     if (oculta) res.headers.set("x-robots-tag", ROBOTS_NOINDEX);
     return res;
   };
@@ -94,12 +94,14 @@ export async function middleware(req: NextRequest) {
   // solo LECTURA (GET) de esos recursos — el UUID v4 del proyecto es inadivinable y
   // actúa de capacidad. La escritura (edits, publish, subida de assets…) y el resto
   // del panel siguen tras el candado.
+  // Esto es justo lo que el panel enseña DENTRO del iframe, así que va con
+  // `frame-ancestors 'self'`: con 'none' el panel se bloqueaba a sí mismo.
   if (
     req.method === "GET" &&
     (/^\/api\/projects\/[0-9a-f-]{36}\/(preview(\/|$)|assets\/)/.test(pathname) ||
       pathname === "/wc-editor.js")
   ) {
-    return sellar(NextResponse.next());
+    return sellar(NextResponse.next(), CABECERAS_SEGURIDAD_INCRUSTABLE);
   }
   const secret = process.env.SESSION_SECRET;
   const cookie = req.cookies.get(SESSION_COOKIE)?.value;

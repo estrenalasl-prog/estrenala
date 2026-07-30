@@ -29,6 +29,21 @@ export const CABECERAS_SEGURIDAD: Record<string, string> = {
 };
 
 /**
+ * Para lo poco que el panel SÍ incrusta en un <iframe>: la vista previa de la
+ * web del cliente, sus assets y wc-editor.js.
+ *
+ * `frame-ancestors 'none'` prohíbe TODO ancestro, también el del mismo origen.
+ * Al aplicarlo a estas rutas (incremento 19) el preview se quedó en blanco con
+ * «estrenala.com ha rechazado la conexión»: el panel se bloqueaba a sí mismo.
+ * Con `'self'` se sigue impidiendo que lo incruste cualquier OTRO sitio, que es
+ * de lo que protege esta cabecera.
+ */
+export const CABECERAS_SEGURIDAD_INCRUSTABLE: Record<string, string> = {
+  ...CABECERAS_SEGURIDAD,
+  "content-security-policy": "frame-ancestors 'self'",
+};
+
+/**
  * Candado de pre-lanzamiento: con PLATAFORMA_NOINDEX=1 la plataforma entera
  * queda fuera de los buscadores.
  *
