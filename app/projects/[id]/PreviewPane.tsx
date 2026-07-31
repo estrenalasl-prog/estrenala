@@ -23,7 +23,18 @@ const NOMBRE_TIPO: Record<string, string> = {
   actualizacion: "Actualización desde ZIP",
 };
 function etiquetaTipo(t: string): string { return NOMBRE_TIPO[t] ?? t; }
-function cuando(iso: string): string { return iso.slice(0, 16).replace("T", " "); }
+// La hora que se enseña tiene que ser LA DEL USUARIO. Antes se cortaba el ISO en
+// crudo (`iso.slice(0, 16)`), que viene en UTC: en España en verano el Historial
+// iba DOS HORAS atrasado, así que nada parecía reciente y un cambio recién hecho
+// no se reconocía. Y aquí es donde se decide qué versión restaurar, o sea que la
+// hora no es decoración: es el dato con el que se elige.
+function cuando(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso.slice(0, 16).replace("T", " ");
+  return d.toLocaleString(undefined, {
+    year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit",
+  });
+}
 
 export function PreviewPane({
   projectId, entryPath, pages,
@@ -224,7 +235,9 @@ export function PreviewPane({
                 <span className="detalle">
                   {etiquetaTipo(s.tipo)}
                   <br />
-                  <span className="cuando">{s.esActual ? "actual · " : ""}{cuando(s.createdAt)}</span>
+                  {/* El servidor va en UTC y el navegador en la zona del usuario,
+                      así que este texto es distinto en cada lado a propósito. */}
+                  <span className="cuando" suppressHydrationWarning>{s.esActual ? "actual · " : ""}{cuando(s.createdAt)}</span>
                 </span>
                 {!s.esActual && <button className="btn btn-sec btn-sm" onClick={() => void restaurar(s.id)}>Restaurar</button>}
               </li>
