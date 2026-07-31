@@ -91,6 +91,15 @@ export function promptAsistente(ctx: { instruccion: string; nombre: string; inve
     "- No cambies nada que el usuario no haya pedido; omite los nodos que no cambian.",
     "- Conserva el idioma del texto original salvo que el usuario pida traducir.",
     "- \"value\" es el contenido/valor NUEVO y completo del nodo.",
+    // Sin estas dos reglas el modelo hace lo natural para él y desastroso para la
+    // web: mete la frase entera en el primer nodo y deja los demás vacíos. Una
+    // frase suele venir partida porque cada trozo lleva su estilo (un degradado,
+    // otro color), así que juntarla borra ese diseño sin avisar.
+    "- NUNCA dejes un nodo vacío (\"\") salvo que el usuario pida explícitamente borrar ese texto.",
+    "- Una frase puede venir REPARTIDA en varios nodos seguidos porque cada trozo tiene su",
+    "  estilo propio. En ese caso reescribe CADA nodo con la parte que le toca, respetando el",
+    "  reparto: no juntes toda la frase en uno solo ni vacíes los demás. Si la frase nueva tiene",
+    "  menos trozos que la vieja, reparte el texto entre los nodos existentes de forma natural.",
     "- kind admitidos:",
     "    text     → texto plano (lo más habitual).",
     "    richText → texto con formato en línea: <b> <i> <u> <a href=\"...\">. Nada más.",

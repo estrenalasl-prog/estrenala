@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  interpretarPropuesta, resumenCambios, proponerEdiciones, MAX_OPS,
+  interpretarPropuesta, resumenCambios, proponerEdiciones, promptAsistente, MAX_OPS,
 } from "@/src/asistente/proponer";
 import { construirInventario } from "@/src/asistente/inventario";
 import { EditorError } from "@/src/editor/errors";
@@ -155,5 +155,27 @@ describe("proponerEdiciones — propone, no aplica", () => {
     );
     expect(page).toBe("index.html");
     expect(ops[0]).toMatchObject({ page: "index.html", value: "Z" });
+  });
+});
+
+// Sin estas reglas el modelo hace lo natural para él y desastroso para la web:
+// mete la frase entera en el primer nodo y deja los demás vacíos. Un titular
+// suele venir repartido porque cada trozo lleva su estilo (un degradado, otro
+// color), así que juntarlo borra ese diseño sin que nadie lo vea venir.
+describe("prompt: no aplastar frases repartidas en varios nodos", () => {
+  const prompt = () => promptAsistente({
+    instruccion: "Haz el titular más directo",
+    nombre: "Mi web",
+    inventario: construirInventario(DOC("<h1><span>Hola</span> <span>mundo</span></h1>")),
+  });
+
+  it("prohíbe dejar nodos vacíos", () => {
+    expect(prompt()).toContain("NUNCA dejes un nodo vacío");
+  });
+
+  it("y explica qué hacer cuando la frase viene repartida", () => {
+    const p = prompt();
+    expect(p).toContain("REPARTIDA en varios nodos");
+    expect(p).toContain("no juntes toda la frase en uno solo");
   });
 });

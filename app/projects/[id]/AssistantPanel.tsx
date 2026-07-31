@@ -14,10 +14,10 @@ const AVISO =
   "El asistente lee tu página y usa la IA con tu clave de OpenRouter (consume crédito). Revisarás los cambios antes de aplicarlos. ¿Continuar?";
 
 const NOMBRE_KIND: Record<string, string> = {
-  text: "texto",
-  richText: "formato",
-  href: "enlace",
-  style: "color",
+  text: "Texto",
+  richText: "Texto con formato",
+  href: "Enlace",
+  style: "Color",
 };
 
 export function AssistantPanel({
@@ -30,6 +30,10 @@ export function AssistantPanel({
   const [error, setError] = useState<string | null>(null);
   const [propuesta, setPropuesta] = useState<{ ops: EditOp[]; resumen: ResumenCambio[] } | null>(null);
   const [aplicado, setAplicado] = useState(false);
+
+  // Cuántos cambios dejan un trozo vacío: es la señal de que el asistente ha
+  // juntado en uno una frase que venía repartida, y con ella se van los estilos.
+  const vaciados = propuesta?.resumen.filter((c) => !c.despues).length ?? 0;
 
   async function proponer() {
     if (!instruccion.trim() || ocupado) return;
@@ -109,14 +113,35 @@ export function AssistantPanel({
               <p style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
                 {propuesta.ops.length} {propuesta.ops.length === 1 ? "cambio propuesto" : "cambios propuestos"}:
               </p>
+
+              {/* Un titular suele venir partido en varios trozos porque cada uno
+                  lleva su estilo (un degradado, otro color). Cuando el asistente
+                  mete la frase entera en el primero y vacía los demás, el texto
+                  queda bien pero el diseño se pierde — y sin este aviso no hay
+                  forma de verlo hasta después de aplicar. */}
+              {vaciados >= 2 && (
+                <div className="aviso-error" role="alert" style={{ marginBottom: 10, fontSize: 13 }}>
+                  <span>
+                    <b>Ojo:</b> {vaciados} de estos cambios dejan un trozo de texto vacío. Suele pasar
+                    cuando una frase está repartida en varios trozos con estilos distintos y se juntan
+                    en uno: el texto queda bien, pero puedes perder colores o degradados. Míralo en la
+                    vista previa después de aplicar; si no te convence, deshazlo desde el Historial.
+                  </span>
+                </div>
+              )}
+
               <ul style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
                 {propuesta.resumen.map((c, i) => (
                   <li key={i} className="rounded-c border border-borde bg-superficie" style={{ padding: "8px 10px" }}>
                     <div style={{ fontSize: 12, color: "var(--color-texto-3)", marginBottom: 2 }}>
-                      &lt;{c.tag}&gt; · {NOMBRE_KIND[c.kind] ?? c.kind}
+                      {NOMBRE_KIND[c.kind] ?? c.kind}
                     </div>
                     {c.antes && <div style={{ fontSize: 13, color: "var(--color-texto-3)", textDecoration: "line-through" }}>{c.antes}</div>}
-                    <div style={{ fontSize: 13, color: "var(--color-texto)" }}>{c.despues}</div>
+                    {/* Sin esto, vaciar un trozo se veía como una palabra tachada
+                        y un hueco: imposible saber qué iba a pasar. */}
+                    {c.despues
+                      ? <div style={{ fontSize: 13, color: "var(--color-texto)" }}>{c.despues}</div>
+                      : <div style={{ fontSize: 13, fontStyle: "italic", color: "var(--color-texto-2)" }}>Se queda vacío</div>}
                   </li>
                 ))}
               </ul>
