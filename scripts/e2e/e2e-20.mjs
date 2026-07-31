@@ -67,6 +67,20 @@ check("y enseña los 4 últimos correctos (o sea: se descifra bien)",
   despues.openrouter?.sufijo === CLAVE_FALSA.slice(-4), String(despues.openrouter?.sufijo));
 check("la API NUNCA devuelve la clave entera", !JSON.stringify(despues).includes(CLAVE_FALSA));
 
+// «Probar conexión» tiene que usar LA CLAVE DE ESTE ESPACIO. La ruta no entraba
+// en el contexto de la organización, así que resolvía "" y —mientras existió el
+// respaldo al .env— acababa probando la clave de la plataforma: decía «válida»
+// con una clave inventada, que es justo lo contrario de lo que promete el botón.
+// Aquí la clave es falsa a propósito: da igual qué conteste OpenRouter, lo que
+// se comprueba es que LLEGA A USARLA en vez de decir que no hay ninguna.
+r = await fetch(`${BASE}/api/settings/probar`, {
+  method: "POST", headers: HJ, body: JSON.stringify({ cual: "openrouter" }),
+});
+const prueba = await r.json().catch(() => ({}));
+check("«probar conexión» usa la clave del espacio, no dice que falte",
+  !JSON.stringify(prueba).includes("Falta la clave"), JSON.stringify(prueba).slice(0, 120));
+check("y con una clave falsa NO da por buena la conexión", prueba.ok !== true, JSON.stringify(prueba).slice(0, 120));
+
 // --------------------------------------------- lo que hay REALMENTE en la base
 const sql = postgres(DB, { prepare: false, max: 1 });
 try {
