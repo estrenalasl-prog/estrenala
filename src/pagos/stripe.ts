@@ -29,7 +29,20 @@ async function pedir(ruta: string, params: Record<string, string>): Promise<Reco
   });
   const data = (await r.json().catch(() => ({}))) as Record<string, unknown>;
   if (!r.ok) {
-    const err = data.error as { message?: string } | undefined;
+    const err = data.error as { message?: string; code?: string; type?: string; param?: string } | undefined;
+    // Al usuario se le dice siempre lo mismo (no le sirve de nada el detalle y
+    // no queremos enseñarle las tripas), pero SIN esto el motivo se perdía del
+    // todo: ni en pantalla ni en el log quedaba rastro de por qué Stripe dijo
+    // que no, y un «no se pudo iniciar el pago» sin más es imposible de
+    // diagnosticar cuando le pasa a un cliente de verdad.
+    //
+    // `param` es lo que más resuelve: con `resource_missing` en
+    // `line_items[0][price]` ya sabes que el precio no existe en ese modo —el
+    // fallo típico de dejarse un price de pruebas con la clave de producción—.
+    // NO se registran los parámetros: llevan el correo del cliente.
+    console.error("[stripe] %s → %d %s", ruta, r.status, JSON.stringify({
+      code: err?.code, type: err?.type, param: err?.param, message: err?.message,
+    }));
     throw new StripeError(r.status, err?.message ?? `Stripe HTTP ${r.status}`);
   }
   return data;
