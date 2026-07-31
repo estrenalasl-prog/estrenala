@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { createHmac } from "node:crypto";
 import { verificarFirmaStripe } from "@/src/pagos/stripe";
-import { interpretarEvento } from "@/src/pagos/suscripcion";
+import { interpretarEvento, ESTADO_CANCELANDO } from "@/src/pagos/suscripcion";
 import { planDePriceId, priceIdDe, pagosConfigurados } from "@/src/pagos/precios";
 
 const ENV = { ...process.env };
@@ -192,5 +192,39 @@ describe("interpretarEvento con la forma nueva de Stripe (sin current_period_end
     const c = interpretarEvento(nuevo({ items: { data: [{ price: { id: "price_pm" } }] } }))!;
     expect(c.hasta).toBeNull();
     expect(c.plan).toBe("personal"); // el plan se aplica igual
+  });
+});
+
+// Para Stripe, cancelar «al final del periodo» NO cambia el status: la
+// suscripción sigue `active` y lo único que marca la baja es
+// `cancel_at_period_end`. Guardando solo el status, la plataforma le seguía
+// diciendo «Activo» a alguien que ya se había ido, hasta cortarle de golpe el
+// día del vencimiento sin haberle avisado ni una vez.
+describe("baja programada (cancel_at_period_end)", () => {
+  it("se distingue de una suscripción que sí se va a renovar", () => {
+    expect(interpretarEvento(sub())!.estado).toBe("active");
+    expect(interpretarEvento(sub({ cancel_at_period_end: true }))!.estado).toBe(ESTADO_CANCELANDO);
+  });
+
+  it("NO le quita el plan: ha pagado el periodo y lo tiene entero", () => {
+    const c = interpretarEvento(sub({ cancel_at_period_end: true }))!;
+    expect(c.plan).toBe("personal");
+    expect(c.hasta?.getTime()).toBe(1_800_000_000 * 1000); // hasta cuándo lo tiene
+  });
+
+  it("se conserva el enlace con Stripe para poder reactivarla", () => {
+    const c = interpretarEvento(sub({ cancel_at_period_end: true }))!;
+    expect(c.customerId).toBe("cus_1");
+    expect(c.subscriptionId).toBe("sub_1");
+  });
+
+  it("cuando de verdad vence, sí se cae a gratis", () => {
+    const c = interpretarEvento(sub({ status: "canceled", cancel_at_period_end: true }))!;
+    expect(c.plan).toBe("free");
+    expect(c.estado).toBe("canceled");
+  });
+
+  it("false o ausente se comportan igual que siempre", () => {
+    expect(interpretarEvento(sub({ cancel_at_period_end: false }))!.estado).toBe("active");
   });
 });

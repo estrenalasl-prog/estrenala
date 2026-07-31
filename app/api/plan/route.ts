@@ -26,6 +26,9 @@ export async function GET() {
       pagos: pagosConfigurados(),
       suscrito: !!sus?.customerId,
       estado: sus?.estado ?? "",
+      // Hasta cuándo está pagado. Sin esto no se le puede decir a alguien que
+      // acaba de darse de baja cuánto le queda de plan, y se le corta sin aviso.
+      hasta: sus?.hasta ?? null,
     });
   } catch (e) {
     return errorJson(e);

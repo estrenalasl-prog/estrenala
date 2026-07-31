@@ -143,8 +143,66 @@ type EstadoPlan = {
   plan: string; rol: string;
   uso: { webs: number; miembros: number };
   limites: LimitesPlan; catalogo: LimitesPlan[];
-  pagos: boolean; suscrito: boolean; estado: string;
+  pagos: boolean; suscrito: boolean; estado: string; hasta: string | null;
 };
+
+// Cómo se le cuenta al usuario el estado de su suscripción.
+//
+// El badge estaba escrito a fuego a «Activo», así que decía lo mismo tras darse
+// de baja (Stripe deja el status en `active` hasta que vence) y también con un
+// pago fallido mientras Stripe reintenta. Justo los dos momentos en los que hay
+// que hablar claro.
+function diasHasta(iso: string | null): number | null {
+  if (!iso) return null;
+  const ms = new Date(iso).getTime() - Date.now();
+  return Number.isNaN(ms) ? null : Math.max(0, Math.ceil(ms / 86400000));
+}
+
+function fechaLarga(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" });
+}
+
+function EstadoSuscripcion({ estado }: { estado: string }) {
+  if (estado === "cancelando") return <span className="badge badge-aviso"><span className="punto" />Cancelada</span>;
+  if (estado === "past_due" || estado === "unpaid") return <span className="badge badge-aviso"><span className="punto" />Pago pendiente</span>;
+  if (estado === "trialing") return <span className="badge badge-exito"><span className="punto" />De prueba</span>;
+  if (estado === "canceled" || !estado) return null;
+  return <span className="badge badge-exito"><span className="punto" />Activo</span>;
+}
+
+function ExplicacionSuscripcion({ estado, hasta }: { estado: string; hasta: string | null }) {
+  const dias = diasHasta(hasta);
+  if (estado === "cancelando" && hasta) {
+    return (
+      <div className="aviso-ok" role="status" style={{ marginTop: 12, fontSize: 13.5 }}>
+        <span>
+          Has cancelado la renovación. <b>Sigues con tu plan hasta el {fechaLarga(hasta)}</b>
+          {dias !== null && <> — te quedan <b>{dias} {dias === 1 ? "día" : "días"}</b></>}, y no se te
+          cobrará nada más. Después pasarás al plan Gratis. Si cambias de idea, puedes reactivarla desde
+          «Gestionar suscripción» antes de esa fecha.
+        </span>
+      </div>
+    );
+  }
+  if (estado === "past_due" || estado === "unpaid") {
+    return (
+      <div className="aviso-error" role="alert" style={{ marginTop: 12, fontSize: 13.5 }}>
+        <span>
+          No hemos podido cobrar tu último pago. Tu plan sigue activo mientras se reintenta; actualiza la
+          tarjeta en «Gestionar suscripción» para no perderlo.
+        </span>
+      </div>
+    );
+  }
+  if (estado === "active" && hasta) {
+    return (
+      <p className="ayuda-campo" style={{ marginTop: 10 }}>
+        Se renueva solo el {fechaLarga(hasta)}.
+      </p>
+    );
+  }
+  return null;
+}
 
 // Sección «Plan y uso»: qué plan tiene el espacio, cuánto lleva usado y qué
 // incluye cada plan. Pagar y cancelar se hace en Stripe (Checkout y portal): la
@@ -215,9 +273,10 @@ function SeccionPlan() {
                 </small>
               </div>
               <div className="control">
-                <span className="badge badge-exito"><span className="punto" />Activo</span>
+                <EstadoSuscripcion estado={d.estado} />
               </div>
             </div>
+            <ExplicacionSuscripcion estado={d.estado} hasta={d.hasta} />
 
             <div className="fila-conf">
               <div className="info">

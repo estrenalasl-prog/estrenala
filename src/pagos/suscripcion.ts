@@ -52,6 +52,19 @@ function finDelPeriodo(obj: ObjetoSuscripcion): Date | null {
   return finales.length > 0 ? new Date(Math.max(...finales) * 1000) : null;
 }
 
+/**
+ * Estado de una suscripción que sigue en pie pero ya no se va a renovar.
+ *
+ * Para Stripe, cancelar «al final del periodo» NO cambia el status: la
+ * suscripción sigue `active` hasta que vence, y lo único que marca la baja es
+ * `cancel_at_period_end`. Guardando solo el status, la plataforma no se entera
+ * de que el cliente se ha ido: le sigue diciendo «Activo» hasta el día en que
+ * se le corta de golpe, sin haberle avisado ni una vez.
+ *
+ * No se toca el `plan`: ha pagado el mes y lo tiene entero.
+ */
+export const ESTADO_CANCELANDO = "cancelando";
+
 export function interpretarEvento(evento: unknown): CambioSuscripcion | null {
   const ev = (evento ?? {}) as Evento;
   const tipo = ev.type ?? "";
@@ -80,6 +93,10 @@ export function interpretarEvento(evento: unknown): CambioSuscripcion | null {
   const primero = (items.data?.[0] ?? {}) as { price?: { id?: unknown } };
   const plan = planDePriceId(texto(primero.price?.id) ?? "");
   if (!plan) return null; // un precio que no es nuestro: no tocamos el plan
+
+  // Dada de baja pero con el periodo pagado por delante: conserva su plan y se
+  // marca aparte para poder avisarle de hasta cuándo lo tiene.
+  if (obj.cancel_at_period_end === true) return { ...base, plan, estado: ESTADO_CANCELANDO };
 
   return { ...base, plan, estado };
 }

@@ -6,7 +6,9 @@ export const organizations = pgTable("organizations", {
   plan: text("plan").notNull().default("free"),
   usoJson: jsonb("uso_json").notNull().default({}),
   // Suscripción de Stripe (16). plan_estado: active | trialing | past_due |
-  // canceled | '' (sin suscripción). plan_hasta = fin del periodo pagado.
+  // cancelando | canceled | '' (sin suscripción). plan_hasta = fin del periodo
+  // pagado. «cancelando» es nuestro, no de Stripe: es una suscripción que sigue
+  // `active` pero con `cancel_at_period_end`, o sea que ya no se renovará.
   // Freno del cupo de certificados (19): cada dirección nueva pide uno a Let's
   // Encrypt y ese cupo semanal es COMPARTIDO por todos los clientes. El día se
   // guarda como AAAA-MM-DD para poder reiniciar el conteo sin ningún cron.
