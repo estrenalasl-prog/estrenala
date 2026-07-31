@@ -48,6 +48,28 @@ async function pedir(ruta: string, params: Record<string, string>): Promise<Reco
   return data;
 }
 
+/**
+ * Lee una suscripción tal y como está AHORA en Stripe.
+ *
+ * Los webhooks son el camino normal, pero no son garantía: uno que se pierda, o
+ * que llegue cuando el código todavía no sabía leer algo, deja el estado
+ * guardado congelado para siempre —hasta el siguiente evento, que puede tardar
+ * un mes—. Y entonces la pantalla afirma cosas que Stripe desmiente: le pasó a
+ * Sebas al cancelar, con Estrénala diciendo «se renueva el 31 de agosto» y
+ * Stripe «se cancela el 31 de agosto». Con dinero de por medio eso no vale.
+ */
+export async function leerSuscripcion(subscriptionId: string): Promise<Record<string, unknown>> {
+  const r = await fetch(`${API}/subscriptions/${encodeURIComponent(subscriptionId)}`, {
+    headers: { Authorization: `Bearer ${clave()}` },
+  });
+  const data = (await r.json().catch(() => ({}))) as Record<string, unknown>;
+  if (!r.ok) {
+    const err = data.error as { message?: string; code?: string } | undefined;
+    throw new StripeError(r.status, err?.message ?? `Stripe HTTP ${r.status}`);
+  }
+  return data;
+}
+
 // Sesión de pago alojada por Stripe. `orgId` viaja en los metadatos de la
 // suscripción para saber, en cada evento posterior, a qué espacio aplicarla.
 export async function crearSesionCheckout(input: {
