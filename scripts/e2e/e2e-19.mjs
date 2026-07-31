@@ -106,6 +106,21 @@ await ponerPlan(email, "personal"); // conectar dominio propio es de plan de pag
 r = await fetch(API, { method: "PATCH", headers: HJ, body: JSON.stringify({ dominio: dominioPropio }) });
 check("conectar dominio propio → 200", r.ok, `${r.status} ${JSON.stringify(await r.json().catch(() => ({})))}`);
 
+// Con un dominio propio conectado, ESA es la dirección de la web: es la que se
+// enseña arriba y la que uno copia para mandarla. La píldora solo miraba el
+// subdominio, así que seguía enseñando la dirección gratuita de por vida. Se
+// mira SOLO el trozo de la píldora: el dominio aparece también más abajo, en
+// «Conectado a …», y buscándolo en toda la página el fallo pasaba desapercibido.
+{
+  const pantalla = await (await fetch(`${BASE}/projects/${projectId}`, { headers: H })).text();
+  const i = pantalla.indexOf("pastilla-url");
+  const pildora = i < 0 ? "" : pantalla.slice(i, i + 400);
+  check("la dirección de arriba es el dominio propio", pildora.includes(dominioPropio), pildora.slice(0, 160));
+  // Contra la dirección COMPLETA: el dominio de prueba empieza igual que el
+  // subdominio, así que comparar contra el trozo suelto daba un falso positivo.
+  check("y ya no la gratuita", !pildora.includes(HOST), pildora.slice(0, 160));
+}
+
 web = await pedir(HOST);
 check("la web sigue viva en el subdominio (NO se redirige)", web.status === 200 && !web.headers.location, String(web.status));
 check("el subdominio anuncia el canónico del dominio propio",
@@ -192,7 +207,7 @@ check("ni frame-ancestors (romperia a quien incruste su propia web)", deCliente.
 // así que se pide la ruta de verdad.
 const vista = await fetch(`${BASE}/api/projects/${projectId}/preview/index.html`, { headers: H });
 const cspVista = vista.headers.get("content-security-policy");
-check("el preview se sirve", vista.ok, String(vista.status));
+check("el preview se sirve", vista.ok, `${vista.status} · ${(await vista.clone().text()).slice(0, 80)}`);
 check("y el panel PUEDE incrustarlo (si no, sale en blanco)",
   cspVista === "frame-ancestors 'self'", String(cspVista));
 check("pero nadie más: sigue habiendo frame-ancestors",

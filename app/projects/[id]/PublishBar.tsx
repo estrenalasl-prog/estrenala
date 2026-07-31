@@ -31,8 +31,13 @@ export function PublishBar({
 
   const publicado = !!publishedSnapshotId;
   const sinPublicar = publicado && currentSnapshotId !== publishedSnapshotId;
-  const host = subdominio ? `${subdominio}.${sitesBaseDomain}` : null;
-  const url = subdominio ? `${proto}//${subdominio}.${sitesBaseDomain}` : null;
+  // Manda el dominio propio: en cuanto hay uno, ESA es la dirección de la web y
+  // la que uno copia para mandarla. Antes esto solo miraba el subdominio, así que
+  // con un dominio conectado y activo la píldora seguía enseñando la dirección
+  // gratuita. La de `.estrenala.com` no desaparece: sigue a la vista (y viva) en
+  // «Dirección y dominio», justo debajo.
+  const host = dominio ?? (subdominio ? `${subdominio}.${sitesBaseDomain}` : null);
+  const url = host ? `${proto}//${host}` : null;
 
   const estadoDom = dominio
     ? "Dominio propio activo"
@@ -82,11 +87,34 @@ export function PublishBar({
     });
   }
 
-  const dns = (
-    <div className="bloque-codigo">
-      <div className="linea"><span className="etiqueta-dns">Tipo A</span><span>@ &nbsp;→&nbsp; {dnsTargetIp}</span></div>
-      <div className="linea"><span className="etiqueta-dns">Tipo A</span><span>www &nbsp;→&nbsp; {dnsTargetIp}</span></div>
-    </div>
+  // Los registros dependen de QUÉ se haya conectado: un dominio pelado necesita
+  // `@` y `www`; un subdominio (blog.tudominio.com) solo su primera parte. Antes
+  // se enseñaba siempre `@` y `www`, así que a quien conectaba un subdominio se
+  // le daban instrucciones equivocadas — y seguir esas al pie de la letra tira su
+  // web principal, porque `@` es justo la raíz del dominio.
+  //
+  // No se adivina cuál es cuál: `midominio.co.uk` tiene tres etiquetas y sigue
+  // siendo un dominio pelado. Así que con uno ya conectado se enseña la dirección
+  // exacta que tiene que resolver a nuestra IP, y aparte se explica el campo
+  // «Nombre», que es donde cada proveedor hace lo suyo.
+  const dns = (d: string | null) => (
+    <>
+      <div className="bloque-codigo">
+        {d ? (
+          <div className="linea"><span className="etiqueta-dns">Tipo A</span><span>{d} &nbsp;→&nbsp; {dnsTargetIp}</span></div>
+        ) : (
+          <>
+            <div className="linea"><span className="etiqueta-dns">Tipo A</span><span>@ &nbsp;→&nbsp; {dnsTargetIp}</span></div>
+            <div className="linea"><span className="etiqueta-dns">Tipo A</span><span>www &nbsp;→&nbsp; {dnsTargetIp}</span></div>
+          </>
+        )}
+      </div>
+      <small style={{ display: "block", marginTop: 6, color: "var(--color-texto-3)", lineHeight: 1.5 }}>
+        En el campo <b>Nombre</b> de tu proveedor va solo la parte de delante: <code>@</code> si es tu
+        dominio pelado, o <code>blog</code> si conectas <code>blog.tudominio.com</code>. Con el dominio
+        pelado, añade además <code>www</code> apuntando a la misma IP.
+      </small>
+    </>
   );
 
   return (
@@ -143,8 +171,8 @@ export function PublishBar({
             <h4>Dominio propio <span className="quees" title="Los registros DNS son como la dirección postal de tu dominio.">?</span></h4>
             {dominio ? (
               <>
-                <p>Conectado a <a href={`https://${dominio}`} target="_blank" rel="noreferrer">{dominio}</a>. Mantén estos registros en tu proveedor:</p>
-                {dns}
+                <p>Conectado a <a href={`https://${dominio}`} target="_blank" rel="noreferrer">{dominio}</a>. Mantén este registro en tu proveedor:</p>
+                {dns(dominio)}
                 {!confirmandoDom ? (
                   <div className="fila">
                     <button className="btn btn-peligro-sutil btn-sm" onClick={() => setConfirmandoDom(true)} disabled={ocupado}>Quitar dominio</button>
@@ -159,8 +187,8 @@ export function PublishBar({
               </>
             ) : (
               <>
-                <p>Conecta tu dominio (p. ej. <b>tuempresa.com</b>) apuntando estos dos registros en tu proveedor:</p>
-                {dns}
+                <p>Conecta tu dominio (p. ej. <b>tuempresa.com</b>) apuntando estos registros en tu proveedor:</p>
+                {dns(null)}
                 <div className="fila">
                   <input className="campo" style={{ width: 240, maxWidth: "100%" }} value={dom}
                     onChange={(e) => setDom(e.target.value)} placeholder="tudominio.com" />
