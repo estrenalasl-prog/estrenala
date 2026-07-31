@@ -677,7 +677,12 @@ export default function SettingsPage() {
                 />
                 <TarjetaServicio
                   titulo="SerpAPI (Google Trends)"
-                  descripcion="Alimenta el radar de temas en tendencia del blog. Clave gratuita (100 búsquedas/mes) en"
+                  // Sin cifra a mano: decía «100 búsquedas/mes» y SerpAPI ya va por 250.
+                  // Es dato de un tercero, cambia cuando quieren y nadie se entera de que
+                  // aquí quedó una mentira. Al probar la conexión se enseña el cupo REAL
+                  // que devuelve su API («quedan 250 búsquedas este mes»), que además es
+                  // el del plan de cada uno y no el del folleto.
+                  descripcion="Alimenta el radar de temas en tendencia del blog. Tiene plan gratuito; crea tu clave en"
                   enlace={{ href: "https://serpapi.com", texto: "serpapi.com" }}
                   estado={estados?.serpapi ?? null}
                   ocupado={ocupado}
