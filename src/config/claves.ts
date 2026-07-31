@@ -1,8 +1,16 @@
-// Ajustes de la organización (claves de API y modelo de IA): primero lo
-// guardado en Configuración (org_settings en BD) y, para las claves, la del
-// .env.local como respaldo. La organización activa se toma del contexto
-// ambiental (org-context); sin contexto (o sin BD en tests unitarios) devuelve
-// "" y quien llama cae al entorno.
+// Ajustes de la organización: claves de API y modelo de IA, tal cual los guardó
+// su dueño en Configuración (org_settings). La organización activa se toma del
+// contexto ambiental (org-context); sin contexto devuelve "".
+//
+// CADA ESPACIO PAGA SU IA. No hay respaldo a la clave del .env: la había, y
+// significaba que cualquier cliente sin clave propia gastaba del saldo de
+// OpenRouter de la plataforma. Con un puñado de usuarios es calderilla; con mil
+// es una factura que no controla nadie y que crece cuanto mejor va el negocio.
+//
+// Sin clave no se llama a la IA: todos los caminos (blog, portadas, asistente,
+// piloto, radar) lo comprueban y responden «Falta la clave de OpenRouter:
+// añádela en Configuración». Es el modelo BYOK que sostiene el margen — ver
+// docs y el aviso de coste de cada pantalla.
 async function desdeBd(campo: "openrouterKey" | "serpapiKey" | "modeloIa"): Promise<string> {
   try {
     const { orgActual } = await import("@/src/auth/org-context");
@@ -16,11 +24,11 @@ async function desdeBd(campo: "openrouterKey" | "serpapiKey" | "modeloIa"): Prom
 }
 
 export async function claveOpenRouter(): Promise<string> {
-  return (await desdeBd("openrouterKey")) || process.env.OPENROUTER_API_KEY || "";
+  return desdeBd("openrouterKey");
 }
 
 export async function claveSerpApi(): Promise<string> {
-  return (await desdeBd("serpapiKey")) || process.env.SERPAPI_KEY || "";
+  return desdeBd("serpapiKey");
 }
 
 // Modelo elegido en Configuración; "" = el default de la plataforma

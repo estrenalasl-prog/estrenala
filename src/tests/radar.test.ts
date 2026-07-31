@@ -11,8 +11,14 @@ vi.mock("@/src/ia/claude", async (importOriginal) => ({
   ...(await importOriginal<object>()),
   pedirJson: vi.fn(),
 }));
-vi.mock("@/src/config/claves", async (importOriginal) => ({
-  ...(await importOriginal<object>()),
+// El resolutor de claves se sustituye entero. Cada espacio usa SU clave y ya no
+// hay respaldo al .env: lo había, y hacía que la IA de los clientes la pagara la
+// plataforma. `modeloOrganizacion` sigue siendo un vi.fn porque estos tests le
+// cambian la respuesta sobre la marcha.
+const claves = vi.hoisted(() => ({ openrouter: "", serpapi: "" }));
+vi.mock("@/src/config/claves", () => ({
+  claveOpenRouter: async () => claves.openrouter,
+  claveSerpApi: async () => claves.serpapi,
   modeloOrganizacion: vi.fn(),
 }));
 
@@ -67,7 +73,7 @@ function fakes(opts: { nicho?: string; semillas?: string } = {}) {
 }
 
 beforeEach(() => {
-  vi.stubEnv("SERPAPI_KEY", "test-key");
+  claves.serpapi = "test-key";
   vi.stubEnv("SITES_BASE_DOMAIN", "wc.app");
   vi.mocked(modeloOrganizacion).mockReset().mockResolvedValue("");
   vi.mocked(buscarTendencias).mockReset().mockResolvedValue([
@@ -140,7 +146,7 @@ describe("actualizarRadar", () => {
   });
 
   it("sin clave de SerpAPI (ni UI ni .env) → 500 byte-exacto y no gasta nada", async () => {
-    vi.stubEnv("SERPAPI_KEY", "");
+    claves.serpapi = "";
     const f = fakes();
     const err = await actualizarRadar(f.deps).catch((e) => e);
     expect(err).toBeInstanceOf(EditorError);

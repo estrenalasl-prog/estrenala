@@ -4,6 +4,18 @@ import { pedirJson } from "@/src/ia/claude";
 import type { ProjectStore, ProjectRow, SnapshotRow } from "@/src/repositories/types";
 import type { StorageAdapter } from "@/src/storage/types";
 
+// Cada espacio usa SU clave (ver src/config/claves.ts). Estos tests no van de
+// resolverla, asi que se sustituye el resolutor y se controla desde aqui. Antes
+// bastaba con poner la variable de entorno, pero ese respaldo se quito: hacia
+// que la IA de los clientes la pagara la plataforma.
+const claves = vi.hoisted(() => ({ openrouter: "", serpapi: "" }));
+vi.mock("@/src/config/claves", () => ({
+  claveOpenRouter: async () => claves.openrouter,
+  claveSerpApi: async () => claves.serpapi,
+  modeloOrganizacion: async () => "",
+}));
+
+
 vi.mock("@/src/ia/claude", () => {
   class OpenRouterError extends Error {
     status: number;
@@ -106,7 +118,7 @@ function makeStorage(files: Record<string, string>) {
 
 describe("generarPlantillas", () => {
   beforeEach(() => {
-    vi.stubEnv("OPENROUTER_API_KEY", "sk-test");
+    claves.openrouter = "sk-test";
     pedirJsonMock.mockReset();
   });
   afterEach(() => {
@@ -114,7 +126,7 @@ describe("generarPlantillas", () => {
   });
 
   it("sin clave de OpenRouter (ni UI ni .env) → EditorError 500 con el mensaje de Configuración", async () => {
-    vi.stubEnv("OPENROUTER_API_KEY", "");
+    claves.openrouter = "";
     const store = makeStore(projectRow(), snapshotRow());
     const { storage } = makeStorage({ "p/s1/index.html": "<html><body>x</body></html>" });
     await expect(

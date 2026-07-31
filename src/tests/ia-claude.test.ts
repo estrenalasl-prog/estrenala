@@ -5,6 +5,18 @@ import {
   MODELO_IMAGEN, OpenRouterError,
 } from "@/src/ia/claude";
 
+// Cada espacio usa SU clave (ver src/config/claves.ts). Estos tests no van de
+// resolverla, asi que se sustituye el resolutor y se controla desde aqui. Antes
+// bastaba con poner la variable de entorno, pero ese respaldo se quito: hacia
+// que la IA de los clientes la pagara la plataforma.
+const claves = vi.hoisted(() => ({ openrouter: "", serpapi: "" }));
+vi.mock("@/src/config/claves", () => ({
+  claveOpenRouter: async () => claves.openrouter,
+  claveSerpApi: async () => claves.serpapi,
+  modeloOrganizacion: async () => "",
+}));
+
+
 describe("RelevanciaSchema", () => {
   it("acepta puntuaciones válidas", () => {
     expect(RelevanciaSchema.parse({ puntuaciones: [{ keyword: "x", relevancia: 80 }] }).puntuaciones).toHaveLength(1);
@@ -76,7 +88,7 @@ describe("pedirJson", () => {
   beforeEach(() => {
     mockFetch = vi.fn();
     vi.stubGlobal("fetch", mockFetch);
-    vi.stubEnv("OPENROUTER_API_KEY", "test-key");
+    claves.openrouter = "test-key";
   });
 
   afterEach(() => {
@@ -144,7 +156,7 @@ describe("pedirTexto", () => {
   beforeEach(() => {
     mockFetch = vi.fn();
     vi.stubGlobal("fetch", mockFetch);
-    vi.stubEnv("OPENROUTER_API_KEY", "test-key");
+    claves.openrouter = "test-key";
   });
 
   afterEach(() => {
@@ -185,7 +197,7 @@ describe("pedirConBusquedaWeb", () => {
   beforeEach(() => {
     mockFetch = vi.fn();
     vi.stubGlobal("fetch", mockFetch);
-    vi.stubEnv("OPENROUTER_API_KEY", "test-key");
+    claves.openrouter = "test-key";
   });
 
   afterEach(() => {
@@ -227,7 +239,7 @@ describe("pedirImagen (4f)", () => {
   beforeEach(() => {
     mockFetch = vi.fn();
     vi.stubGlobal("fetch", mockFetch);
-    vi.stubEnv("OPENROUTER_API_KEY", "test-key");
+    claves.openrouter = "test-key";
   });
 
   afterEach(() => {
@@ -275,7 +287,7 @@ describe("modelo opcional (4b2)", () => {
   beforeEach(() => {
     mockFetch = vi.fn();
     vi.stubGlobal("fetch", mockFetch);
-    vi.stubEnv("OPENROUTER_API_KEY", "test-key");
+    claves.openrouter = "test-key";
   });
 
   afterEach(() => {

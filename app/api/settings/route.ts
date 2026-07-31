@@ -11,12 +11,15 @@ function conError(e: unknown) {
   return NextResponse.json({ error: "Error interno" }, { status: 500 });
 }
 
-// La clave completa NUNCA sale por la API: solo de dónde viene y sus últimos 4.
-function estadoDe(claveUi: string, claveEnv: string | undefined) {
-  const activa = claveUi || claveEnv || "";
+// La clave completa NUNCA sale por la API: solo si está puesta y sus últimos 4.
+//
+// `origen` ya solo puede ser "ui" o null. Existió un tercer valor, "env", que
+// significaba «este espacio está usando la clave de la plataforma»: se quitó
+// porque ese respaldo hacía que la IA de los clientes la pagáramos nosotros.
+function estadoDe(claveUi: string) {
   return {
-    origen: claveUi ? "ui" : claveEnv ? "env" : null,
-    sufijo: activa ? activa.slice(-4) : "",
+    origen: claveUi ? "ui" : null,
+    sufijo: claveUi ? claveUi.slice(-4) : "",
   };
 }
 
@@ -25,8 +28,8 @@ export async function GET() {
   try {
     const s = await orgSettingsStore.getSettings(orgId);
     return NextResponse.json({
-      openrouter: estadoDe(s?.openrouterKey ?? "", process.env.OPENROUTER_API_KEY),
-      serpapi: estadoDe(s?.serpapiKey ?? "", process.env.SERPAPI_KEY),
+      openrouter: estadoDe(s?.openrouterKey ?? ""),
+      serpapi: estadoDe(s?.serpapiKey ?? ""),
       modeloIa: s?.modeloIa ?? "", // no es secreto: el nombre del modelo se muestra tal cual
     });
   } catch (e) { return conError(e); }
@@ -42,7 +45,7 @@ export async function PUT(req: Request) {
       if (typeof valor !== "string") continue; // ausente = no tocar
       const clave = valor.trim();
       if (clave.length > 200) throw new EditorError("La clave es demasiado larga (máx. 200 caracteres)", 400);
-      patch[campo] = clave; // "" limpia → vuelve al respaldo del .env.local
+      patch[campo] = clave; // "" la borra → ese espacio se queda sin IA hasta que ponga otra
     }
     if (typeof body.modeloIa === "string") {
       const modelo = body.modeloIa.trim();

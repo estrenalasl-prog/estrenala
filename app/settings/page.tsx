@@ -4,19 +4,18 @@ import Link from "next/link";
 import { AppHeader } from "../_components/AppHeader";
 import { MODELOS, nombreModelo } from "../_components/modelos";
 
-type EstadoClave = { origen: "ui" | "env" | null; sufijo: string };
+// Cada espacio usa SU clave. Hubo un origen "env" —«usando la del servidor»—
+// que se quitó: significaba que la IA del cliente la pagaba la plataforma.
+type EstadoClave = { origen: "ui" | null; sufijo: string };
 type EstadoClaves = { openrouter: EstadoClave; serpapi: EstadoClave; modeloIa: string };
 
 function textoEstado(e: EstadoClave): string {
-  if (e.origen === "ui") return `Usando tu clave (…${e.sufijo})`;
-  if (e.origen === "env") return `Usando la del servidor (…${e.sufijo})`;
-  return "Sin configurar";
+  return e.origen === "ui" ? `Usando tu clave (…${e.sufijo})` : "Sin configurar";
 }
 
 function BadgeClave({ estado }: { estado: EstadoClave | null }) {
   if (!estado) return <span className="badge badge-neutro"><span className="punto" />cargando…</span>;
   if (estado.origen === "ui") return <span className="badge badge-exito"><span className="punto" />{textoEstado(estado)}</span>;
-  if (estado.origen === "env") return <span className="badge badge-aviso"><span className="punto" />{textoEstado(estado)}</span>;
   return <span className="badge badge-neutro"><span className="punto" />{textoEstado(estado)}</span>;
 }
 
@@ -106,7 +105,7 @@ function TarjetaServicio({ titulo, descripcion, enlace, estado, ocupado, onGuard
   }
   async function quitar() {
     setMsg(null);
-    if (await onQuitar()) { setMsg("Clave quitada: se usa la del servidor si existe."); setMsgError(false); }
+    if (await onQuitar()) { setMsg("Clave quitada. Sin una clave, las funciones de IA quedan desactivadas."); setMsgError(false); }
   }
 
   return (
@@ -641,8 +640,9 @@ export default function SettingsPage() {
                 <div className="tit">
                   <h2>Conexiones y claves</h2>
                   <p>
-                    Con tus propias claves, todo lo que genera la plataforma (artículos, plantillas, radar de temas)
-                    corre a tu cuenta. Si dejas una vacía, se usa la del servidor cuando exista.
+                    Todo lo que genera la IA (artículos, plantillas, radar de temas) va con <b>tu propia clave</b> y
+                    corre a tu cuenta: pagas el consumo real, sin recargo nuestro. Sin clave, esas funciones quedan
+                    desactivadas; el resto de la plataforma funciona igual.
                   </p>
                 </div>
               </header>
