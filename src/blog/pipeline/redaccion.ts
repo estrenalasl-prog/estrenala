@@ -1,6 +1,19 @@
 import { limpiarMd, pedirTexto, type Analisis } from "@/src/ia/claude";
 import type { FnEtapa } from "./tipos";
 
+/**
+ * Por debajo de esto no es un artículo, es un trozo.
+ *
+ * Se le piden ~2.000 palabras (unos 12.000 caracteres) más conclusión y FAQ, así
+ * que ni el más corto de verdad se acerca a este suelo: está puesto a ras del
+ * agua para que nunca rechace uno bueno.
+ */
+export const MIN_ARTICULO = 1200;
+
+/** Byte-exacto: lo fijan los tests. */
+export const MSG_ARTICULO_CORTO =
+  "El modelo devolvió el artículo a medias. Vuelve a lanzar la redacción; si se repite, elige otro modelo en Configuración.";
+
 export const etapaRedaccion: FnEtapa = async (draft, ctx, _deps, instruccion) => {
   const analisis = JSON.parse(draft.analisisJson!) as Analisis;
   const prompt = `Eres el mejor redactor de un equipo que crea artículos de blog de nivel mundial.
@@ -26,5 +39,24 @@ Requisitos:
 - Termina con una sección de Conclusión y una sección FAQ (4-6 preguntas con respuestas breves).
 - Devuelve SOLO el Markdown del artículo, sin comentarios.
 ${instruccion ? `\nInstrucción adicional del editor: ${instruccion}` : ""}`;
-  return { articuloMd: limpiarMd(await pedirTexto(prompt, 16000, ctx.modelo || undefined)) };
+  const articuloMd = limpiarMd(await pedirTexto(prompt, 16000, ctx.modelo || undefined));
+
+  // Se comprueba el RESULTADO, no lo que diga el proveedor.
+  //
+  // El 2026-07-31 Gemini vía Google Vertex devolvió 311 caracteres cortados a
+  // mitad de frase, con cero tokens facturados y SIN motivo de parada. Como
+  // «redacción hecha» significaba solo «hay algo en el campo» (ver
+  // etapaCompletada), el pipeline marcó el paso en verde y siguió: los
+  // metadatos se calcularon sobre ese trozo y el artículo quedó listo para
+  // publicar. Un fallo del proveedor no puede acabar en un tick verde.
+  //
+  // La comprobación de `finish_reason` en claude.ts no basta: ahí no venía
+  // ninguno. Por eso se mira lo único que no se puede falsear, el texto.
+  if (articuloMd.trim().length < MIN_ARTICULO) {
+    console.error("[blog] redaccion demasiado corta", JSON.stringify({
+      caracteres: articuloMd.trim().length, minimo: MIN_ARTICULO, modelo: ctx.modelo || "por defecto",
+    }));
+    throw new Error(MSG_ARTICULO_CORTO);
+  }
+  return { articuloMd };
 };

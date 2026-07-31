@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { BlogStore, DraftRow, DraftPatch, PostRow } from "@/src/repositories/blog";
 import type { ProjectStore } from "@/src/repositories/types";
 import { EditorError } from "@/src/editor/errors";
+import { MSG_ARTICULO_CORTO } from "@/src/blog/pipeline/redaccion";
 
 vi.mock("@/src/ia/claude", async (importOriginal) => ({
   ...(await importOriginal<object>()),
@@ -191,14 +192,52 @@ describe("ejecutarEtapa", () => {
     expect(f.draft().planMd).toBe("texto generado");
   });
 
-  it("redaccion desenvuelve la respuesta si el modelo la devuelve dentro de ```markdown", async () => {
+  // Un artículo de verdad (el guard de longitud rechaza los trozos, ver abajo).
+  const CUERPO = ("# Título\n\n" + "Párrafo con contenido de verdad. ".repeat(60)).trim();
+
+  function listoParaRedactar() {
     const d = draftBase();
     d.analisisJson = JSON.stringify({ keyword_principal: "k", keywords_secundarias: [], intencion_busqueda: "i" });
     d.planMd = "p"; d.investigacionMd = "i";
-    const f = fakes({ draft: d });
-    vi.mocked(pedirTexto).mockResolvedValue("```markdown\n# Título\n\nPárrafo.\n```");
+    return fakes({ draft: d });
+  }
+
+  it("redaccion desenvuelve la respuesta si el modelo la devuelve dentro de ```markdown", async () => {
+    const f = listoParaRedactar();
+    vi.mocked(pedirTexto).mockResolvedValue("```markdown\n" + CUERPO + "\n```");
     await ejecutarEtapa(f.deps, DRAFT_ID, "redaccion");
-    expect(f.draft().articuloMd).toBe("# Título\n\nPárrafo.");
+    expect(f.draft().articuloMd).toBe(CUERPO);
+  });
+
+  // El 2026-07-31 Gemini devolvió 311 caracteres cortados a mitad de frase, sin
+  // motivo de parada y con cero tokens facturados. Como «redacción hecha» era
+  // solo «hay algo en el campo», el pipeline lo dio por bueno, calculó los
+  // metadatos sobre ese trozo y lo dejó listo para publicar, con todo en verde.
+  it("un artículo a medias NO cuenta como redacción hecha", async () => {
+    const f = listoParaRedactar();
+    vi.mocked(pedirTexto).mockResolvedValue(
+      "# Domina la Automatización\n\n¿Sientes que las tareas repetitivas devoran tu tiempo y el de tu"
+    );
+    const r = await ejecutarEtapa(f.deps, DRAFT_ID, "redaccion");
+    expect(r.ok).toBe(false);
+    expect(f.draft().estado).toBe("error");
+    expect(f.draft().errorMsg).toContain(MSG_ARTICULO_CORTO);
+    expect(f.draft().articuloMd).toBeNull(); // no se guarda el trozo
+  });
+
+  it("y por tanto el pipeline NO se da por terminado", async () => {
+    const f = listoParaRedactar();
+    vi.mocked(pedirTexto).mockResolvedValue("# Corto\n\nNada más.");
+    await ejecutarEtapa(f.deps, DRAFT_ID, "redaccion");
+    expect(f.draft().estado).not.toBe("revision");
+  });
+
+  it("uno de longitud normal sí se guarda", async () => {
+    const f = listoParaRedactar();
+    vi.mocked(pedirTexto).mockResolvedValue(CUERPO);
+    const r = await ejecutarEtapa(f.deps, DRAFT_ID, "redaccion");
+    expect(r.ok).toBe(true);
+    expect(f.draft().articuloMd).toBe(CUERPO);
   });
 
   it("investigacion usa la búsqueda web y guarda investigacionMd", async () => {
