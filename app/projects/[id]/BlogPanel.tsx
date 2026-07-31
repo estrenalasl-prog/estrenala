@@ -81,6 +81,14 @@ export function BlogPanel({ projectId }: { projectId: string }) {
   const [estado, setEstado] = useState<EstadoBlog | null>(null);
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Qué acaba de pasar y qué falta para verlo online. Guardar un artículo NO lo
+  // publica: reescribe el HTML, el índice y el sitemap, y eso queda como versión
+  // actual sin publicar. Sin decirlo, uno guarda, vuelve a la lista, no ve
+  // ningún cambio en su web y se pone a buscar un «publicar blog» que no existe
+  // ni debe existir —el blog es parte de la web, no algo aparte—. El botón está
+  // arriba del todo de la pantalla, lejos de aquí.
+  const [aviso, setAviso] = useState<string | null>(null);
+  const AVISO_PUBLICAR = "Para que se vea en tu web, dale a «Publicar cambios» arriba del todo.";
   // plantillas
   const [tplPost, setTplPost] = useState("");
   const [tplIndex, setTplIndex] = useState("");
@@ -144,7 +152,7 @@ export function BlogPanel({ projectId }: { projectId: string }) {
   useEffect(() => { if (abierto && !estado) void cargar(); }, [abierto]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function llamar(url: string, init: RequestInit): Promise<Record<string, unknown> | null> {
-    setOcupado(true); setError(null);
+    setOcupado(true); setError(null); setAviso(null); // el aviso es de lo ÚLTIMO que pasó
     try {
       const res = await fetch(url, init);
       const d = (await res.json().catch(() => ({}))) as Record<string, unknown>;
@@ -221,13 +229,15 @@ export function BlogPanel({ projectId }: { projectId: string }) {
         try { await fetch(`/api/projects/${projectId}/blog/drafts/${draftOrigenId}`, { method: "DELETE" }); } catch { /* silencioso */ }
         setDraftOrigenId(null);
       }
+      setAviso(`Artículo guardado. ${AVISO_PUBLICAR}`);
       setVista("lista"); setEstado(null); await cargar(); router.refresh();
     }
   }
   async function borrarArticulo(id: string, tituloPost: string) {
     if (!confirm(`¿Borrar el artículo "${tituloPost}"? Esta acción no se puede deshacer.`)) return;
     const d = await llamar(`/api/projects/${projectId}/blog/posts/${id}`, { method: "DELETE" });
-    if (d) { setEstado(null); await cargar(); router.refresh(); }
+    // Borrarlo tampoco lo quita de la web publicada hasta que se publique.
+    if (d) { setAviso(`Artículo borrado. ${AVISO_PUBLICAR}`); setEstado(null); await cargar(); router.refresh(); }
   }
 
   // --- piloto automático (4g) ---
@@ -376,6 +386,12 @@ export function BlogPanel({ projectId }: { projectId: string }) {
       {abierto && (
         <div className="direccion-cuerpo" style={{ display: "block" }}>
           <p className="ayuda-campo" style={{ marginBottom: 12 }}>{AVISO}</p>
+
+          {aviso && (
+            <div className="aviso-ok" role="status" style={{ marginBottom: 12 }}>
+              <span>{aviso}</span>
+            </div>
+          )}
 
           {vista === "lista" && (
             <div>
