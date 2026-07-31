@@ -61,6 +61,18 @@ export const RelevanciaSchema = z.object({
 
 type Mensaje = { role: "system" | "user" | "assistant"; content: string };
 
+/** Mensaje del corte por límite. Byte-exacto: lo fijan los tests. */
+export const MSG_CORTADO =
+  "El modelo dejó el texto a medias al llegar a su límite. Vuelve a intentarlo; si se repite, elige otro modelo en Configuración.";
+
+// El modelo se quedó sin presupuesto de salida. OpenRouter normaliza a "length";
+// algunos proveedores lo mandan además en crudo (Gemini dice "MAX_TOKENS").
+function cortadoPorLimite(motivo: unknown, nativo: unknown): boolean {
+  const m = String(motivo ?? "").toLowerCase();
+  const n = String(nativo ?? "").toLowerCase();
+  return m === "length" || n === "max_tokens";
+}
+
 async function completar(body: Record<string, unknown>): Promise<string> {
   const resp = await fetch(`${BASE_URL}/chat/completions`, {
     method: "POST",
@@ -75,7 +87,33 @@ async function completar(body: Record<string, unknown>): Promise<string> {
   if (data?.error?.message) {
     throw new OpenRouterError(Number(data.error.code) || 502, `OpenRouter: ${data.error.message}`);
   }
-  return data?.choices?.[0]?.message?.content ?? "";
+
+  // Un texto CORTADO no se devuelve como si estuviera terminado.
+  //
+  // Sin esto, un artículo que el modelo dejó a mitad de frase se guardaba tan
+  // ricamente y el pipeline marcaba todos sus pasos en verde: el usuario veía
+  // «hecho» y luego medio artículo publicado. Es el peor fallo posible — mentir
+  // diciendo que salió bien —, y encima ya se ha pagado por esos tokens.
+  //
+  // Se registra el consumo porque es lo único que explica POR QUÉ se cortó: si
+  // `reasoning` se ha comido casi todo el presupuesto, el modelo pensó mucho y
+  // escribió poco, y la respuesta es cambiar de modelo, no subir el límite.
+  const eleccion = data?.choices?.[0];
+  if (cortadoPorLimite(eleccion?.finish_reason, eleccion?.native_finish_reason)) {
+    const u = data?.usage ?? {};
+    console.error("[ia] respuesta cortada por limite", JSON.stringify({
+      modelo: data?.model,
+      motivo: eleccion?.finish_reason,
+      nativo: eleccion?.native_finish_reason,
+      pedidos: body.max_tokens,
+      salida: u.completion_tokens,
+      razonamiento: u.completion_tokens_details?.reasoning_tokens,
+      entrada: u.prompt_tokens,
+    }));
+    throw new OpenRouterError(502, MSG_CORTADO);
+  }
+
+  return eleccion?.message?.content ?? "";
 }
 
 // El modelo a veces envuelve el JSON en un bloque ```json … ```; lo quitamos.

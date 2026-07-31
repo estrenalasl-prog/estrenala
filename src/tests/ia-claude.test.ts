@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   limpiarJson, limpiarMd, pedirJson, pedirTexto, pedirConBusquedaWeb, pedirImagen,
   PlantillasSchema, AnalisisSchema, MetadatosSchema, RelevanciaSchema,
-  MODELO_IMAGEN, OpenRouterError,
+  MODELO_IMAGEN, OpenRouterError, MSG_CORTADO,
 } from "@/src/ia/claude";
 
 // Cada espacio usa SU clave (ver src/config/claves.ts). Estos tests no van de
@@ -321,5 +321,66 @@ describe("modelo opcional (4b2)", () => {
     mockFetch.mockResolvedValueOnce(respuesta('{"plantilla_post":"a","plantilla_index":"b"}'));
     await pedirJson("p", PlantillasSchema, 4000, "x/y");
     expect(modeloEnviado()).toBe("x/y");
+  });
+});
+
+// Un artículo que el modelo dejó a mitad de frase se guardaba como si estuviera
+// terminado y el pipeline marcaba sus pasos en verde: el usuario veía «hecho» y
+// medio artículo publicado. Mentir diciendo que salió bien es el peor final
+// posible, y encima esos tokens ya están pagados.
+describe("respuesta cortada por el límite de tokens", () => {
+  let mockFetch: ReturnType<typeof vi.fn>;
+
+  const cortada = (motivo: string, nativo?: string) => ({
+    ok: true,
+    json: async () => ({
+      model: "google/gemini-2.5-flash",
+      choices: [{ message: { content: "# Guía\n\nEsto se corta a mitad de fra" }, finish_reason: motivo, ...(nativo ? { native_finish_reason: nativo } : {}) }],
+      usage: { prompt_tokens: 900, completion_tokens: 16000, completion_tokens_details: { reasoning_tokens: 15900 } },
+    }),
+  });
+
+  beforeEach(() => {
+    mockFetch = vi.fn();
+    vi.stubGlobal("fetch", mockFetch);
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    claves.openrouter = "test-key";
+  });
+  afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+
+  it("lanza en vez de devolver el texto a medias", async () => {
+    mockFetch.mockResolvedValueOnce(cortada("length"));
+    await expect(pedirTexto("p")).rejects.toThrow(MSG_CORTADO);
+  });
+
+  it("también cuando el proveedor lo dice a su manera (Gemini: MAX_TOKENS)", async () => {
+    mockFetch.mockResolvedValueOnce(cortada("stop", "MAX_TOKENS"));
+    await expect(pedirTexto("p")).rejects.toThrow(MSG_CORTADO);
+  });
+
+  it("deja en el log el consumo, que es lo que explica POR QUÉ se cortó", async () => {
+    mockFetch.mockResolvedValueOnce(cortada("length"));
+    await pedirTexto("p").catch(() => {});
+    const log = vi.mocked(console.error).mock.calls.flat().join(" ");
+    // Con el razonamiento comiéndose el presupuesto, la solución es cambiar de
+    // modelo, no subir el límite. Sin este dato no hay forma de saberlo.
+    expect(log).toContain("15900");
+    expect(log).toContain("google/gemini-2.5-flash");
+  });
+
+  it("una respuesta que termina bien NO se toca", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ choices: [{ message: { content: "entero" }, finish_reason: "stop" }] }),
+    });
+    expect(await pedirTexto("p")).toBe("entero");
+  });
+
+  it("y si el proveedor no manda motivo, tampoco se inventa un fallo", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ choices: [{ message: { content: "entero" } }] }),
+    });
+    expect(await pedirTexto("p")).toBe("entero");
   });
 });
