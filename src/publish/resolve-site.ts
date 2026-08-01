@@ -2,7 +2,7 @@ import { parseHost } from "./host";
 import { conMarca } from "./marca";
 import {
   ROBOTS_NOINDEX, cabeceraCanonica, sitemapDeLasPaginas, reapuntarCanonicos,
-  reapuntarMetadatosImportados, rutaPublica,
+  reapuntarMetadatosImportados, reapuntarSitemap, rutaPublica,
 } from "./seo";
 import { puede } from "@/src/planes/planes";
 import { tieneExtensionConocida } from "@/src/storage/content-type";
@@ -241,6 +241,18 @@ export async function resolvePublicSite(
     html = reapuntarMetadatosImportados(html, `https://${site.dominio ?? input.host}`);
     if (!puede(site.plan, "sinMarca")) html = conMarca(html, input.platformHost);
     body = Buffer.from(html, "utf-8");
+  } else if (rel === "sitemap.xml") {
+    // El sitemap escrito por el blog guarda direcciones enteras. Si desde entonces
+    // el cliente cambió de subdominio o conectó su dominio, están viejas y le
+    // estarían diciendo a Google que sus páginas viven en otro sitio (ver seo.ts).
+    body = Buffer.from(
+      reapuntarSitemap(
+        body.toString("utf-8"),
+        `https://${site.dominio ?? input.host}`,
+        input.sitesBaseDomain ?? input.platformHost
+      ),
+      "utf-8"
+    );
   }
 
   // Lo que se le dice a Google (ver seo.ts). Excluyentes: un noindex con canónico

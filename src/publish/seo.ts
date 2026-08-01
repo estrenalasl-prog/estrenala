@@ -62,6 +62,37 @@ export function reapuntarCanonicos(html: string, baseVieja: string, baseNueva: s
 }
 
 /**
+ * Reapunta el sitemap a la dirección buena de HOY.
+ *
+ * El sitemap guarda direcciones ENTERAS, escritas cuando se generó. Si después el
+ * cliente cambia de subdominio, o conecta su dominio propio —que es justo lo que
+ * hace todo el que empieza a pagar—, esas direcciones se quedan viejas y el
+ * sitemap le está diciendo a Google «mis páginas están allí», señalando a un sitio
+ * que ya no existe. Es lo contrario de lo que se le vende.
+ *
+ * Visto el 2026-08-01 en la web de pruebas: seguía anunciando
+ * `quantiva.estrenala.com` un rato después de haber cambiado el subdominio.
+ *
+ * Solo se tocan las direcciones que cuelgan de NUESTRO dominio de subdominios:
+ * esas solo pueden ser nuestras y solo pueden estar viejas. Lo demás se deja tal
+ * cual —incluidas las del dominio para el que se escribió la web original—, por lo
+ * mismo que en `reapuntarMetadatosImportados`: reescribir el dominio de otro es
+ * peor que dejarlo mal, porque puede ser un sitio suyo que sí existe.
+ *
+ * Al servir, no reescribiendo lo guardado: se arregla solo al conectar el dominio,
+ * sin republicar, y se deshace solo si lo desconecta.
+ */
+export function reapuntarSitemap(xml: string, base: string, sitesBaseDomain: string): string {
+  const bd = (sitesBaseDomain ?? "").trim().toLowerCase().replace(/:\d+$/, "");
+  if (!bd) return xml;
+  const escapado = bd.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  // Un subdominio cualquiera del dominio base, no solo el actual: el caso que
+  // falla es precisamente el del subdominio ANTERIOR.
+  const re = new RegExp(`https?://[a-z0-9-]+\\.${escapado}(?=[/<"'\\s]|$)`, "gi");
+  return (xml ?? "").replace(re, base.replace(/\/+$/, ""));
+}
+
+/**
  * Reapunta a esta casa los metadatos de una web escrita para OTRO dominio.
  *
  * Nuestro caso de uso es literalmente ese: alguien hace una web con IA para

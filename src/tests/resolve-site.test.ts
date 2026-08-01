@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { resolvePublicSite } from "@/src/publish/resolve-site";
 import { conMarca, ID_MARCA, TEXTO_MARCA } from "@/src/publish/marca";
-import { ROBOTS_NOINDEX, reapuntarCanonicos, reapuntarMetadatosImportados } from "@/src/publish/seo";
+import { ROBOTS_NOINDEX, reapuntarCanonicos, reapuntarMetadatosImportados, reapuntarSitemap } from "@/src/publish/seo";
 import type { StorageAdapter } from "@/src/storage/types";
 import type {
   ProjectStore, ProjectRow, SnapshotRow, SnapshotInfo,
@@ -622,5 +622,47 @@ describe("redirect www → dominio pelado", () => {
       { host: "www.cliente.com", platformHost: "app.plataforma.com", sitesBaseDomain: "plataforma.com", pathSegments: [] }
     );
     expect(r.status).toBe(404);
+  });
+});
+
+// El sitemap guarda direcciones ENTERAS. Al cambiar de subdominio o conectar el
+// dominio propio se quedaban viejas, y le decían a Google que las páginas del
+// cliente viven en un sitio que ya no existe. Visto el 2026-08-01 en la web de
+// pruebas, que seguía anunciando `quantiva.estrenala.com`.
+describe("reapuntarSitemap", () => {
+  const BD = "estrenala.com";
+
+  it("reapunta el subdominio ANTERIOR, que es el caso que falla", () => {
+    const xml = `<url><loc>https://quantiva.estrenala.com/blog/uno.html</loc></url>`;
+    expect(reapuntarSitemap(xml, "https://prueba.cliente.com", BD))
+      .toBe(`<url><loc>https://prueba.cliente.com/blog/uno.html</loc></url>`);
+  });
+
+  it("reapunta también el subdominio actual cuando ya hay dominio propio", () => {
+    const xml = `<loc>https://micafe.estrenala.com/</loc><loc>https://micafe.estrenala.com/blog/index.html</loc>`;
+    const r = reapuntarSitemap(xml, "https://micafe.com", BD);
+    expect(r).toBe(`<loc>https://micafe.com/</loc><loc>https://micafe.com/blog/index.html</loc>`);
+  });
+
+  // Reescribir el dominio de otro es peor que dejarlo mal: puede ser un sitio suyo
+  // que sí existe. Mismo criterio que en reapuntarMetadatosImportados.
+  it("NO toca el dominio para el que se escribió la web original", () => {
+    const xml = `<loc>https://quantivatechnology.com/contacto/</loc>`;
+    expect(reapuntarSitemap(xml, "https://prueba.quantivatechnology.com", BD)).toBe(xml);
+  });
+
+  it("no toca un dominio que solo CONTENGA el nuestro", () => {
+    const xml = `<loc>https://noesestrenala.com/x</loc><loc>https://x.estrenala.com.evil.net/y</loc>`;
+    expect(reapuntarSitemap(xml, "https://mio.com", BD)).toBe(xml);
+  });
+
+  it("sin dominio base configurado se deja tal cual, no se inventa nada", () => {
+    const xml = `<loc>https://algo.estrenala.com/</loc>`;
+    expect(reapuntarSitemap(xml, "https://mio.com", "")).toBe(xml);
+  });
+
+  it("si la dirección ya es la buena, no cambia nada", () => {
+    const xml = `<loc>https://micafe.estrenala.com/blog/</loc>`;
+    expect(reapuntarSitemap(xml, "https://micafe.estrenala.com", BD)).toBe(xml);
   });
 });
