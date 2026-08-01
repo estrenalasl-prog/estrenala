@@ -511,7 +511,15 @@ a:hover { color: var(--color-texto); }
   /* Los dos botones, del mismo tamaño y uno al lado del otro: rechazar tiene que
      costar lo mismo que aceptar. Es requisito, no estética. */
   .cookies-botones { display: flex; gap: 10px; flex: 0 0 auto; }
-  .cookies-botones .btn { flex: 1 1 auto; white-space: nowrap; }
+  /* Un punto más oscuros que el banner: `.btn-sec` es blanco igual que el fondo y
+     se quedaba en un contorno flojo. Los dos exactamente igual. */
+  .cookies-botones .btn {
+    flex: 1 1 auto; white-space: nowrap;
+    background: var(--color-superficie-2);
+    border-color: var(--color-borde-fuerte);
+    font-weight: 550;
+  }
+  .cookies-botones .btn:hover { background: var(--color-borde); }
   @media (max-width: 520px) {
     .cookies-botones { width: 100%; }
   }

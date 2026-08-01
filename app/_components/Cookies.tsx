@@ -54,11 +54,14 @@ export function Cookies({ seguro }: { seguro: boolean }) {
           cookies</a>.
         </p>
       </div>
+      {/* Los dos con la MISMA clase, a propósito. Poner «Aceptar todas» con el
+          verde de marca sería defendible, pero en cuanto uno de los dos destaca ya
+          estás empujando, y esto no es una pantalla de conversión. */}
       <div className="cookies-botones">
         <button className="btn btn-sec" onClick={() => decidir("rechazado")}>
           Solo las necesarias
         </button>
-        <button className="btn btn-pri" onClick={() => decidir("aceptado")} data-foco>
+        <button className="btn btn-sec" onClick={() => decidir("aceptado")}>
           Aceptar todas
         </button>
       </div>
