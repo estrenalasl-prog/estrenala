@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { useDialogo } from "@/app/_components/Dialogo";
 
 export type DraftDetalle = {
   draft: {
@@ -21,8 +22,9 @@ const NOMBRES: Record<string, string> = {
   metadatos: "Metadatos SEO",
 };
 
+// El «¿Continuar?» se fue al botón; el resto se conserva palabra por palabra.
 const AVISO_AUTO =
-  "El modo automático ejecuta todas las etapas pendientes seguidas (varias llamadas de IA) y consume crédito de OpenRouter. ¿Continuar?";
+  "El modo automático ejecuta todas las etapas pendientes seguidas (varias llamadas de IA) y consume crédito de OpenRouter.";
 
 // Texto legible del artefacto de cada etapa (los md se muestran tal cual).
 function artefactoDe(d: DraftDetalle["draft"], etapa: string): string | null {
@@ -50,6 +52,7 @@ export function ArticleAiWorkspace({ projectId, draftId, modelo, onUsar, onSalir
   onUsar: (det: DraftDetalle) => void;
   onSalir: () => void;
 }) {
+  const { confirmar } = useDialogo();
   const [detalle, setDetalle] = useState<DraftDetalle | null>(null);
   const [ocupado, setOcupado] = useState(false);
   const [auto, setAuto] = useState(false);
@@ -94,7 +97,12 @@ export function ArticleAiWorkspace({ projectId, draftId, modelo, onUsar, onSalir
   }
 
   async function autoHastaRevision() {
-    if (!confirm(AVISO_AUTO)) return;
+    if (!(await confirmar({
+      titulo: "Escribir el artículo entero de una vez",
+      cuerpo: AVISO_AUTO,
+      tono: "coste",
+      aceptar: "Ejecutar todo",
+    }))) return;
     setAuto(true); setOcupado(true); pararRef.current = false;
     try {
       let det = detalle ?? (await cargar());

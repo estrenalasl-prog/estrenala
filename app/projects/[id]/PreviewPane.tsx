@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useDialogo } from "@/app/_components/Dialogo";
 
 type EditOp =
   | { page: string; nodeId: number; kind: "text"; value: string }
@@ -44,6 +45,7 @@ function cuando(iso: string): string {
 export function PreviewPane({
   projectId, entryPath, pages,
 }: { projectId: string; entryPath: string; pages: string[] }) {
+  const { avisar } = useDialogo();
   const [actual, setActual] = useState(entryPath);
   const [guardando, setGuardando] = useState(false);
   const [editMode, setEditMode] = useState(false);
@@ -113,7 +115,7 @@ export function PreviewPane({
       const res = await fetch(`/api/projects/${projectId}/assets`, { method: "POST", body: fd });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
-        alert(d.error ?? "Error al subir la imagen");
+        await avisar({ titulo: "No se pudo subir la imagen", cuerpo: d.error });
         return;
       }
       const { assetId, ext, url } = (await res.json()) as { assetId: string; ext: string; url: string };
@@ -150,7 +152,7 @@ export function PreviewPane({
         body: JSON.stringify({ entryPath: actual }),
       });
       if (res.ok) router.refresh();
-      else { const d = await res.json().catch(() => ({})); alert(d.error ?? "No se pudo cambiar la portada"); }
+      else { const d = await res.json().catch(() => ({})); await avisar({ titulo: "No se pudo cambiar la portada", cuerpo: d.error }); }
     } finally {
       setGuardando(false);
     }
@@ -168,7 +170,7 @@ export function PreviewPane({
         body: JSON.stringify({ ops: [...ops.values()] }),
       });
       if (res.ok) { setOps(new Map()); setEditMode(false); setRecarga((n) => n + 1); await cargarHistorial(); router.refresh(); }
-      else { const d = await res.json().catch(() => ({})); alert(d.error ?? "Error al guardar"); }
+      else { const d = await res.json().catch(() => ({})); await avisar({ titulo: "No se pudieron guardar los cambios", cuerpo: d.error }); }
     } finally {
       setGuardando(false);
     }

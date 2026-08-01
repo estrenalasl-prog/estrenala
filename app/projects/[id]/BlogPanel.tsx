@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useDialogo } from "@/app/_components/Dialogo";
 import { PLANES } from "@/src/planes/planes";
 import { slugify } from "@/src/blog/slug";
 import { BotonSubir } from "./ToolsPanel";
@@ -109,6 +110,7 @@ export function BlogDePago() {
 
 export function BlogPanel({ projectId }: { projectId: string }) {
   const router = useRouter();
+  const { confirmar } = useDialogo();
   const [abierto, setAbierto] = useState(false);
   const [vista, setVista] = useState<Vista>("lista");
   const [estado, setEstado] = useState<EstadoBlog | null>(null);
@@ -312,7 +314,12 @@ export function BlogPanel({ projectId }: { projectId: string }) {
     }
   }
   async function borrarArticulo(id: string, tituloPost: string) {
-    if (!confirm(`¿Borrar el artículo "${tituloPost}"? Esta acción no se puede deshacer.`)) return;
+    if (!(await confirmar({
+      titulo: `¿Borrar el artículo «${tituloPost}»?`,
+      cuerpo: "Se quita del blog y del índice. Para que desaparezca también de tu web publicada, acuérdate de darle después a «Publicar cambios».",
+      tono: "peligro",
+      aceptar: "Sí, borrar",
+    }))) return;
     const d = await llamar(`/api/projects/${projectId}/blog/posts/${id}`, { method: "DELETE" });
     // Borrarlo tampoco lo quita de la web publicada hasta que se publique.
     if (d) { setAviso(`Artículo borrado. ${AVISO_PUBLICAR}`); setEstado(null); await cargar(); router.refresh(); }
@@ -399,7 +406,12 @@ export function BlogPanel({ projectId }: { projectId: string }) {
     }
   }
   async function borrarBorrador(id: string, keyword: string) {
-    if (!confirm(`¿Borrar el borrador "${keyword}"? Esta acción no se puede deshacer.`)) return;
+    if (!(await confirmar({
+      titulo: `¿Borrar el borrador «${keyword}»?`,
+      cuerpo: "Se pierde lo que la IA ya haya escrito para él. Volver a generarlo gastaría crédito otra vez.",
+      tono: "peligro",
+      aceptar: "Sí, borrar",
+    }))) return;
     const d = await llamar(`/api/projects/${projectId}/blog/drafts/${id}`, { method: "DELETE" });
     if (d) await cargar();
   }

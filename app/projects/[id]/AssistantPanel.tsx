@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useDialogo } from "@/app/_components/Dialogo";
 
 type EditOp =
   | { page: string; nodeId: number; kind: "text"; value: string }
@@ -10,8 +11,10 @@ type EditOp =
 
 type ResumenCambio = { nodeId: number; tag: string; kind: string; antes: string; despues: string };
 
+// El «¿Continuar?» se fue al botón, que es donde se decide. Lo demás se conserva
+// palabra por palabra: un aviso de gasto no se suaviza al cambiarle la piel.
 const AVISO =
-  "El asistente lee tu página y usa la IA con tu clave de OpenRouter (consume crédito). Revisarás los cambios antes de aplicarlos. ¿Continuar?";
+  "El asistente lee tu página y usa la IA con tu clave de OpenRouter (consume crédito). Revisarás los cambios antes de aplicarlos.";
 
 const NOMBRE_KIND: Record<string, string> = {
   text: "Texto",
@@ -24,6 +27,7 @@ export function AssistantPanel({
   projectId, pages, entryPath,
 }: { projectId: string; pages: string[]; entryPath: string }) {
   const router = useRouter();
+  const { confirmar } = useDialogo();
   const [page, setPage] = useState(entryPath);
   const [instruccion, setInstruccion] = useState("");
   const [ocupado, setOcupado] = useState(false);
@@ -38,7 +42,12 @@ export function AssistantPanel({
 
   async function proponer() {
     if (!instruccion.trim() || ocupado) return;
-    if (!window.confirm(AVISO)) return;
+    if (!(await confirmar({
+      titulo: "Vas a usar el asistente de IA",
+      cuerpo: AVISO,
+      tono: "coste",
+      aceptar: "Continuar",
+    }))) return;
     setOcupado(true); setError(null); setPropuesta(null); setAplicado(false); setVistaPrevia(null);
     try {
       const res = await fetch(`/api/projects/${projectId}/asistente`, {

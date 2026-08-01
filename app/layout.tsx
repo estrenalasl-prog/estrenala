@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Space_Grotesk } from "next/font/google";
 import { urlPlataforma } from "@/src/config/sitio";
 import { analitica } from "@/src/config/analitica";
+import { ProveedorDialogo } from "./_components/Dialogo";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -65,7 +66,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         {medir && <script defer src={medir.src} data-website-id={medir.websiteId} />}
       </head>
-      <body>{children}</body>
+      {/* El proveedor va en la raíz para que cualquier pantalla pueda pedir un
+          diálogo sin montar el suyo. Es un componente de cliente dentro de un
+          layout de servidor: `children` se sigue renderizando en el servidor. */}
+      <body><ProveedorDialogo>{children}</ProveedorDialogo></body>
     </html>
   );
 }

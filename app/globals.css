@@ -471,6 +471,46 @@ a:hover { color: var(--color-texto); }
   .previo.expandido .previo-barra { background: var(--color-superficie); border-bottom: 1px solid var(--color-borde); }
   .previo.expandido .lienzo-web { height: auto; flex: 1; }
 
+  /* ---------- Diálogos de la plataforma ----------
+     Sustituyen a window.confirm, que pintaba la ventanita del navegador con un
+     «estrenala.com dice» encima. Sobre <dialog> nativo: el centrado, la capa
+     superior y el fondo oscurecido los pone el navegador, aquí solo va la piel. */
+  .dialogo {
+    padding: 0;
+    border: 1px solid var(--color-borde);
+    border-radius: var(--radius-t);
+    background: var(--color-superficie);
+    color: var(--color-texto);
+    box-shadow: var(--shadow-3);
+    width: min(430px, calc(100vw - 32px));
+    max-width: none;
+  }
+  .dialogo::backdrop { background: rgba(20,21,9,.42); }
+  .dialogo[open] { animation: dialogo-entra .16s cubic-bezier(.2,.8,.2,1); }
+  @keyframes dialogo-entra { from { opacity: 0; transform: translateY(6px) scale(.98); } }
+
+  .dialogo-cuerpo { padding: 20px 22px 16px; }
+  .dialogo-etiqueta {
+    margin: 0 0 7px; font-size: 11px; font-weight: 600; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--color-texto-3);
+  }
+  .dialogo.coste .dialogo-etiqueta { color: var(--color-aviso-texto); }
+  .dialogo.peligro .dialogo-etiqueta { color: var(--color-peligro-texto); }
+  .dialogo h2 { margin: 0; font-size: 17px; font-weight: 650; letter-spacing: -.02em; line-height: 1.3; }
+  .dialogo .dialogo-texto {
+    margin: 8px 0 0; font-size: 14px; line-height: 1.6; color: var(--color-texto-2);
+  }
+  .dialogo-pie {
+    display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap;
+    padding: 13px 22px; border-top: 1px solid var(--color-borde);
+    background: var(--color-superficie-2);
+    border-radius: 0 0 var(--radius-t) var(--radius-t);
+  }
+  @media (max-width: 420px) {
+    .dialogo-pie { flex-direction: column-reverse; }
+    .dialogo-pie .btn { width: 100%; }
+  }
+
   /* ---------- Firma del fabricante (Quantiva Technology) ----------
      Discreta a propósito: acompaña a la marca del producto, no compite con ella.
      Se apaga un poco en reposo y se enciende al pasar por encima, que es lo que

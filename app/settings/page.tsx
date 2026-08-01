@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AppHeader } from "../_components/AppHeader";
 import { MODELOS, nombreModelo } from "../_components/modelos";
+import { useDialogo } from "../_components/Dialogo";
 
 // Cada espacio usa SU clave. Hubo un origen "env" —«usando la del servidor»—
 // que se quitó: significaba que la IA del cliente la pagaba la plataforma.
@@ -461,6 +462,7 @@ type Equipo = { miembros: Miembro[]; rol: string; yo: string; orgNombre: string 
 
 // Sección Equipo: miembros del espacio + invitar/rol/quitar (solo propietario).
 function SeccionEquipo() {
+  const { confirmar } = useDialogo();
   const [data, setData] = useState<Equipo | null>(null);
   const [email, setEmail] = useState("");
   const [rol, setRol] = useState("editor");
@@ -506,7 +508,15 @@ function SeccionEquipo() {
   }
 
   async function ceder(userId: string, nombre: string) {
-    if (!window.confirm(`¿Ceder la propiedad de «${data?.orgNombre ?? "este espacio"}» a ${nombre}? Tú pasarás a ser editor y ${nombre} tomará el mando.`)) return;
+    // Rojo porque es grave, pero la etiqueta NO dice «no se puede deshacer»:
+    // sería mentira, el nuevo propietario puede devolvértela.
+    if (!(await confirmar({
+      titulo: `¿Ceder la propiedad a ${nombre}?`,
+      cuerpo: `${nombre} pasa a mandar en «${data?.orgNombre ?? "este espacio"}» y tú te quedas como editor. Solo esa persona podrá devolvértela.`,
+      etiqueta: "Pierdes el mando del espacio",
+      tono: "peligro",
+      aceptar: "Sí, ceder",
+    }))) return;
     setError(null); setMsg(null);
     const res = await fetch("/api/equipo/transferir", {
       method: "POST", headers: { "content-type": "application/json" },

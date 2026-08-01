@@ -1,18 +1,28 @@
 "use client";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useDialogo } from "@/app/_components/Dialogo";
 
 // Actualizar la web desde un ZIP: para quien prefiere editar en su propia herramienta
 // (Claude Code, ChatGPT, v0…) y subir la versión nueva. Crea un snapshot (revertible).
 export function ActualizarPanel({ projectId }: { projectId: string }) {
   const router = useRouter();
+  const { confirmar } = useDialogo();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState(false);
 
   async function subir(file: File) {
-    if (!window.confirm("Vas a reemplazar el contenido de esta web con el del ZIP nuevo. Tu versión actual quedará en el Historial (podrás revertir). ¿Continuar?")) return;
+    // Tono normal y no «peligro» a propósito: esto SÍ se puede deshacer, y decir
+    // lo contrario asustaría de balde justo en el camino que queremos que usen
+    // los que editan su web en su propia herramienta.
+    if (!(await confirmar({
+      titulo: "Vas a reemplazar el contenido de esta web",
+      cuerpo: "Se sustituye por el del ZIP nuevo. Tu versión actual queda en el Historial, así que puedes volver a ella cuando quieras.",
+      etiqueta: "Se puede deshacer desde el Historial",
+      aceptar: "Reemplazar",
+    }))) return;
     setOcupado(true); setError(null); setOk(false);
     try {
       const fd = new FormData();
