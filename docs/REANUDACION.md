@@ -125,6 +125,14 @@ entero, no un botón.
   manda el token sin cifrar.
 - **Desde fuera no se puede sondear si un commit está desplegado**: el middleware
   contesta 401 a todo `/api/projects/*` antes de mirar si la ruta existe.
+- **Una variable de entorno que solo lea `middleware.ts` NO se aplica al reiniciar:
+  hay que RECONSTRUIR.** El middleware corre en el runtime Edge, donde `process.env.X`
+  se sustituye por su valor literal durante el build, y Dokploy construye con las
+  variables de la app disponibles — o sea que la variable se congela dentro de la
+  imagen. Mordió con `PLATFORM_ALIAS_HOSTS`, y el síntoma engañaba: TLS correcto y la
+  petición llegando, pero contestando la 404 pública, que parece un fallo de lógica y
+  no de configuración. Es la misma razón por la que `PLATFORM_HOST` sí funciona:
+  estaba puesta al construir.
 - **Falta el registro DMARC de `estrenala.com`** (`v=DMARC1; p=none;` en `_dmarc`).
   SPF, DKIM y MX de Resend están bien. Sin DMARC, Outlook/Hotmail manda a no deseados,
   y como **verificar el correo es obligatorio para publicar**, el usuario se registra,
