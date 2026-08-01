@@ -114,6 +114,42 @@ describe("DokployDeploy.disconnectDomain", () => {
   });
 });
 
+// Con el comodín montado, registrar cada subdominio seguiría pidiendo un
+// certificado por web: el cupo de 50/semana se gastaría igual y el comodín no
+// ahorraría nada. Ver docs/COMODIN-CLOUDFLARE.md.
+describe("DokployDeploy con el comodín encendido", () => {
+  it("publicar ya NO da de alta el subdominio: no llama a Dokploy", async () => {
+    const { f, llamadas } = fetchMock([]);
+    const d = new DokployDeploy({ ...cfg, comodinSubdominios: true, fetchImpl: f });
+    await expect(d.publish({ projectId: "p1", subdominio: "cafe" })).resolves.toEqual({ ok: true });
+    expect(llamadas).toHaveLength(0);
+  });
+
+  it("pero los dominios propios de clientes se siguen registrando", async () => {
+    const { f, llamadas } = fetchMock([yaHay([]), { ok: true }, { ok: true }]);
+    const d = new DokployDeploy({ ...cfg, comodinSubdominios: true, fetchImpl: f });
+    await d.connectDomain({ dominio: "cliente.com" });
+    const creados = llamadas.filter((l) => l.url.includes("domain.create"));
+    expect(creados).toHaveLength(2); // el pelado y su www
+  });
+
+  // Las webs publicadas ANTES de encender el comodín sí tienen su ruta dada de
+  // alta; dejarla ahí renovaría para siempre el certificado de un sitio muerto.
+  it("despublicar sigue limpiando la ruta que quedara de antes", async () => {
+    const { f, llamadas } = fetchMock([yaHay(["cafe.estrenala.com"]), { ok: true }]);
+    const d = new DokployDeploy({ ...cfg, comodinSubdominios: true, fetchImpl: f });
+    await d.unpublish({ projectId: "p1", subdominio: "cafe" });
+    expect(llamadas.some((l) => l.url.includes("domain.delete"))).toBe(true);
+  });
+
+  it("apagado, se comporta exactamente como siempre", async () => {
+    const { f, llamadas } = fetchMock([yaHay([]), { ok: true }]);
+    const d = new DokployDeploy({ ...cfg, fetchImpl: f });
+    await d.publish({ projectId: "p1", subdominio: "cafe" });
+    expect(llamadas.some((l) => l.url.includes("domain.create"))).toBe(true);
+  });
+});
+
 describe("getDeploy", () => {
   it("default self-hosted; dokploy exige sus envs", async () => {
     const { getDeploy } = await import("@/src/publish/deploy-factory");

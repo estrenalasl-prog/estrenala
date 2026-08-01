@@ -18,7 +18,13 @@ export function getDeploy(): DeployTarget {
           "DEPLOY_TARGET=dokploy requiere DOKPLOY_URL, DOKPLOY_API_KEY, DOKPLOY_APPLICATION_ID y SITES_BASE_DOMAIN"
         );
       }
-      instancia = new DokployDeploy({ url: url.replace(/\/$/, ""), apiKey, applicationId, sitesBaseDomain });
+      // Solo cuando el comodín esté montado Y verificado (docs/COMODIN-CLOUDFLARE.md).
+      // Encenderlo antes de tiempo deja las webs nuevas sin ruta en Traefik: no es
+      // que salgan sin candado, es que no llegan.
+      const comodinSubdominios = process.env.DOKPLOY_COMODIN === "1";
+      instancia = new DokployDeploy({
+        url: url.replace(/\/$/, ""), apiKey, applicationId, sitesBaseDomain, comodinSubdominios,
+      });
     } else {
       instancia = selfHostedDeploy;
     }

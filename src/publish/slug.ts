@@ -1,7 +1,16 @@
+// Subdominios que ningún cliente puede pedir porque son NUESTROS. Dos familias:
+// los que ya existen en el DNS de la plataforma y los que vamos a necesitar.
+//
+// `send` no es teórico: `send.estrenala.com` lleva el SPF y el MX de Resend (es su
+// Return-Path). Y `analitica` es donde va a vivir Umami. Si un cliente se hubiera
+// quedado antes con cualquiera de los dos, tendríamos su web peleándose con nuestra
+// propia infraestructura en el mismo nombre.
 export const RESERVADOS: readonly string[] = [
   "www", "api", "app", "admin", "mail", "ftp", "smtp", "studio", "wordclicks",
   "preview", "assets", "sites", "s", "blog", "dashboard", "panel", "cdn",
   "static", "ns1", "ns2",
+  // Infraestructura real y prevista (2026-08-01)
+  "send", "analitica", "analytics", "webmail", "status", "docs", "soporte", "ayuda",
 ];
 
 const SLUG_RE = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/;

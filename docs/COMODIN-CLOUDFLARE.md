@@ -176,19 +176,35 @@ Verificación, **en este orden**:
    que el comodín cubre y enruta.
 4. El CRM y los agentes de Quantiva, otra vez.
 
-## Paso 4 — Dejar de gastar el cupo (cambio de código, lo hago yo)
+## Paso 4 — Dejar de gastar el cupo (✅ ya programado, solo hay que encenderlo)
 
 Mientras `dokploy.ts` siga dando de alta cada subdominio con
 `certificateType: "letsencrypt"`, **se sigue pidiendo un certificado por web y el cupo
 de 50 se sigue gastando igual**, aunque el comodín ya funcione. El comodín no ahorra
 nada hasta que dejamos de pedirlos.
 
-Cuando el paso 3 esté verificado, aviso y toco `DokployDeploy`:
+El código ya está listo y **apagado por defecto**. En Dokploy → Environment de la app:
 
-- `publish` / `unpublish` → dejan de registrar el **subdominio** (lo cubre el comodín).
-- `connectDomain` / `disconnectDomain` → **se quedan igual**: los dominios propios de
-  los clientes siguen necesitando su ruta y su certificado HTTP-01.
-- Detrás de una variable de entorno, para poder volver atrás sin desplegar código.
+```
+DOKPLOY_COMODIN=1
+```
+
+y **Deploy** (build completo, no Restart — ver el gotcha de las variables del
+middleware en `REANUDACION.md`).
+
+Qué cambia exactamente:
+
+- `publish` **deja de registrar el subdominio**: lo cubre la regla comodín.
+- `unpublish` **sigue limpiando**. A propósito: las webs publicadas ANTES de encender
+  esto sí tienen su ruta dada de alta, y dejarla ahí renovaría para siempre el
+  certificado de un sitio que ya no existe.
+- `connectDomain` / `disconnectDomain` **no cambian**. Los dominios propios de los
+  clientes siguen necesitando su ruta y su HTTP-01 — y además gastan el cupo de SU
+  dominio registrado, no el nuestro.
+
+⚠️ **No lo enciendas antes de verificar el paso 3.** Si la regla comodín no está bien,
+las webs nuevas no es que salgan sin candado: es que **no llegan**, porque nadie les
+pone ruta en Traefik. Para volver atrás, quita la variable y despliega.
 
 ## Paso 5 — El CDN (otro día, no hace falta para el techo)
 

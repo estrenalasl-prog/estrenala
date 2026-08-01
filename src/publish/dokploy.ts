@@ -6,6 +6,8 @@ type DokployConfig = {
   applicationId: string;   // id de la app Wordclicks dentro de Dokploy
   sitesBaseDomain: string; // base de los subdominios publicados, p. ej. "estrenala.com"
   appPort?: number;        // puerto interno de la app (default 3000)
+  /** Hay un certificado comodín + regla comodín cubriendo los subdominios. */
+  comodinSubdominios?: boolean;
   fetchImpl?: typeof fetch;
 };
 
@@ -25,6 +27,14 @@ type DokployDomain = { domainId: string; host: string };
 // Coste a tener presente: Let's Encrypt limita a 50 certificados NUEVOS por semana
 // y dominio registrado, o sea 50 webs nuevas por semana. Las renovaciones no
 // cuentan. El día que se quede corto, toca migrar al comodín.
+//
+// Ese día ya está preparado: con `DOKPLOY_COMODIN=1` se dejan de registrar los
+// SUBDOMINIOS (los cubre la regla comodín) y el cupo deja de gastarse. Los
+// dominios propios de los clientes se siguen registrando igual, a propósito: no
+// los cubre ningún comodín nuestro, y además gastan el cupo de SU dominio
+// registrado, no el nuestro. El runbook completo está en
+// docs/COMODIN-CLOUDFLARE.md — encender la bandera es su último paso, y no antes
+// de haber comprobado que un subdominio nuevo responde sin darlo de alta.
 export class DokployDeploy implements DeployTarget {
   private f: typeof fetch;
   constructor(private cfg: DokployConfig) {
@@ -77,11 +87,26 @@ export class DokployDeploy implements DeployTarget {
     return `${subdominio}.${this.cfg.sitesBaseDomain}`;
   }
 
+  /**
+   * Con el comodín montado (ver docs/COMODIN-CLOUDFLARE.md), un subdominio nuevo
+   * ya tiene ruta y certificado: los pone la regla comodín. Seguir dándolo de
+   * alta pediría un certificado por web y el cupo de 50/semana se gastaría
+   * igual — o sea que el comodín no ahorraría NADA hasta que se deja de pedir.
+   *
+   * Va por bandera y sin borrar el código: si el comodín falla, se apaga
+   * `DOKPLOY_COMODIN` y se vuelve al comportamiento de siempre sin desplegar.
+   */
   async publish(input: { projectId: string; subdominio: string }) {
-    await this.alta([this.hostDe(input.subdominio)]);
+    if (!this.cfg.comodinSubdominios) await this.alta([this.hostDe(input.subdominio)]);
     return { ok: true } as const;
   }
 
+  /**
+   * La baja se hace SIEMPRE, aunque el comodín esté activo. Las webs publicadas
+   * antes de encenderlo sí tienen su ruta dada de alta, y dejarlas ahí mantendría
+   * vivo un certificado que se renueva solo para un sitio que ya no existe.
+   * `baja` solo borra lo que encuentra, así que sobra con llamarla.
+   */
   async unpublish(input: { projectId: string; subdominio: string }): Promise<void> {
     await this.baja([this.hostDe(input.subdominio)]);
   }

@@ -34,6 +34,14 @@ describe("esReservado / esSlugValido", () => {
     expect(esReservado("sites")).toBe(true);
     expect(esReservado("cafeteria")).toBe(false);
   });
+  // `send.estrenala.com` lleva el SPF y el MX de Resend, y `analitica` es donde va
+  // Umami. Que un cliente pudiera pedirlos sería su web peleándose con nuestra
+  // propia infraestructura en el mismo nombre.
+  it("los subdominios de nuestra infraestructura tampoco se pueden pedir", () => {
+    expect(esReservado("send")).toBe(true);
+    expect(esReservado("analitica")).toBe(true);
+    expect(esReservado("panel")).toBe(true);
+  });
   it("esSlugValido = formato ok y no reservado", () => {
     expect(esSlugValido("cafeteria-aurora")).toBe(true);
     expect(esSlugValido("www")).toBe(false);
