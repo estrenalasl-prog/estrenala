@@ -73,23 +73,30 @@ export function ProveedorDialogo({ children }: { children: React.ReactNode }) {
     avisar: (p) => pedir({ ...p, cancelar: null }).then(() => undefined),
   }).current;
 
+  // El <dialog> del DOM sigue al estado en LAS DOS direcciones. Antes solo se
+  // abría aquí y se cerraba a mano desde el botón; si por lo que fuera ese cierre
+  // no llegaba, el aviso se quedaba plantado en pantalla y no había forma de
+  // quitarlo. Así, mientras `peticion` sea null, el diálogo está cerrado, punto.
   useEffect(() => {
     const d = ref.current;
-    if (!d || !peticion || d.open) return;
-    d.showModal();
-    // El foco se pone A MANO y no con `autoFocus`. React lo aplica al montar, y
-    // en ese momento el diálogo todavía está cerrado —o sea, no enfocable—, así
-    // que se pierde. Aquí ya está abierto y no hay dudas.
-    d.querySelector<HTMLButtonElement>("[data-foco]")?.focus();
+    if (!d) return;
+    if (peticion && !d.open) {
+      d.showModal();
+      // El foco se pone A MANO y no con `autoFocus`. React lo aplica al montar, y
+      // en ese momento el diálogo todavía está cerrado —o sea, no enfocable—, así
+      // que se pierde. Aquí ya está abierto y no hay dudas.
+      d.querySelector<HTMLButtonElement>("[data-foco]")?.focus();
+    } else if (!peticion && d.open) {
+      d.close();
+    }
   }, [peticion]);
 
-  // Responder y cerrar. Se vacía `resolver` ANTES de cerrar para que el `onClose`
-  // de abajo —que también salta al cerrar por código— no conteste una segunda vez.
+  // Contestar. Cerrar es cosa del efecto de arriba: aquí solo se cambia el estado.
   function responder(ok: boolean) {
     const r = resolver.current;
     resolver.current = null;
     r?.(ok);
-    ref.current?.close();
+    setPeticion(null);
   }
 
   // Esc, o cerrar por cualquier otra vía: cuenta como «no».

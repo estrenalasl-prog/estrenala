@@ -141,7 +141,7 @@ export function BlogDePago() {
 
 export function BlogPanel({ projectId }: { projectId: string }) {
   const router = useRouter();
-  const { confirmar, avisar } = useDialogo();
+  const { confirmar } = useDialogo();
   const [abierto, setAbierto] = useState(false);
   const [vista, setVista] = useState<Vista>("lista");
   const [estado, setEstado] = useState<EstadoBlog | null>(null);
@@ -279,10 +279,16 @@ export function BlogPanel({ projectId }: { projectId: string }) {
   // dejaba guardar.
   async function usarTalCual() {
     if (!miIndex.trim()) {
-      await avisar({
+      // Un aviso que solo dice «te falta esto» es un callejón sin salida: te
+      // deja leyendo y sin nada que pulsar. Las dos salidas van en los botones.
+      const construir = await confirmar({
         titulo: "Te falta la lista de artículos",
-        cuerpo: "Para hacerlo a mano hace falta también la página /blog/, con los marcadores <!--POST--> y <!--/POST--> rodeando el bloque que se repite por artículo. Si prefieres no escribirla, dale a «Colocar los huecos por mí» y la construimos con el diseño de tu artículo.",
+        cuerpo: "Es la página /blog/ donde aparecen todos tus artículos. A mano se escribe rodeando con <!--POST--> y <!--/POST--> el bloque que se repite por cada uno. O la construimos nosotros con el diseño de tu artículo.",
+        tono: "coste",
+        aceptar: "Construidla vosotros",
+        cancelar: "La escribo yo",
       });
+      if (construir) await colocarHuecos();
       return;
     }
     setTplPost(miPost); setTplIndex(miIndex);

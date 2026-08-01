@@ -488,6 +488,10 @@ a:hover { color: var(--color-texto); }
      «estrenala.com dice» encima. Sobre <dialog> nativo: el centrado, la capa
      superior y el fondo oscurecido los pone el navegador, aquí solo va la piel. */
   .dialogo {
+    /* El centrado de un <dialog> modal lo da el `margin: auto` del navegador, y
+       el preflight de Tailwind pone `margin: 0` en TODO, así que se lo comía y
+       el aviso salía pegado arriba a la izquierda. Hay que devolvérselo. */
+    margin: auto;
     padding: 0;
     border: 1px solid var(--color-borde);
     border-radius: var(--radius-t);
