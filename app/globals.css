@@ -483,6 +483,39 @@ a:hover { color: var(--color-texto); }
     display: flex; flex-direction: column; }
   .previo-blog.expandido .previo-blog-lienzo { height: auto; flex: 1; }
 
+  /* ---------- Banner de cookies ----------
+     Barra abajo, NO un modal: bloquear la página entera para preguntar por unas
+     cookies de medición es desproporcionado y se lleva por delante la primera
+     impresión de la landing. Solo aparece si hay GOOGLE_ADS_ID configurado
+     (ver src/legal/consentimiento.ts). */
+  .cookies {
+    position: fixed; z-index: 60;
+    left: 16px; right: 16px; bottom: 16px;
+    max-width: 720px; margin-inline: auto;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 14px 18px;
+    padding: 16px 18px;
+    background: var(--color-superficie);
+    border: 1px solid var(--color-borde);
+    border-radius: var(--radio-2, 14px);
+    box-shadow: var(--shadow-3);
+    animation: cookies-entra .22s cubic-bezier(.2,.8,.2,1);
+  }
+  @keyframes cookies-entra { from { opacity: 0; transform: translateY(10px); } }
+  @media (prefers-reduced-motion: reduce) { .cookies { animation: none; } }
+
+  .cookies-texto { flex: 1 1 300px; min-width: 0; }
+  .cookies-texto p { margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--color-texto-2); }
+  .cookies-mas { margin-top: 6px !important; font-size: 12.5px !important; color: var(--color-texto-3) !important; }
+  .cookies-mas a { color: var(--color-texto-2); text-decoration: underline; }
+
+  /* Los dos botones, del mismo tamaño y uno al lado del otro: rechazar tiene que
+     costar lo mismo que aceptar. Es requisito, no estética. */
+  .cookies-botones { display: flex; gap: 10px; flex: 0 0 auto; }
+  .cookies-botones .btn { flex: 1 1 auto; white-space: nowrap; }
+  @media (max-width: 520px) {
+    .cookies-botones { width: 100%; }
+  }
+
   /* ---------- Diálogos de la plataforma ----------
      Sustituyen a window.confirm, que pintaba la ventanita del navegador con un
      «estrenala.com dice» encima. Sobre <dialog> nativo: el centrado, la capa

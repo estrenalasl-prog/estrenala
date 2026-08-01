@@ -3,7 +3,13 @@ import type { Metadata } from "next";
 import { Space_Grotesk } from "next/font/google";
 import { urlPlataforma } from "@/src/config/sitio";
 import { analitica } from "@/src/config/analitica";
+import { idAds } from "@/src/config/ads";
+import {
+  COOKIE_CONSENTIMIENTO, estadoConsentMode, haceFaltaBanner, leerDecision,
+} from "@/src/legal/consentimiento";
+import { cookies } from "next/headers";
 import { ProveedorDialogo } from "./_components/Dialogo";
+import { Cookies } from "./_components/Cookies";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -57,19 +63,57 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // Analítica sin cookies (ver src/config/analitica.ts). Si no está configurada
   // —desarrollo— no se pinta nada. `defer` para que no retrase la página.
   const medir = analitica();
+
+  // Google Ads. Todo esto vive apagado hasta que exista GOOGLE_ADS_ID: sin él no
+  // hay scripts, ni cookies publicitarias, ni banner. Ver src/legal/consentimiento.ts.
+  const ads = idAds();
+  const decision = leerDecision((await cookies()).get(COOKIE_CONSENTIMIENTO)?.value);
+  const banner = haceFaltaBanner(ads ?? undefined, decision);
+  const seguro = urlPlataforma().startsWith("https://");
+
   return (
     <html lang="es" className={spaceGrotesk.variable}>
       <head>
         {medir && <script defer src={medir.src} data-website-id={medir.websiteId} />}
+        {/* Consent Mode v2. Este bloque va SIEMPRE ANTES del script de Google y
+            arranca TODO en «denied»: es la regla del modo consentimiento, y es lo
+            que permite cargar gtag sin poner una sola cookie hasta que alguien
+            acepte. Al revés —cargar concedido y rechazar después— es justo lo
+            que la norma prohíbe, y para entonces la cookie ya está puesta.
+
+            Es `dangerouslySetInnerHTML` porque tiene que ser un script en línea y
+            ejecutarse antes que nada; el contenido es nuestro y no lleva ni un
+            dato que venga de fuera. */}
+        {ads && (
+          <>
+            <script
+              dangerouslySetInnerHTML={{
+                __html:
+                  "window.dataLayer=window.dataLayer||[];" +
+                  "function gtag(){dataLayer.push(arguments)}" +
+                  "gtag('consent','default'," + JSON.stringify(estadoConsentMode(decision)) + ");",
+              }}
+            />
+            <script async src={`https://www.googletagmanager.com/gtag/js?id=${ads}`} />
+            <script
+              dangerouslySetInnerHTML={{
+                __html: `gtag('js',new Date());gtag('config',${JSON.stringify(ads)});`,
+              }}
+            />
+          </>
+        )}
       </head>
       {/* El proveedor va en la raíz para que cualquier pantalla pueda pedir un
           diálogo sin montar el suyo. Es un componente de cliente dentro de un
           layout de servidor: `children` se sigue renderizando en el servidor. */}
-      <body><ProveedorDialogo>{children}</ProveedorDialogo></body>
+      <body>
+        <ProveedorDialogo>{children}</ProveedorDialogo>
+        {banner && <Cookies seguro={seguro} />}
+      </body>
     </html>
   );
 }
