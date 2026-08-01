@@ -5,7 +5,7 @@ import { crearSnapshotEditado } from "./snapshot-copy";
 import type { StorageAdapter } from "@/src/storage/types";
 import type { ProjectStore } from "@/src/repositories/types";
 
-function toPageOp(op: EditOp): PageOp {
+export function toPageOp(op: EditOp): PageOp {
   switch (op.kind) {
     case "text": return { nodeId: op.nodeId, kind: "text", value: op.value };
     case "richText": return { nodeId: op.nodeId, kind: "richText", value: op.value };

@@ -30,6 +30,7 @@ export function AssistantPanel({
   const [error, setError] = useState<string | null>(null);
   const [propuesta, setPropuesta] = useState<{ ops: EditOp[]; resumen: ResumenCambio[] } | null>(null);
   const [aplicado, setAplicado] = useState(false);
+  const [vistaPrevia, setVistaPrevia] = useState<string | null>(null);
 
   // Cuántos cambios dejan un trozo vacío: es la señal de que el asistente ha
   // juntado en uno una frase que venía repartida, y con ella se van los estilos.
@@ -38,7 +39,7 @@ export function AssistantPanel({
   async function proponer() {
     if (!instruccion.trim() || ocupado) return;
     if (!window.confirm(AVISO)) return;
-    setOcupado(true); setError(null); setPropuesta(null); setAplicado(false);
+    setOcupado(true); setError(null); setPropuesta(null); setAplicado(false); setVistaPrevia(null);
     try {
       const res = await fetch(`/api/projects/${projectId}/asistente`, {
         method: "POST", headers: { "content-type": "application/json" },
@@ -65,8 +66,30 @@ export function AssistantPanel({
       });
       const d = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) { setError(d.error ?? "Error al aplicar"); return; }
-      setPropuesta(null); setInstruccion(""); setAplicado(true);
+      setPropuesta(null); setInstruccion(""); setAplicado(true); setVistaPrevia(null);
       router.refresh();
+    } catch {
+      setError("Error de conexión");
+    } finally { setOcupado(false); }
+  }
+
+  // Ver la página con los cambios puestos, antes de aplicarlos. La lista de
+  // «esto por esto» está bien para revisar el detalle, pero no contesta a la
+  // pregunta que uno se hace de verdad, que es cómo queda su web. Se calcula en
+  // el servidor con el MISMO código que aplica los cambios de verdad: si lo
+  // hiciera por otro camino podría enseñar una cosa y guardarse otra.
+  async function verComoQueda() {
+    if (!propuesta || ocupado) return;
+    if (vistaPrevia) { setVistaPrevia(null); return; }
+    setOcupado(true); setError(null);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/asistente/preview`, {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ page, ops: propuesta.ops }),
+      });
+      const d = (await res.json().catch(() => ({}))) as { error?: string; html?: string };
+      if (!res.ok) { setError(d.error ?? "No se pudo preparar la vista previa"); return; }
+      setVistaPrevia(d.html ?? "");
     } catch {
       setError("Error de conexión");
     } finally { setOcupado(false); }
@@ -156,8 +179,26 @@ export function AssistantPanel({
                     ? <><span className="cargador" /> Aplicando…</>
                     : <>Aplicar {propuesta.ops.length} {propuesta.ops.length === 1 ? "cambio" : "cambios"}</>}
                 </button>
-                <button className="btn btn-fantasma btn-sm" onClick={() => setPropuesta(null)} disabled={ocupado}>Descartar</button>
+                <button className="btn btn-sec btn-sm" onClick={() => void verComoQueda()} disabled={ocupado}>
+                  {vistaPrevia !== null ? "Ocultar la vista previa" : "Ver cómo queda"}
+                </button>
+                <button className="btn btn-fantasma btn-sm" onClick={() => { setPropuesta(null); setVistaPrevia(null); }} disabled={ocupado}>Descartar</button>
               </div>
+              {vistaPrevia !== null && (
+                <>
+                  <p style={{ fontSize: 12, color: "var(--color-texto-3)", margin: "10px 0 6px" }}>
+                    Así quedaría. Todavía no se ha guardado nada.
+                  </p>
+                  {/* sandbox="" : la página del cliente puede traer scripts y aquí
+                      solo se está mirando cómo queda. */}
+                  <iframe
+                    srcDoc={vistaPrevia}
+                    sandbox=""
+                    title="Así quedaría"
+                    style={{ width: "100%", height: 380, border: "1px solid var(--color-borde)", borderRadius: "var(--radius-c)", background: "var(--color-superficie)" }}
+                  />
+                </>
+              )}
             </div>
           )
         )}
