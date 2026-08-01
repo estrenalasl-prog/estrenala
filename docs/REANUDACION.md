@@ -133,10 +133,43 @@ entero, no un botón.
   petición llegando, pero contestando la 404 pública, que parece un fallo de lógica y
   no de configuración. Es la misma razón por la que `PLATFORM_HOST` sí funciona:
   estaba puesta al construir.
-- **Falta el registro DMARC de `estrenala.com`** (`v=DMARC1; p=none;` en `_dmarc`).
-  SPF, DKIM y MX de Resend están bien. Sin DMARC, Outlook/Hotmail manda a no deseados,
-  y como **verificar el correo es obligatorio para publicar**, el usuario se registra,
-  no ve nada y se va.
+- ~~**Falta el registro DMARC de `estrenala.com`**~~ — puesto y verificado el
+  2026-08-01. Estaba creado en `estrenala.es` por error, y por eso «no propagaba».
+
+## 🌩️ 2026-08-01 (tarde) — El comodín, hecho y verificado en producción
+
+**El techo de 50 webs nuevas por semana ya no existe.** Runbook completo y medido en
+`docs/COMODIN-CLOUDFLARE.md`; la guía paso a paso que siguió Sebas está en un
+artifact de claude.ai (9 bloques). Resumen de lo que quedó montado:
+
+- **DNS de `estrenala.com` en Cloudflare** (nameservers `keaton` / `suzanne`), plan
+  Free, **todos los registros en gris (Solo DNS)**. Sin caída: los siete registros se
+  verificaron uno a uno contra los nameservers nuevos ANTES de cambiar nada en
+  Hostinger, incluida la cadena entera del DKIM.
+- **Certificado comodín** `*.estrenala.com` + `estrenala.com`, por reto DNS-01, con un
+  resolver NUEVO (`letsencrypt-dns`) y `storage` propio (`acme-dns.json`). El resolver
+  `letsencrypt` de siempre no se tocó: el CRM y los agentes de Quantiva siguen igual.
+- **Regla comodín** en `/etc/dokploy/traefik/dynamic/estrenala-comodin.yml`, por el
+  proveedor de archivos (no etiquetas de Docker). Se deshace borrando el archivo.
+- **`DOKPLOY_COMODIN=1`** encendido y comprobado publicando de verdad.
+
+### GOTCHAs de este día
+- **El token de Cloudflare necesita DOS permisos**, no uno: `Zona · DNS · Editar` **y**
+  `Zona · Zona · Leer`. Antes de escribir el registro temporal, lego tiene que
+  averiguar el id de la zona, y eso es una lectura. Con solo el primero el certificado
+  falla con un error que no menciona los permisos.
+- **La prioridad por defecto de un router de Traefik ES LA LONGITUD DE LA REGLA.** La
+  regex comodín mide 41 y `` Host(`panel.estrenala.com`) `` mide 27: sin `priority: 1`
+  explícito, la comodín gana y te quedas sin panel. Medido, no supuesto.
+- **`traefik.yml` es configuración ESTÁTICA**: solo se lee al arrancar el proceso. El
+  botón «Reload» de Dokploy no basta de fiar; `docker restart dokploy-traefik` sí. En
+  cambio la carpeta `dynamic` es dinámica y se recarga sola (`watch: true`).
+- **Los logs de Traefik están en nivel ERROR: un certificado emitido bien no deja ni
+  una línea.** Silencio no prueba nada, ni bueno ni malo. Se comprueba desde fuera.
+- **No todos los routers salen en la carpeta `dynamic`.** El inventario de verdad:
+  `docker exec dokploy-traefik wget -qO- http://localhost:8080/api/http/routers`.
+- **`panel.estrenala.com` es el panel de administración de DOKPLOY**, no el de la
+  plataforma. Pendiente moverlo a un nombre no adivinable (ver COMODIN-CLOUDFLARE.md).
 
 ## ⏭️ En qué punto estamos y qué sigue
 
