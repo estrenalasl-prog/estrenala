@@ -6,6 +6,7 @@ import { projectStore } from "@/src/repositories/projects";
 import { blogStore } from "@/src/repositories/blog";
 import { guardarPlantillas } from "@/src/blog/apply";
 import { generarPlantillas } from "@/src/blog/site-template";
+import { plantillasDesdeHtml } from "@/src/blog/plantilla-propia";
 import { EditorError } from "@/src/editor/errors";
 
 export const runtime = "nodejs";
@@ -28,15 +29,28 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   } catch (e) { return conError(e); }
 }
 
-export async function POST(_req: Request, ctx: { params: Promise<{ id: string }> }) {
+/**
+ * Dame las plantillas del blog. Dos caminos, el mismo destino:
+ *
+ *  - Sin cuerpo: la IA lee la portada y propone el diseño (lo de siempre).
+ *  - Con `htmlPost`: el usuario trae SU plantilla y solo le colocamos los huecos.
+ *
+ * En los dos casos esto NO guarda nada: devuelve para que lo revise y luego
+ * guarde con PUT.
+ */
+export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
   const { orgId } = await getContexto();
+  const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
+  const s = (v: unknown) => (typeof v === "string" ? v : "");
   try {
     await exigirBlog(orgId);
-    const plantillas = await generarPlantillas(
-      { store: projectStore, storage: getStorage() },
-      { orgId, projectId: id }
-    );
+    const deps = { store: projectStore, storage: getStorage() };
+    const plantillas = s(body.htmlPost).trim()
+      ? await plantillasDesdeHtml(deps, {
+          orgId, projectId: id, htmlPost: s(body.htmlPost), htmlIndex: s(body.htmlIndex),
+        })
+      : await generarPlantillas(deps, { orgId, projectId: id });
     return NextResponse.json(plantillas);
   } catch (e) { return conError(e); }
 }

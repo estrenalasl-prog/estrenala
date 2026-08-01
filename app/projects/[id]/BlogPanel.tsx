@@ -51,6 +51,39 @@ function IframePreview({ html }: { html: string }) {
   return <iframe srcDoc={html} sandbox="" className="h-96 w-full rounded-c border border-borde bg-superficie" title="vista previa" />;
 }
 
+// Carga un .html del disco a un textarea. Se lee en el navegador y no se sube a
+// ningún sitio: hasta que no le dé a un botón, esto no sale de su ordenador.
+function SubirHtml({ ocupado, onTexto }: { ocupado: boolean; onTexto: (t: string) => void }) {
+  return (
+    <label className={"btn btn-sec btn-sm" + (ocupado ? " pointer-events-none opacity-50" : "")} style={{ cursor: "pointer" }}>
+      Subir archivo .html
+      <input
+        type="file"
+        accept=".html,.htm,text/html"
+        disabled={ocupado}
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          e.target.value = "";
+          if (f) void f.text().then(onTexto);
+        }}
+      />
+    </label>
+  );
+}
+
+// Qué significa cada hueco. Sin esto, «traer tu plantilla» solo lo puede usar
+// quien ya se sepa el sistema, y son justo los que quieren hacerlo a mano.
+const HUECOS_AYUDA: [string, string][] = [
+  ["{{titulo}}", "el título del artículo"],
+  ["{{contenido}}", "el cuerpo, ya en HTML"],
+  ["{{meta_descripcion}}", "el resumen para Google"],
+  ["{{imagen}}", "la imagen de portada"],
+  ["{{fecha}}", "la fecha de publicación"],
+  ["{{canonical}}", "la dirección buena de la página"],
+  ["{{json_ld}}", "los datos para Google (se inyecta solo)"],
+];
+
 // Sin plan que incluya blog no se monta el panel: se enseña qué se pierde y por
 // dónde se consigue. El candado de verdad está en la API (402), esto es cortesía.
 export function BlogDePago() {
@@ -99,6 +132,13 @@ export function BlogPanel({ projectId }: { projectId: string }) {
   const [tplPost, setTplPost] = useState("");
   const [tplIndex, setTplIndex] = useState("");
   const [previewTpl, setPreviewTpl] = useState<string | null>(null);
+  // «traigo la mía»: el HTML crudo del usuario, antes de que se le coloquen los
+  // huecos. Va aparte de tplPost/tplIndex a propósito, que son la plantilla ya
+  // buena: así se puede volver atrás sin haber pisado nada.
+  const [traendo, setTraendo] = useState(false);
+  const [miPost, setMiPost] = useState("");
+  const [miIndex, setMiIndex] = useState("");
+  const [avisosTpl, setAvisosTpl] = useState<string[]>([]);
   // editor de artículo
   const [postId, setPostId] = useState<string | null>(null);
   const [titulo, setTitulo] = useState("");
@@ -177,6 +217,33 @@ export function BlogPanel({ projectId }: { projectId: string }) {
     const d = await llamar(`/api/projects/${projectId}/blog/template`, { method: "POST" }, "plantilla");
     if (d) { setTplPost(d.tplPost as string); setTplIndex(d.tplIndex as string); setPreviewTpl(null); }
   }
+  function abrirTraer() {
+    setVista("plantillas"); setTraendo(true);
+    setMiPost(""); setMiIndex(""); setAvisosTpl([]); setPreviewTpl(null); setError(null);
+  }
+
+  // Le pide al modelo que coloque los huecos en la plantilla del usuario, sin
+  // rediseñar nada. Es mucho menos trabajo que diseñar de cero, así que sale
+  // mejor y cuesta menos.
+  async function colocarHuecos() {
+    const d = await llamar(`/api/projects/${projectId}/blog/template`, {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ htmlPost: miPost, htmlIndex: miIndex }),
+    }, "huecos");
+    if (d) {
+      setTplPost(d.tplPost as string); setTplIndex(d.tplIndex as string);
+      setAvisosTpl((d.avisos as string[]) ?? []);
+      setTraendo(false); setPreviewTpl(null);
+    }
+  }
+
+  // Quien ya sabe dónde van los huecos los escribe él y no gasta ni un céntimo
+  // de IA. Si se deja alguno, al guardar el servidor dice cuál falta.
+  function usarTalCual() {
+    setTplPost(miPost); setTplIndex(miIndex);
+    setTraendo(false); setAvisosTpl([]); setPreviewTpl(null);
+  }
+
   async function abrirPlantillas() {
     setVista("plantillas"); setPreviewTpl(null);
     const d = await llamar(`/api/projects/${projectId}/blog/template`, { method: "GET" });
@@ -186,7 +253,7 @@ export function BlogPanel({ projectId }: { projectId: string }) {
     const d = await llamar(`/api/projects/${projectId}/blog/template`, {
       method: "PUT", headers: { "content-type": "application/json" },
       body: JSON.stringify({ tplPost, tplIndex }),
-    });
+    }, "guardarPlantillas");
     if (d) { setVista("lista"); setEstado(null); await cargar(); router.refresh(); }
   }
   async function verPreview(cual: "post" | "index") {
@@ -409,11 +476,16 @@ export function BlogPanel({ projectId }: { projectId: string }) {
               {estado && !estado.tienePlantilla ? (
                 <div className="tarjeta p-3">
                   <p className="text-sm font-medium">El blog de tu web</p>
-                  <p className="mb-2 text-xs text-texto-2">Artículos con tu diseño, índice y sitemap automáticos. Primero crea la plantilla: la IA lee tu portada y propone el diseño del blog.</p>
-                  <button onClick={() => { setVista("plantillas"); void generarPlantillas(); }} disabled={ocupado}
-                    className="btn btn-primario btn-sm">
-                    {rotulo("plantilla", "Crear la plantilla del blog con IA", "Creando la plantilla…")}
-                  </button>
+                  <p className="mb-2 text-xs text-texto-2">Artículos con tu diseño, índice y sitemap automáticos. Primero, la plantilla: o la IA lee tu portada y propone el diseño, o traes la tuya ya hecha.</p>
+                  <div className="flex flex-wrap gap-2">
+                    <button onClick={() => { setVista("plantillas"); void generarPlantillas(); }} disabled={ocupado}
+                      className="btn btn-primario btn-sm">
+                      {rotulo("plantilla", "Crear la plantilla del blog con IA", "Creando la plantilla…")}
+                    </button>
+                    <button onClick={abrirTraer} disabled={ocupado} className="btn btn-sec btn-sm">
+                      Ya tengo mi plantilla
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div>
@@ -614,21 +686,79 @@ export function BlogPanel({ projectId }: { projectId: string }) {
 
           {vista === "plantillas" && (
             <div className="space-y-2">
-              {ocupado && !tplPost && <p className="text-sm text-texto-2">Generando la plantilla con IA (puede tardar un minuto)…</p>}
-              {tplPost && (
+              {traendo ? (
                 <>
-                  <label className="block text-xs font-medium">Plantilla de artículo</label>
-                  <textarea value={tplPost} onChange={(e) => setTplPost(e.target.value)} rows={8} className="campo font-mono" />
-                  <label className="block text-xs font-medium">Plantilla del índice</label>
-                  <textarea value={tplIndex} onChange={(e) => setTplIndex(e.target.value)} rows={8} className="campo font-mono" />
-                  <div className="flex flex-wrap gap-2">
-                    <button onClick={() => void guardarPlantillas()} disabled={ocupado} className="btn btn-primario btn-sm">Guardar plantillas</button>
-                    <button onClick={() => void verPreview("post")} disabled={ocupado} className="btn btn-sec btn-sm">Vista previa artículo</button>
-                    <button onClick={() => void verPreview("index")} disabled={ocupado} className="btn btn-sec btn-sm">Vista previa índice</button>
-                    <button onClick={() => void generarPlantillas()} disabled={ocupado} className="btn btn-sec btn-sm">Volver a generar</button>
-                    <button onClick={() => setVista("lista")} className="btn btn-sec btn-sm">Cancelar</button>
+                  <p className="text-sm font-medium">Tu propia plantilla</p>
+                  <p className="text-xs text-texto-2">
+                    Pega el HTML de una página de artículo tal y como la quieres. No cambiamos tu diseño:
+                    solo le colocamos los huecos que el sistema rellena con cada artículo.
+                  </p>
+                  <div className="rounded-c border border-borde p-2 text-xs text-texto-2">
+                    {HUECOS_AYUDA.map(([h, q]) => (
+                      <div key={h}><code className="font-mono">{h}</code> — {q}</div>
+                    ))}
                   </div>
-                  {previewTpl && <IframePreview html={previewTpl} />}
+
+                  <div className="flex items-center gap-2">
+                    <label className="block text-xs font-medium">Página de artículo</label>
+                    <SubirHtml ocupado={ocupado} onTexto={setMiPost} />
+                  </div>
+                  <textarea value={miPost} onChange={(e) => setMiPost(e.target.value)} rows={8}
+                    placeholder="Pega aquí el HTML de tu página de artículo…" className="campo font-mono" />
+
+                  <div className="flex items-center gap-2">
+                    <label className="block text-xs font-medium">Página índice del blog <span className="font-normal text-texto-3">(opcional)</span></label>
+                    <SubirHtml ocupado={ocupado} onTexto={setMiIndex} />
+                  </div>
+                  <textarea value={miIndex} onChange={(e) => setMiIndex(e.target.value)} rows={5}
+                    placeholder="Si no la traes, la construimos con el mismo diseño de tu artículo." className="campo font-mono" />
+
+                  <div className="flex flex-wrap gap-2">
+                    <button onClick={() => void colocarHuecos()} disabled={ocupado || !miPost.trim()}
+                      className="btn btn-primario btn-sm">
+                      {rotulo("huecos", "Colocar los huecos por mí", "Colocando los huecos…")}
+                    </button>
+                    <button onClick={usarTalCual} disabled={ocupado || !miPost.trim()}
+                      title="Si tu HTML ya trae los huecos escritos, no hace falta gastar IA"
+                      className="btn btn-sec btn-sm">Ya lleva los huecos</button>
+                    <button onClick={() => setTraendo(false)} disabled={ocupado} className="btn btn-sec btn-sm">Volver</button>
+                  </div>
+                  <p className="text-xs text-texto-3">«Colocar los huecos por mí» gasta una llamada de IA de tu cuenta de OpenRouter.</p>
+                </>
+              ) : (
+                <>
+                  {ocupado && !tplPost && <p className="text-sm text-texto-2">Preparando la plantilla con IA (puede tardar un minuto)…</p>}
+                  {!ocupado && !tplPost && (
+                    <div className="flex flex-wrap gap-2">
+                      <button onClick={() => void generarPlantillas()} className="btn btn-primario btn-sm">
+                        Crear la plantilla con IA
+                      </button>
+                      <button onClick={abrirTraer} className="btn btn-sec btn-sm">Traer la mía</button>
+                      <button onClick={() => setVista("lista")} className="btn btn-sec btn-sm">Cancelar</button>
+                    </div>
+                  )}
+                  {tplPost && (
+                    <>
+                      {avisosTpl.map((a) => (
+                        <p key={a} className="text-xs" style={{ color: "var(--color-peligro-texto)" }}>{a}</p>
+                      ))}
+                      <label className="block text-xs font-medium">Plantilla de artículo</label>
+                      <textarea value={tplPost} onChange={(e) => setTplPost(e.target.value)} rows={8} className="campo font-mono" />
+                      <label className="block text-xs font-medium">Plantilla del índice</label>
+                      <textarea value={tplIndex} onChange={(e) => setTplIndex(e.target.value)} rows={8} className="campo font-mono" />
+                      <div className="flex flex-wrap gap-2">
+                        <button onClick={() => void guardarPlantillas()} disabled={ocupado} className="btn btn-primario btn-sm">
+                          {rotulo("guardarPlantillas", "Guardar plantillas", "Guardando…")}
+                        </button>
+                        <button onClick={() => void verPreview("post")} disabled={ocupado} className="btn btn-sec btn-sm">Vista previa artículo</button>
+                        <button onClick={() => void verPreview("index")} disabled={ocupado} className="btn btn-sec btn-sm">Vista previa índice</button>
+                        <button onClick={() => void generarPlantillas()} disabled={ocupado} className="btn btn-sec btn-sm">Volver a generar</button>
+                        <button onClick={abrirTraer} disabled={ocupado} className="btn btn-sec btn-sm">Traer la mía</button>
+                        <button onClick={() => setVista("lista")} className="btn btn-sec btn-sm">Cancelar</button>
+                      </div>
+                      {previewTpl && <IframePreview html={previewTpl} />}
+                    </>
+                  )}
                 </>
               )}
             </div>

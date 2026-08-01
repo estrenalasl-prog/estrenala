@@ -6,9 +6,13 @@ import { huecosSinRellenar } from "./template";
 import type { StorageAdapter } from "@/src/storage/types";
 import type { ProjectStore } from "@/src/repositories/types";
 
-const HUECOS_POST = ["titulo", "meta_descripcion", "contenido", "imagen", "fecha", "canonical", "json_ld"];
-const HUECOS_INDEX = ["titulo", "slug", "meta_descripcion", "fecha", "imagen"];
+export const HUECOS_POST = ["titulo", "meta_descripcion", "contenido", "imagen", "fecha", "canonical", "json_ld"];
+export const HUECOS_INDEX = ["titulo", "slug", "meta_descripcion", "fecha", "imagen"];
 export const MSG_SIN_PLANTILLA = "El proyecto no tiene plantilla de blog (créala en la sección Blog)";
+// Compartidos con la vía «traigo mi plantilla» (plantilla-propia.ts): el mismo
+// fallo tiene que decirse igual venga por donde venga.
+export const MSG_SIN_CLAVE = "Falta la clave de OpenRouter: añádela en Configuración";
+export const MSG_SIN_SALDO = "Tu cuenta de OpenRouter no tiene saldo. Añade crédito en openrouter.ai/settings/credits e inténtalo de nuevo.";
 
 export function validarPlantillas(tplPost: string, tplIndex: string): string[] {
   const errores: string[] = [];
@@ -53,7 +57,7 @@ export async function generarPlantillas(
   input: { orgId: string; projectId: string }
 ): Promise<{ tplPost: string; tplIndex: string }> {
   entrarOrg(input.orgId); // claves BYOK de esta organización (org-context)
-  if (!(await claveOpenRouter())) throw new EditorError("Falta la clave de OpenRouter: añádela en Configuración", 500);
+  if (!(await claveOpenRouter())) throw new EditorError(MSG_SIN_CLAVE, 500);
   const project = await deps.store.getProject(input.orgId, input.projectId);
   if (!project) throw new EditorError("Proyecto no encontrado", 404);
   const current = await deps.store.getCurrentSnapshot(input.orgId, input.projectId);
@@ -114,7 +118,7 @@ ${indexHtml.slice(0, 30000)}`;
     // Sin saldo en OpenRouter (402): mensaje accionable en vez del genérico, para
     // no confundir un problema de crédito con un fallo del sistema.
     if (e instanceof OpenRouterError && e.status === 402) {
-      throw new EditorError("Tu cuenta de OpenRouter no tiene saldo. Añade crédito en openrouter.ai/settings/credits e inténtalo de nuevo.", 402);
+      throw new EditorError(MSG_SIN_SALDO, 402);
     }
     throw new EditorError("No se pudo generar la plantilla del blog, vuelve a intentarlo", 502);
   }
