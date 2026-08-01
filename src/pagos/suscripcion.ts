@@ -65,6 +65,21 @@ function finDelPeriodo(obj: ObjetoSuscripcion): Date | null {
  */
 export const ESTADO_CANCELANDO = "cancelando";
 
+/**
+ * ¿Esta suscripción ya no se va a renovar?
+ *
+ * Se miran DOS campos porque Stripe lo cuenta de dos formas según la versión de
+ * API: el clásico `cancel_at_period_end` (booleano) y `cancel_at` (fecha), que
+ * es como lo expresan las versiones nuevas —la cuenta de producción va con
+ * `2026-06-24`, muy posterior a cuando se escribió esto—. Basta con cualquiera
+ * de los dos: lo que no puede pasar es darle por renovada a alguien que se ha
+ * dado de baja.
+ */
+function noSeRenueva(obj: ObjetoSuscripcion): boolean {
+  if (obj.cancel_at_period_end === true) return true;
+  return typeof obj.cancel_at === "number" && obj.cancel_at > 0;
+}
+
 export function interpretarEvento(evento: unknown): CambioSuscripcion | null {
   const ev = (evento ?? {}) as Evento;
   const tipo = ev.type ?? "";
@@ -96,7 +111,7 @@ export function interpretarEvento(evento: unknown): CambioSuscripcion | null {
 
   // Dada de baja pero con el periodo pagado por delante: conserva su plan y se
   // marca aparte para poder avisarle de hasta cuándo lo tiene.
-  if (obj.cancel_at_period_end === true) return { ...base, plan, estado: ESTADO_CANCELANDO };
+  if (noSeRenueva(obj)) return { ...base, plan, estado: ESTADO_CANCELANDO };
 
   return { ...base, plan, estado };
 }

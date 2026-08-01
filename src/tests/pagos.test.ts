@@ -228,3 +228,28 @@ describe("baja programada (cancel_at_period_end)", () => {
     expect(interpretarEvento(sub({ cancel_at_period_end: false }))!.estado).toBe("active");
   });
 });
+
+// Stripe cuenta la baja programada de dos formas segun la version de API: el
+// clasico `cancel_at_period_end` y `cancel_at` (fecha), que es como lo expresan
+// las versiones nuevas. La cuenta de produccion va con 2026-06-24, muy
+// posterior a cuando se escribio esto, y con solo el booleano se le daba por
+// renovada a alguien que se habia dado de baja.
+describe("baja programada: las dos formas de decirlo", () => {
+  it("con cancel_at (fecha) tambien cuenta como cancelada", () => {
+    expect(interpretarEvento(sub({ cancel_at: 1_800_000_000 }))!.estado).toBe(ESTADO_CANCELANDO);
+  });
+
+  it("cancel_at nulo o cero NO es una baja", () => {
+    expect(interpretarEvento(sub({ cancel_at: null }))!.estado).toBe("active");
+    expect(interpretarEvento(sub({ cancel_at: 0 }))!.estado).toBe("active");
+  });
+
+  it("basta con cualquiera de los dos", () => {
+    expect(interpretarEvento(sub({ cancel_at_period_end: true, cancel_at: null }))!.estado).toBe(ESTADO_CANCELANDO);
+    expect(interpretarEvento(sub({ cancel_at_period_end: false, cancel_at: 1_800_000_000 }))!.estado).toBe(ESTADO_CANCELANDO);
+  });
+
+  it("y sigue sin quitarle el plan que ha pagado", () => {
+    expect(interpretarEvento(sub({ cancel_at: 1_800_000_000 }))!.plan).toBe("personal");
+  });
+});

@@ -31,12 +31,30 @@ async function sincronizar(subscriptionId: string | null | undefined): Promise<v
   try {
     const sub = await leerSuscripcion(subscriptionId);
     const cambio = interpretarEvento({ type: "customer.subscription.updated", data: { object: sub } });
-    if (cambio) {
-      await accountStore.setSuscripcion(cambio.orgId, {
-        plan: cambio.plan, estado: cambio.estado,
-        customerId: cambio.customerId, subscriptionId: cambio.subscriptionId, hasta: cambio.hasta,
-      });
+
+    // Que `interpretarEvento` devuelva null significa «esto no me incumbe», que
+    // es lo correcto para un webhook cualquiera pero NO aquí: esta suscripción
+    // es nuestra y la hemos pedido por su id. Si aun así no se sabe leer, hay
+    // algo desalineado —el precio del catálogo, o los metadatos— y el estado se
+    // queda congelado para siempre sin que nadie se entere. Se registra lo justo
+    // para saber cuál de las dos cosas es. Nada de esto es secreto: son ids
+    // públicos y un booleano.
+    if (!cambio) {
+      const items = ((sub.items ?? {}) as { data?: unknown[] }).data ?? [];
+      const precio = (items[0] as { price?: { id?: unknown } } | undefined)?.price?.id;
+      console.error("[plan] Stripe contesta pero no se sabe interpretar:", JSON.stringify({
+        estado: sub.status,
+        cancelaAlFinal: sub.cancel_at_period_end,
+        precio,
+        tieneOrgId: !!(sub.metadata as Record<string, unknown> | undefined)?.orgId,
+      }));
+      return;
     }
+
+    await accountStore.setSuscripcion(cambio.orgId, {
+      plan: cambio.plan, estado: cambio.estado,
+      customerId: cambio.customerId, subscriptionId: cambio.subscriptionId, hasta: cambio.hasta,
+    });
   } catch (e) {
     console.error("[plan] no se pudo sincronizar con Stripe:", e instanceof Error ? e.message : e);
   }
