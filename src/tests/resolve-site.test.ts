@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { resolvePublicSite } from "@/src/publish/resolve-site";
 import { conMarca, ID_MARCA, TEXTO_MARCA } from "@/src/publish/marca";
-import { ROBOTS_NOINDEX, reapuntarCanonicos } from "@/src/publish/seo";
+import { ROBOTS_NOINDEX, reapuntarCanonicos, reapuntarMetadatosImportados } from "@/src/publish/seo";
 import type { StorageAdapter } from "@/src/storage/types";
 import type {
   ProjectStore, ProjectRow, SnapshotRow, SnapshotInfo,
@@ -413,6 +413,67 @@ describe("reapuntarCanonicos", () => {
 
   it("si las dos bases son la misma, no hace nada", () => {
     expect(reapuntarCanonicos("https://a.com/x", "https://a.com", "https://a.com")).toBe("https://a.com/x");
+  });
+});
+
+// Caso real: la web de Quantiva se escribió para quantivatechnology.com y se
+// subió a Estrénala. El og:image seguía apuntando al dominio viejo, donde ese
+// archivo NO existe, así que al compartir el enlace por WhatsApp salía la
+// tarjeta sin imagen —«solo un recuadro»— aunque la imagen estuviera subida y
+// se sirviera perfectamente desde aquí.
+describe("reapuntarMetadatosImportados", () => {
+  const CANONICO = '<link rel="canonical" href="https://vieja.com/">';
+
+  it("reapunta la imagen de compartir al sitio donde se sirve de verdad", () => {
+    const html = `${CANONICO}<meta property="og:image" content="https://vieja.com/assets/og.jpg">`;
+    const out = reapuntarMetadatosImportados(html, "https://nueva.com");
+    expect(out).toContain('content="https://nueva.com/assets/og.jpg"');
+  });
+
+  it("reapunta también el canónico y og:url, para no contradecir la cabecera Link", () => {
+    const html = `${CANONICO}<meta property="og:url" content="https://vieja.com/contacto">`;
+    const out = reapuntarMetadatosImportados(html, "https://nueva.com");
+    expect(out).toContain('href="https://nueva.com/"');
+    expect(out).toContain('content="https://nueva.com/contacto"');
+  });
+
+  it("NO toca una imagen alojada fuera: no es del dominio viejo, es de un CDN", () => {
+    const html = `${CANONICO}<meta property="og:image" content="https://cdn.otro.com/foto.jpg">`;
+    const out = reapuntarMetadatosImportados(html, "https://nueva.com");
+    expect(out).toContain('content="https://cdn.otro.com/foto.jpg"'); // intacta
+    expect(out).toContain('href="https://nueva.com/"'); // el canónico sí se reapunta
+  });
+
+  it("NO toca los enlaces al dominio viejo: siguen llevando a la web original", () => {
+    const html = `${CANONICO}<a href="https://vieja.com/tienda">Tienda</a>`;
+    const out = reapuntarMetadatosImportados(html, "https://nueva.com");
+    expect(out).toContain('<a href="https://vieja.com/tienda">');
+  });
+
+  it("sin canónico ni og:url no se puede saber cuál era su dominio: no se inventa nada", () => {
+    const html = '<meta property="og:image" content="https://vieja.com/assets/og.jpg">';
+    expect(reapuntarMetadatosImportados(html, "https://nueva.com")).toBe(html);
+  });
+
+  it("si la web ya se escribió para donde se sirve, no cambia nada", () => {
+    const html = '<link rel="canonical" href="https://nueva.com/"><meta property="og:image" content="https://nueva.com/a.jpg">';
+    expect(reapuntarMetadatosImportados(html, "https://nueva.com")).toBe(html);
+  });
+
+  // WhatsApp y Facebook exigen URL absoluta en og:image: con una ruta que
+  // empieza por "/" no enseñan nada. Esto no necesita saber el dominio viejo.
+  it("vuelve absoluta una imagen de compartir escrita como ruta", () => {
+    const html = '<meta property="og:image" content="/assets/og.jpg"><meta name="twitter:image" content="/assets/og.jpg">';
+    const out = reapuntarMetadatosImportados(html, "https://nueva.com");
+    expect(out).toContain('property="og:image" content="https://nueva.com/assets/og.jpg"');
+    expect(out).toContain('name="twitter:image" content="https://nueva.com/assets/og.jpg"');
+  });
+
+  it("no confunde una ruta con una URL protocolo-relativa", () => {
+    const html = `${CANONICO}<meta property="og:image" content="//cdn.otro.com/f.jpg">`;
+    // `//host/x` NO es una ruta: es una URL sin protocolo y apunta fuera.
+    expect(reapuntarMetadatosImportados(html, "https://nueva.com"))
+      .toContain('content="//cdn.otro.com/f.jpg"');
   });
 });
 

@@ -1,6 +1,9 @@
 import { parseHost } from "./host";
 import { conMarca } from "./marca";
-import { ROBOTS_NOINDEX, cabeceraCanonica, sitemapDeLasPaginas, reapuntarCanonicos, rutaPublica } from "./seo";
+import {
+  ROBOTS_NOINDEX, cabeceraCanonica, sitemapDeLasPaginas, reapuntarCanonicos,
+  reapuntarMetadatosImportados, rutaPublica,
+} from "./seo";
 import { puede } from "@/src/planes/planes";
 import { tieneExtensionConocida } from "@/src/storage/content-type";
 import type { StorageAdapter } from "@/src/storage/types";
@@ -229,6 +232,13 @@ export async function resolvePublicSite(
         `https://${site.dominio}`
       );
     }
+    // Y si la web se escribió para OTRO dominio —lo normal: la hizo con IA para
+    // `suempresa.com` y la subió aquí—, su imagen de compartir apunta a un
+    // archivo que allí no existe y WhatsApp enseña la tarjeta sin imagen. Se
+    // reapunta a la dirección buena de este sitio, que es su dominio propio si
+    // lo tiene conectado y si no el host por el que ha entrado (mismo criterio
+    // que la cabecera canónica y el sitemap, para que los tres digan lo mismo).
+    html = reapuntarMetadatosImportados(html, `https://${site.dominio ?? input.host}`);
     if (!puede(site.plan, "sinMarca")) html = conMarca(html, input.platformHost);
     body = Buffer.from(html, "utf-8");
   }

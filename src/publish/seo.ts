@@ -62,6 +62,99 @@ export function reapuntarCanonicos(html: string, baseVieja: string, baseNueva: s
 }
 
 /**
+ * Reapunta a esta casa los metadatos de una web escrita para OTRO dominio.
+ *
+ * Nuestro caso de uso es literalmente ese: alguien hace una web con IA para
+ * `suempresa.com`, la sube aquí y la publica. Dentro, el HTML sigue diciendo
+ * que la imagen de compartir está en `https://suempresa.com/assets/og.jpg` —un
+ * archivo que ahí no existe—, así que al pegar el enlace en WhatsApp sale la
+ * tarjeta SIN imagen aunque la imagen esté subida y se sirva de maravilla desde
+ * aquí. Le pasó a Sebas con la web de Quantiva y es lo primero que hace
+ * cualquiera al estrenar: mandarle el enlace a alguien.
+ *
+ * Qué se toca y qué no, que es todo el diseño:
+ *
+ *  - La web DECLARA para qué dominio se escribió, en su `<link rel="canonical">`
+ *    o en su `og:url`. Sin eso no se adivina nada y no se toca nada.
+ *  - Solo se reapuntan las etiquetas que describen ESTA página (canónico,
+ *    og:url, og:image, twitter:image) y solo si apuntan a ese dominio viejo.
+ *    Una imagen en un CDN ajeno se queda donde está.
+ *  - Los `<a href>` al dominio viejo NO se tocan: si enlaza a su tienda de
+ *    siempre, tiene que seguir llevando allí. Por eso esto no es un reemplazo
+ *    global de la base como `reapuntarCanonicos`.
+ *  - Una imagen escrita como ruta (`/assets/og.jpg`) se vuelve absoluta:
+ *    WhatsApp y Facebook no enseñan nada si og:image no trae dominio.
+ *
+ * Se hace AL SERVIR, no reescribiendo lo guardado: así no hay que republicar y
+ * se corrige solo si mañana conecta un dominio propio.
+ */
+const META_DE_ESTA_PAGINA = new Set([
+  "og:url", "og:image", "og:image:url", "og:image:secure_url",
+  "twitter:image", "twitter:image:src",
+]);
+
+const ETIQUETA_META = /<(?:meta|link)\b[^>]*>/gi;
+
+function escaparRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function valorAtributo(tag: string, nombre: string): string | null {
+  const m = tag.match(new RegExp(`\\b${nombre}\\s*=\\s*(?:"([^"]*)"|'([^']*)')`, "i"));
+  return m ? (m[1] ?? m[2] ?? "") : null;
+}
+
+/** `https://host:puerto` de una URL absoluta; null si no lo es. */
+function origenDe(url: string): string | null {
+  return url.match(/^(https?:\/\/[^/?#]+)/i)?.[1] ?? null;
+}
+
+/** Cómo se llama el atributo que lleva la URL en esta etiqueta. */
+function clavesDe(tag: string): { esCanonico: boolean; esNuestra: boolean; attr: "href" | "content" } {
+  const rel = (valorAtributo(tag, "rel") ?? "").toLowerCase().split(/\s+/);
+  const prop = (valorAtributo(tag, "property") ?? valorAtributo(tag, "name") ?? "").toLowerCase();
+  const esCanonico = rel.includes("canonical");
+  return { esCanonico, esNuestra: esCanonico || META_DE_ESTA_PAGINA.has(prop), attr: esCanonico ? "href" : "content" };
+}
+
+export function reapuntarMetadatosImportados(html: string, basePublica: string): string {
+  const origenActual = origenDe(basePublica);
+  if (!origenActual) return html;
+
+  // Para qué dominio se escribió esta web. Lo dice ella misma.
+  let origenViejo: string | null = null;
+  for (const tag of html.match(ETIQUETA_META) ?? []) {
+    const rel = (valorAtributo(tag, "rel") ?? "").toLowerCase().split(/\s+/);
+    const prop = (valorAtributo(tag, "property") ?? valorAtributo(tag, "name") ?? "").toLowerCase();
+    if (!rel.includes("canonical") && prop !== "og:url") continue;
+    const o = origenDe(valorAtributo(tag, "href") ?? valorAtributo(tag, "content") ?? "");
+    if (o) { origenViejo = o; break; }
+  }
+  const mudanza = origenViejo !== null && origenViejo.toLowerCase() !== origenActual.toLowerCase();
+
+  return html.replace(ETIQUETA_META, (tag) => {
+    const { esNuestra, attr } = clavesDe(tag);
+    if (!esNuestra) return tag;
+    const valor = valorAtributo(tag, attr);
+    if (valor === null || valor === "") return tag;
+
+    let nuevo: string | null = null;
+    if (valor.startsWith("/") && !valor.startsWith("//")) {
+      nuevo = origenActual + valor; // ruta → absoluta (WhatsApp la exige)
+    } else if (mudanza && origenDe(valor)?.toLowerCase() === origenViejo!.toLowerCase()) {
+      nuevo = origenActual + valor.slice(origenViejo!.length);
+    }
+    if (nuevo === null) return tag;
+
+    const destino = nuevo;
+    return tag.replace(
+      new RegExp(`(\\b${attr}\\s*=\\s*["'])${escaparRegExp(valor)}`, "i"),
+      (_m, apertura: string) => apertura + destino
+    );
+  });
+}
+
+/**
  * Sitemap de emergencia para las webs que no tienen ninguno.
  *
  * Hasta ahora solo se generaba `sitemap.xml` al publicar artículos del blog, así
