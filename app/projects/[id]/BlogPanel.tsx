@@ -278,6 +278,21 @@ export function BlogPanel({ projectId }: { projectId: string }) {
   // llegaba a la pantalla siguiente con un campo vacío y sin saber por qué no
   // dejaba guardar.
   async function usarTalCual() {
+    // «Ya lleva los huecos» solo tiene sentido si de verdad los lleva, y eso se
+    // ve mirando el HTML. Sin esto, quien pega una plantilla normal pulsa aquí
+    // —es el botón que no cuesta dinero, así que atrae— y acaba atascado sin
+    // entender por qué. Le pasó a Sebas con la plantilla de ejemplo.
+    if (!/\{\{\s*[a-z_]+\s*\}\}/i.test(miPost)) {
+      const construir = await confirmar({
+        titulo: "Tu HTML no lleva ningún hueco todavía",
+        cuerpo: "Este botón es para cuando ya has escrito tú los {{titulo}}, {{contenido}}… dentro de tu HTML. No los encontramos, así que el blog no sabría dónde poner cada cosa. Podemos colocarlos nosotros sin tocarte el diseño.",
+        tono: "coste",
+        aceptar: "Colocadlos vosotros",
+        cancelar: "Los pongo yo",
+      });
+      if (construir) await colocarHuecos();
+      return;
+    }
     if (!miIndex.trim()) {
       // Un aviso que solo dice «te falta esto» es un callejón sin salida: te
       // deja leyendo y sin nada que pulsar. Las dos salidas van en los botones.
@@ -793,11 +808,16 @@ export function BlogPanel({ projectId }: { projectId: string }) {
                       {rotulo("huecos", "Colocar los huecos por mí", "Colocando los huecos…")}
                     </button>
                     <button onClick={() => void usarTalCual()} disabled={ocupado || !miPost.trim()}
-                      title="Si tu HTML ya trae los huecos escritos, no hace falta gastar IA"
+                      title="Solo si tú ya has escrito los {{titulo}}, {{contenido}}… dentro de tu HTML. Entonces no hace falta gastar IA."
                       className="btn btn-sec btn-sm">Ya lleva los huecos</button>
                     <button onClick={() => setTraendo(false)} disabled={ocupado} className="btn btn-sec btn-sm">Volver</button>
                   </div>
-                  <p className="text-xs text-texto-3">«Colocar los huecos por mí» gasta una llamada de IA de tu cuenta de OpenRouter.</p>
+                  <p className="text-xs text-texto-3">
+                    <b>¿Cuál de los dos?</b> Si tu HTML es una página normal, <b>«Colocar los huecos por mí»</b>
+                    —gasta una llamada de IA de tu cuenta de OpenRouter—. <b>«Ya lleva los huecos»</b> es solo
+                    para cuando tú mismo has escrito los <code>{"{{titulo}}"}</code>, <code>{"{{contenido}}"}</code>…
+                    dentro; ese no cuesta nada.
+                  </p>
                 </>
               ) : (
                 <>
