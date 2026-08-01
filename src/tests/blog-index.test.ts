@@ -6,8 +6,8 @@ const TPL = `<html><body><ul>
 </ul></body></html>`;
 
 const POSTS: PostIndice[] = [
-  { titulo: "Post A", slug: "post-a", metaDescripcion: "da", fecha: "2026-06-12", imagen: "/blog/img/post-a.webp" },
-  { titulo: "Post B", slug: "post-b", metaDescripcion: "db", fecha: "2026-06-10", imagen: "/blog/img/post-b.webp" },
+  { titulo: "Post A", slug: "post-a", metaDescripcion: "da", fecha: "2026-06-12", fechaIso: "2026-06-12", imagen: "/blog/img/post-a.webp" },
+  { titulo: "Post B", slug: "post-b", metaDescripcion: "db", fecha: "2026-06-10", fechaIso: "2026-06-10", imagen: "/blog/img/post-b.webp" },
 ];
 
 describe("renderIndex", () => {

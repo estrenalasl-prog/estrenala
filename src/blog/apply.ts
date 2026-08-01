@@ -1,6 +1,6 @@
 import { EditorError } from "@/src/editor/errors";
 import { crearSnapshotEditado } from "@/src/editor/snapshot-copy";
-import { renderPost, itemsIndice, basePublica, DATOS_EJEMPLO, IMAGEN_EJEMPLO } from "./render";
+import { renderPost, itemsIndice, basePublica, fechaEnEspanol, DATOS_EJEMPLO, IMAGEN_EJEMPLO } from "./render";
 import { renderIndex } from "./blog-index";
 import { actualizarSitemap, quitarDelSitemap } from "./sitemap";
 import { validarPrePublicacion } from "./validate";
@@ -236,7 +236,10 @@ export async function previewBlog(deps: Deps, input: {
     const item = { ...DATOS_EJEMPLO, fecha: hoy() };
     let html: string;
     try {
-      html = renderIndex(rewriteHtml(tplIndex, baseHref), [{ titulo: item.titulo, slug: item.slug, metaDescripcion: item.metaDescripcion, fecha: item.fecha, imagen: IMAGEN_EJEMPLO }]);
+      html = renderIndex(rewriteHtml(tplIndex, baseHref), [{
+        titulo: item.titulo, slug: item.slug, metaDescripcion: item.metaDescripcion,
+        fecha: fechaEnEspanol(item.fecha), fechaIso: item.fecha, imagen: IMAGEN_EJEMPLO,
+      }]);
     } catch (e) {
       throw new EditorError(e instanceof Error ? e.message : "Plantilla no válida", 400);
     }

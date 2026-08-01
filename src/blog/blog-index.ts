@@ -4,7 +4,8 @@ export type PostIndice = {
   titulo: string;
   slug: string;
   metaDescripcion: string;
-  fecha: string;
+  fecha: string;     // legible: «1 de agosto de 2026»
+  fechaIso: string;  // para <time datetime>: «2026-08-01»
   imagen: string;
 };
 
@@ -23,6 +24,7 @@ export function renderIndex(tplIndex: string, posts: PostIndice[]): string {
     slug: p.slug,
     meta_descripcion: p.metaDescripcion,
     fecha: p.fecha,
+    fecha_iso: p.fechaIso,
     imagen: p.imagen,
   })).join("");
   return tplIndex.slice(0, i) + items + tplIndex.slice(f + FIN.length);

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { renderPost, itemsIndice, basePublica, DATOS_EJEMPLO, IMAGEN_EJEMPLO } from "@/src/blog/render";
+import { renderPost, itemsIndice, basePublica, fechaEnEspanol, DATOS_EJEMPLO, IMAGEN_EJEMPLO } from "@/src/blog/render";
 
 const TPL = `<html><head><title>{{titulo}}</title><meta name="description" content="{{meta_descripcion}}">
 <link rel="canonical" href="{{canonical}}">{{json_ld}}</head>
@@ -44,6 +44,32 @@ describe("itemsIndice", () => {
 });
 
 describe("escape en contexto de atributo", () => {
+  // En el hueco {{fecha}} iba la fecha en crudo (2026-08-01), que es lo que
+  // necesita Google pero NO lo que debe leer un visitante del blog de un cliente.
+  describe("fechaEnEspanol", () => {
+    it("la escribe como la lee una persona", () => {
+      expect(fechaEnEspanol("2026-08-01")).toBe("1 de agosto de 2026");
+      expect(fechaEnEspanol("2026-12-25")).toBe("25 de diciembre de 2026");
+    });
+
+    it("el día va sin cero delante", () => {
+      expect(fechaEnEspanol("2026-03-09")).toBe("9 de marzo de 2026");
+    });
+
+    // Convertirla a Date la pondría a medianoche UTC, y en cualquier huso al
+    // oeste el artículo saldría fechado el día anterior. Se formatea a mano.
+    it("no se le va un día por el huso horario", () => {
+      expect(fechaEnEspanol("2026-01-01")).toBe("1 de enero de 2026");
+      expect(fechaEnEspanol("2026-12-31")).toBe("31 de diciembre de 2026");
+    });
+
+    it("lo que no es una fecha se devuelve tal cual, sin inventar nada", () => {
+      expect(fechaEnEspanol("")).toBe("");
+      expect(fechaEnEspanol("mañana")).toBe("mañana");
+      expect(fechaEnEspanol("2026-13-01")).toBe("2026-13-01"); // mes que no existe
+    });
+  });
+
   it("un título con comillas no rompe og:title", () => {
     const tpl = '<head><meta property="og:title" content="{{titulo}}"></head><body><h1>{{titulo}}</h1>{{contenido}}{{meta_descripcion}}{{imagen}}{{fecha}}{{canonical}}{{json_ld}}</body>';
     const h = renderPost(tpl, { titulo: 'Guía "rápida" de IA', slug: "guia", metaDescripcion: "m", md: "hola", imagenExt: "png" }, "2026-07-06", "https://a.b");

@@ -109,7 +109,9 @@ const HUECOS_POST_DOC = `{{titulo}} (en el <title> y en el titular del artículo
    {{meta_descripcion}} (en <meta name="description"> y en og:description),
    {{contenido}} (el cuerpo del artículo, ya en HTML; sustituye TODO el texto de ejemplo del artículo),
    {{imagen}} (URL de la imagen de portada: en el <img> de cabecera si lo hay, y en og:image),
-   {{fecha}} (fecha de publicación),
+   {{fecha}} (fecha de publicación, ya escrita en español: «1 de agosto de 2026»; si el usuario
+   tenía una fecha de ejemplo, se sustituye por esto),
+   {{fecha_iso}} (la misma en AAAA-MM-DD, SOLO para un atributo datetime si su HTML usa <time>),
    {{canonical}} (en <link rel="canonical"> y en og:url),
    {{json_ld}} (justo antes de </head>; es un <script> completo que se inyecta tal cual)`;
 

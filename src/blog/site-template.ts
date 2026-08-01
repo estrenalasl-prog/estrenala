@@ -6,8 +6,8 @@ import { huecosSinRellenar } from "./template";
 import type { StorageAdapter } from "@/src/storage/types";
 import type { ProjectStore } from "@/src/repositories/types";
 
-export const HUECOS_POST = ["titulo", "meta_descripcion", "contenido", "imagen", "fecha", "canonical", "json_ld"];
-export const HUECOS_INDEX = ["titulo", "slug", "meta_descripcion", "fecha", "imagen"];
+export const HUECOS_POST = ["titulo", "meta_descripcion", "contenido", "imagen", "fecha", "fecha_iso", "canonical", "json_ld"];
+export const HUECOS_INDEX = ["titulo", "slug", "meta_descripcion", "fecha", "fecha_iso", "imagen"];
 export const MSG_SIN_PLANTILLA = "El proyecto no tiene plantilla de blog (créala en la sección Blog)";
 // Compartidos con la vía «traigo mi plantilla» (plantilla-propia.ts): el mismo
 // fallo tiene que decirse igual venga por donde venga.
@@ -95,7 +95,9 @@ ${enlaces}
    {{meta_descripcion}} (en <meta name="description"> y en Open Graph og:description),
    {{contenido}} (el cuerpo del artículo, ya en HTML, dentro de un <article>),
    {{imagen}} (URL de la imagen de portada, en un <img> y en og:image),
-   {{fecha}} (fecha de publicación),
+   {{fecha}} (fecha de publicación, ya escrita en español: «1 de agosto de 2026»),
+   {{fecha_iso}} (la misma fecha en formato AAAA-MM-DD, SOLO para el atributo datetime;
+   lo suyo es <time datetime="{{fecha_iso}}">{{fecha}}</time>),
    {{canonical}} (en <link rel="canonical"> y og:url),
    {{json_ld}} (justo antes de </head>; es un <script> completo que se inyecta tal cual).
    Incluye también las meta Open Graph básicas (og:title, og:description, og:image, og:url), lang="es"
