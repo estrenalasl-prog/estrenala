@@ -1,6 +1,6 @@
 # Reanudación tras formateo — léeme primero
 
-Actualizado: 2026-07-28 (incremento 18). Este documento es la fuente de verdad para
+Actualizado: 2026-08-01 (prueba humana terminada). Este documento es la fuente de verdad para
 retomar: la memoria de Claude en `C:\Users\Sebas\.claude` NO sobrevive a los formateos.
 
 **Los otros dos documentos que hay que leer:**
@@ -83,6 +83,52 @@ Drizzle/Postgres en Supabase, vitest). Flujo de trabajo: spec → plan (docs/sup
 
 Detalles finos por incremento: specs y planes en `docs/superpowers/`. E2e regenerables
 en `scripts/e2e/` (necesitan dev server + .env.local; se ejecutan con `node`).
+
+## 🧪 2026-08-01 — La prueba humana de punta a punta, terminada
+
+Sebas recorrió la plataforma entera como cliente y entregó su lista. **761 tests.**
+Los dos hallazgos que no eran lo que parecían, y eran los peores:
+
+- **«A veces se vuelve loco y cambia la página de inicio».** No se volvía loco: el
+  desplegable de la vista previa GUARDABA `entryPath` al cambiarlo. Era el control de
+  portada disfrazado de navegador de páginas, así que asomarse a Contacto reasignaba
+  la portada de la web publicada — y eso lo hace todo el mundo. Ahora navegar y
+  decidir la portada son dos acciones distintas (`31cb7b9`).
+- **«Por WhatsApp sale solo un recuadro».** Su `og:image` apuntaba al dominio para el
+  que se escribió la web, donde el archivo da 404; la imagen estaba y se servía bien
+  desde aquí. Es NUESTRO caso de uso, así que le pasa a todos.
+  `reapuntarMetadatosImportados` lo corrige al servir (`18d2c7e`). **Regla del
+  diseño:** solo se tocan las etiquetas que describen ESA página (canonical, og:url,
+  og:image, twitter:image) y solo si apuntan al dominio viejo; **los `<a href>` no se
+  tocan**, para que un enlace a su tienda de siempre siga yendo donde iba.
+
+Además: relojito por tarea en lo que tarda (`.cargador` existía pero solo en
+login/registro), Historial que distingue edición a mano de edición con el asistente y
+pide confirmación antes de restaurar, instrucciones de DNS que reaccionan mientras
+escribes, **«ver cómo queda» en el asistente** (se calcula con el MISMO `applyEdits`
+que guarda de verdad: una vista previa por otro camino podría enseñar una cosa y
+guardarse otra) y **«traer tu propia plantilla de blog»** — con vía manual de coste
+cero, porque antes la pantalla de plantillas solo aparecía DESPUÉS de generarlas con
+IA y había que pagar una generación para tirarla.
+
+**Decisión de alcance (suya):** la plantilla de blog propia entra antes de lanzar; la
+caja de herramientas con **inserción de imágenes se aplaza a después**. Todo el editor
+direcciona `nodeId` que YA existen; insertar es crear nodos nuevos y es un incremento
+entero, no un botón.
+
+### GOTCHAs nuevos
+- **Dokploy clona por deploy key SSH, así que NO se entera de los pushes.** El
+  despliegue automático exige un webhook creado A MANO en GitHub (Settings →
+  Webhooks) apuntando a la URL que imprime el panel. Hasta el 2026-08-01 no existía:
+  todos los despliegues habían sido manuales. Usar la forma
+  `https://panel.estrenala.com/api/deploy/<token>` y no la de `http://IP:3000`, que
+  manda el token sin cifrar.
+- **Desde fuera no se puede sondear si un commit está desplegado**: el middleware
+  contesta 401 a todo `/api/projects/*` antes de mirar si la ruta existe.
+- **Falta el registro DMARC de `estrenala.com`** (`v=DMARC1; p=none;` en `_dmarc`).
+  SPF, DKIM y MX de Resend están bien. Sin DMARC, Outlook/Hotmail manda a no deseados,
+  y como **verificar el correo es obligatorio para publicar**, el usuario se registra,
+  no ve nada y se va.
 
 ## ⏭️ En qué punto estamos y qué sigue
 
