@@ -89,7 +89,22 @@ export function reapuntarSitemap(xml: string, base: string, sitesBaseDomain: str
   // Un subdominio cualquiera del dominio base, no solo el actual: el caso que
   // falla es precisamente el del subdominio ANTERIOR.
   const re = new RegExp(`https?://[a-z0-9-]+\\.${escapado}(?=[/<"'\\s]|$)`, "gi");
-  return (xml ?? "").replace(re, base.replace(/\/+$/, ""));
+  const reapuntado = (xml ?? "").replace(re, base.replace(/\/+$/, ""));
+
+  // Al reapuntar, dos entradas que ANTES eran distintas pueden quedar idénticas:
+  // el índice del blog estaba guardado dos veces, una con el subdominio viejo y
+  // otra con el dominio nuevo, y las dos acaban siendo la misma dirección. Se
+  // queda la primera. No es grave para Google, pero un sitemap con la misma URL
+  // repetida es la clase de detalle que hace dudar de todo lo demás.
+  const vistos = new Set<string>();
+  return reapuntado.replace(/<url>[\s\S]*?<\/url>/gi, (bloque) => {
+    const m = bloque.match(/<loc>([^<]*)<\/loc>/i);
+    if (!m) return bloque;
+    const loc = m[1].trim();
+    if (vistos.has(loc)) return "";
+    vistos.add(loc);
+    return bloque;
+  });
 }
 
 /**

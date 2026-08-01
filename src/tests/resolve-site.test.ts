@@ -666,3 +666,36 @@ describe("reapuntarSitemap", () => {
     expect(reapuntarSitemap(xml, "https://micafe.estrenala.com", BD)).toBe(xml);
   });
 });
+
+// El propio reapuntado destapa duplicados: el índice del blog estaba guardado dos
+// veces, una con el subdominio viejo y otra con el dominio nuevo, y al reapuntarlas
+// quedan idénticas. Visto en producción el 2026-08-01.
+describe("reapuntarSitemap · duplicados", () => {
+  const BD = "estrenala.com";
+
+  it("dos entradas que al reapuntar quedan iguales se quedan en una", () => {
+    const xml =
+      `<urlset>` +
+      `<url><loc>https://viejo.estrenala.com/blog/index.html</loc></url>` +
+      `<url><loc>https://micafe.com/blog/index.html</loc></url>` +
+      `</urlset>`;
+    const r = reapuntarSitemap(xml, "https://micafe.com", BD);
+    expect([...r.matchAll(/<loc>/g)]).toHaveLength(1);
+    expect(r).toContain("https://micafe.com/blog/index.html");
+  });
+
+  it("no se lleva por delante entradas que sí son distintas", () => {
+    const xml =
+      `<urlset>` +
+      `<url><loc>https://viejo.estrenala.com/blog/uno.html</loc></url>` +
+      `<url><loc>https://viejo.estrenala.com/blog/dos.html</loc></url>` +
+      `</urlset>`;
+    const r = reapuntarSitemap(xml, "https://micafe.com", BD);
+    expect([...r.matchAll(/<loc>/g)]).toHaveLength(2);
+  });
+
+  it("un sitemap ya limpio se queda exactamente igual", () => {
+    const xml = `<urlset><url><loc>https://micafe.com/</loc></url></urlset>`;
+    expect(reapuntarSitemap(xml, "https://micafe.com", BD)).toBe(xml);
+  });
+});
