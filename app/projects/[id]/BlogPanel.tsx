@@ -1,10 +1,11 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useDialogo } from "@/app/_components/Dialogo";
 import { PLANES } from "@/src/planes/planes";
 import { slugify } from "@/src/blog/slug";
+import { insertarImagen } from "@/src/blog/imagenes-cuerpo";
 import { BotonSubir } from "./ToolsPanel";
 import { ArticleAiWorkspace, type DraftDetalle } from "./ArticleAiWorkspace";
 import { nombreModelo } from "../../_components/modelos";
@@ -179,6 +180,7 @@ export function BlogPanel({ projectId }: { projectId: string }) {
   const [slugTocado, setSlugTocado] = useState(false);
   const [meta, setMeta] = useState("");
   const [md, setMd] = useState("");
+  const mdRef = useRef<HTMLTextAreaElement>(null);
   const [imagenAssetId, setImagenAssetId] = useState("");
   const [imagenUrl, setImagenUrl] = useState("");
   const [previewArt, setPreviewArt] = useState<string | null>(null);
@@ -343,6 +345,39 @@ export function BlogPanel({ projectId }: { projectId: string }) {
     setImagenUrl(`/api/projects/${projectId}/preview/blog/img/${d.slug}.${d.imagenExt}`);
     setPreviewArt(null); setProgFecha(""); setVista("editor");
   }
+  /**
+   * Sube una imagen y la mete en el markdown POR DONDE ESTÁ EL CURSOR.
+   *
+   * Se escribe la ruta pública (`/wc-uploads/…`), que es la que va a existir en el
+   * blog publicado: los bytes se copian al snapshot al guardar. La vista previa la
+   * traduce al asset del proyecto, porque ahí ese archivo todavía no existe.
+   *
+   * El texto alternativo sale del nombre del archivo. No es perfecto, pero una
+   * imagen sin `alt` es invisible para Google y para quien use lector de pantalla,
+   * y nadie lo escribe si hay que escribirlo a mano.
+   */
+  async function insertarEnCuerpo(f: File) {
+    setOcupado(true); setError(null);
+    try {
+      const fd = new FormData(); fd.append("file", f);
+      const res = await fetch(`/api/projects/${projectId}/assets`, { method: "POST", body: fd });
+      const d = (await res.json().catch(() => ({}))) as { error?: string; assetId?: string; ext?: string };
+      if (!res.ok || !d.assetId || !d.ext) { setError(d.error ?? "Error al subir la imagen"); return; }
+      const ta = mdRef.current;
+      const cursor = ta ? ta.selectionStart : md.length;
+      const alt = f.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").trim();
+      const r = insertarImagen(md, cursor, `/wc-uploads/${d.assetId}.${d.ext}`, alt);
+      setMd(r.md);
+      // Devolver el foco y dejar el cursor justo detrás de lo insertado: si no, hay
+      // que volver a pinchar y buscar por dónde ibas, y se pierde el hilo.
+      requestAnimationFrame(() => {
+        if (!ta) return;
+        ta.focus();
+        ta.setSelectionRange(r.cursor, r.cursor);
+      });
+    } finally { setOcupado(false); }
+  }
+
   async function subirPortada(f: File) {
     setOcupado(true); setError(null);
     try {
@@ -886,7 +921,14 @@ export function BlogPanel({ projectId }: { projectId: string }) {
                 <BotonSubir texto={imagenAssetId ? "Cambiar imagen" : "Subir imagen"} ocupado={ocupado} onFile={(f) => void subirPortada(f)} />
                 {!titulo.trim() && <span className="text-xs text-texto-3">(escribe el título para generarla)</span>}
               </div>
-              <textarea value={md} onChange={(e) => setMd(e.target.value)} rows={14}
+              <div className="flex flex-wrap items-center gap-2">
+                <BotonSubir texto="Insertar imagen aquí" ocupado={ocupado} onFile={(f) => void insertarEnCuerpo(f)} />
+                <span className="text-xs text-texto-3">
+                  Se coloca donde tengas el cursor. Un artículo con varias imágenes se lee mejor y
+                  retiene más.
+                </span>
+              </div>
+              <textarea ref={mdRef} value={md} onChange={(e) => setMd(e.target.value)} rows={14}
                 placeholder="Escribe o pega aquí el artículo en markdown (por ejemplo, el que te escribió tu IA)…"
                 className="campo font-mono" />
               <div className="flex gap-2">

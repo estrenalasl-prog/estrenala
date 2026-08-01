@@ -10,6 +10,9 @@ import { validarPlantillas, MSG_SIN_PLANTILLA } from "./site-template";
 // problema no es que el proyecto no tenga plantilla: es que ese campo está vacío.
 export const MSG_ARTICULO_VACIO = "Pega antes el HTML de la página de artículo";
 export const MSG_INDICE_VACIO = "Todavía no has traído la lista de artículos. Escríbela, o usa «Colocar los huecos por mí» y la construimos con el diseño de tu artículo";
+export const MSG_IMAGEN_CUERPO_PERDIDA =
+  "Una de las imágenes del artículo ya no existe. Quítala del texto y vuelve a insertarla";
+import { imagenesDelCuerpo, apuntarAssetsAlPanel } from "./imagenes-cuerpo";
 import { rewriteHtml } from "@/src/preview/rewrite";
 import { generarSubdominio } from "@/src/publish/publish-site";
 import type { StorageAdapter } from "@/src/storage/types";
@@ -126,6 +129,25 @@ export async function guardarPost(deps: Deps, input: {
     ["blog/index.html", { body: Buffer.from(indice, "utf-8"), contentType: HTML }],
     ["sitemap.xml", { body: Buffer.from(sitemap, "utf-8"), contentType: XML }],
   ]);
+
+  // Imágenes DENTRO del artículo. Sus bytes se copian al snapshot igual que la
+  // portada: `/wc-uploads/` no es una carpeta compartida, existe dentro de cada web
+  // publicada. Sin esta copia se verían bien en la vista previa —que lee los assets
+  // del proyecto— y saldrían rotas en el blog publicado.
+  //
+  // Se escribe con la extensión que dice el markdown, no la derivada del
+  // contentType: es la ruta que el artículo referencia, y `image/jpeg` puede venir
+  // de un `.jpeg` tanto como de un `.jpg`.
+  for (const img of imagenesDelCuerpo(input.md)) {
+    const row = await deps.store.getAsset(input.orgId, input.projectId, img.assetId);
+    const file = row ? await deps.storage.get(row.storageKey) : null;
+    // Si falta, se para. Publicar el artículo igualmente lo dejaría con un hueco
+    // roto que nadie vería hasta que entrara un lector.
+    if (!row || !file) throw new EditorError(MSG_IMAGEN_CUERPO_PERDIDA, 400);
+    const destino = `wc-uploads/${img.assetId}.${img.ext}`;
+    excluir.add(destino); // ya podía estar de un guardado anterior: se reemplaza, no se duplica
+    extras.set(destino, { body: file.body, contentType: row.contentType });
+  }
 
   const { snapshotId } = await crearSnapshotEditado(deps, {
     orgId: input.orgId, projectId: input.projectId,
@@ -259,5 +281,10 @@ export async function previewBlog(deps: Deps, input: {
     md: input.md?.trim() ? input.md : DATOS_EJEMPLO.md,
     imagenExt: "png",
   };
-  return { html: renderPost(rewriteHtml(tplPost, baseHref), datos, hoy(), base, input.imagenUrl ?? IMAGEN_EJEMPLO) };
+  const html = renderPost(rewriteHtml(tplPost, baseHref), datos, hoy(), base, input.imagenUrl ?? IMAGEN_EJEMPLO);
+  // Las imágenes del cuerpo entran con el markdown, DESPUÉS de `rewriteHtml` (que
+  // se aplica a la plantilla), así que llegan aquí con su `/wc-uploads/` en crudo.
+  // En la vista previa ese archivo todavía no existe —se copia al snapshot al
+  // guardar—, así que se apuntan al asset del proyecto.
+  return { html: apuntarAssetsAlPanel(html, input.projectId) };
 }

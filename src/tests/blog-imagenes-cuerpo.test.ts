@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { imagenesDelCuerpo, insertarImagen } from "@/src/blog/imagenes-cuerpo";
+import { imagenesDelCuerpo, insertarImagen, apuntarAssetsAlPanel } from "@/src/blog/imagenes-cuerpo";
 
 const A = "11111111-2222-3333-4444-555555555555";
 const B = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
@@ -33,6 +33,37 @@ describe("imagenesDelCuerpo", () => {
   it("sin imágenes, o sin texto, devuelve lista vacía", () => {
     expect(imagenesDelCuerpo("solo texto")).toEqual([]);
     expect(imagenesDelCuerpo("")).toEqual([]);
+  });
+});
+
+// En la vista previa el archivo todavía NO está en el snapshot —se copia al
+// guardar—, así que /wc-uploads/ daría 404 y el usuario vería huecos rotos justo
+// cuando está comprobando que quedan bien.
+describe("apuntarAssetsAlPanel", () => {
+  it("apunta la imagen al asset del proyecto", () => {
+    const html = `<p><img src="/wc-uploads/${A}.webp" alt="x"></p>`;
+    expect(apuntarAssetsAlPanel(html, "p1"))
+      .toBe(`<p><img src="/api/projects/p1/assets/${A}.webp" alt="x"></p>`);
+  });
+
+  // Se aplica DESPUÉS de rewriteHtml, así que puede llegar con prefijo puesto.
+  it("se come el prefijo que le haya puesto la vista previa", () => {
+    const html = `<img src="/api/projects/p1/preview/wc-uploads/${A}.png">`;
+    expect(apuntarAssetsAlPanel(html, "p1"))
+      .toBe(`<img src="/api/projects/p1/assets/${A}.png">`);
+  });
+
+  it("no toca las demás imágenes ni el resto del HTML", () => {
+    const html = `<img src="/blog/img/post.png"><img src="https://otro.com/f.jpg"><p>texto</p>`;
+    expect(apuntarAssetsAlPanel(html, "p1")).toBe(html);
+  });
+
+  it("convierte todas, no solo la primera", () => {
+    const html = `<img src="/wc-uploads/${A}.png"><img src="/wc-uploads/${B}.webp">`;
+    const r = apuntarAssetsAlPanel(html, "p1");
+    expect(r).toContain(`/api/projects/p1/assets/${A}.png`);
+    expect(r).toContain(`/api/projects/p1/assets/${B}.webp`);
+    expect(r).not.toContain("wc-uploads");
   });
 });
 
