@@ -17,12 +17,17 @@ function opKey(op: EditOp): string {
 
 const NOMBRE_TIPO: Record<string, string> = {
   import: "Importación inicial",
-  edit: "Edición",
+  edit: "Edición a mano",
+  "edit-ia": "Edición con el asistente",
+  blog: "Cambio en el blog",
   restore: "Restauración",
   publish: "Publicación",
   actualizacion: "Actualización desde ZIP",
 };
-function etiquetaTipo(t: string): string { return NOMBRE_TIPO[t] ?? t; }
+// `Object.hasOwn` y no `??`: con la búsqueda directa, un tipo llamado
+// "constructor" devolvería la función Object en vez del nombre. Mismo fallo que
+// ya mordió en contentTypeFor.
+function etiquetaTipo(t: string): string { return Object.hasOwn(NOMBRE_TIPO, t) ? NOMBRE_TIPO[t] : t; }
 // La hora que se enseña tiene que ser LA DEL USUARIO. Antes se cortaba el ISO en
 // crudo (`iso.slice(0, 16)`), que viene en UTC: en España en verano el Historial
 // iba DOS HORAS atrasado, así que nada parecía reciente y un cambio recién hecho
@@ -45,6 +50,7 @@ export function PreviewPane({
   const [expandido, setExpandido] = useState(false);
   const [ops, setOps] = useState<Map<string, EditOp>>(new Map());
   const [snapshots, setSnapshots] = useState<SnapshotInfo[] | null>(null);
+  const [confirmando, setConfirmando] = useState<string | null>(null);
   const [recarga, setRecarga] = useState(0);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -123,14 +129,31 @@ export function PreviewPane({
     }
   }
 
-  async function cambiarEntrada(nuevo: string) {
+  // Mirar una página y DECIDIR cuál es la portada son dos cosas distintas, y
+  // durante mucho tiempo aquí fueron la misma: el desplegable guardaba
+  // `entryPath` al cambiarlo. O sea que asomarse a Contacto para verlo —lo
+  // primero que hace cualquiera— reasignaba en silencio la portada de la web
+  // publicada. A Sebas le pasó con quantiva.estrenala.com: la dirección abría
+  // Contacto y parecía que la plataforma «se volvía loca».
+  //
+  // Ahora el desplegable solo navega. Cambiar la portada es un botón aparte,
+  // que solo aparece cuando estás viendo otra página, y dice lo que hace.
+  function verPagina(nuevo: string) {
     setActual(nuevo);
+  }
+
+  async function marcarComoInicio() {
     setGuardando(true);
-    await fetch(`/api/projects/${projectId}`, {
-      method: "PATCH", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ entryPath: nuevo }),
-    });
-    setGuardando(false);
+    try {
+      const res = await fetch(`/api/projects/${projectId}`, {
+        method: "PATCH", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ entryPath: actual }),
+      });
+      if (res.ok) router.refresh();
+      else { const d = await res.json().catch(() => ({})); alert(d.error ?? "No se pudo cambiar la portada"); }
+    } finally {
+      setGuardando(false);
+    }
   }
 
   function entrarEdicion() { setOps(new Map()); setEditMode(true); }
@@ -151,7 +174,16 @@ export function PreviewPane({
     }
   }
 
+  // Restaurar iba a pelo: un solo clic y la web volvía atrás, sin preguntar y
+  // sin decir qué implicaba. Es la acción más destructiva del panel a ojos del
+  // usuario, y estaba a un resbalón del ratón.
+  //
+  // El aviso además aclara dos cosas que no son evidentes y que Sebas preguntó:
+  // restaurar solo mueve el puntero de la versión actual —no borra nada, se
+  // puede volver a cualquier otra de la lista— y NO toca la web publicada
+  // hasta que se le dé a «Publicar cambios».
   async function restaurar(snapshotId: string) {
+    setConfirmando(null);
     await fetch(`/api/projects/${projectId}/snapshots/${snapshotId}/restore`, { method: "POST" });
     setRecarga((n) => n + 1); await cargarHistorial(); router.refresh();
   }
@@ -171,12 +203,23 @@ export function PreviewPane({
           <select
             className="previo-select"
             value={actual}
-            onChange={(e) => void cambiarEntrada(e.target.value)}
+            onChange={(e) => verPagina(e.target.value)}
             disabled={editMode}
             title={editMode ? "Guarda o descarta los cambios para cambiar de página" : "Página que se muestra"}
           >
-            {pages.map((p) => <option key={p} value={p}>{p === entryPath ? `${p} (inicio)` : p}</option>)}
+            {pages.map((p) => <option key={p} value={p}>{p === entryPath ? `${p} (portada)` : p}</option>)}
           </select>
+
+          {actual !== entryPath && (
+            <button
+              className="btn btn-sec btn-sm"
+              onClick={() => void marcarComoInicio()}
+              disabled={editMode || guardando}
+              title="La portada es la página que se ve al entrar en tu dirección, sin nada detrás"
+            >
+              {guardando ? <><span className="cargador" /> Guardando…</> : "Hacer que sea la portada"}
+            </button>
+          )}
 
           <button
             type="button"
@@ -238,8 +281,31 @@ export function PreviewPane({
                   {/* El servidor va en UTC y el navegador en la zona del usuario,
                       así que este texto es distinto en cada lado a propósito. */}
                   <span className="cuando" suppressHydrationWarning>{s.esActual ? "actual · " : ""}{cuando(s.createdAt)}</span>
+                  {confirmando === s.id && (
+                    <>
+                      <br />
+                      <span style={{ fontSize: 12, color: "var(--color-texto-3)", lineHeight: 1.45 }}>
+                        ¿Volver a esta versión? Tu web publicada no cambia hasta que le des a «Publicar cambios».
+                      </span>
+                    </>
+                  )}
                 </span>
-                {!s.esActual && <button className="btn btn-sec btn-sm" onClick={() => void restaurar(s.id)}>Restaurar</button>}
+                {!s.esActual && (
+                  confirmando === s.id ? (
+                    <span style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                      <button className="btn btn-peligro-sutil btn-sm" onClick={() => void restaurar(s.id)}>Sí, volver</button>
+                      <button className="btn btn-fantasma btn-sm" onClick={() => setConfirmando(null)}>No</button>
+                    </span>
+                  ) : (
+                    <button
+                      className="btn btn-sec btn-sm"
+                      onClick={() => setConfirmando(s.id)}
+                      title="Deja la web como estaba en ese momento. No se pierde nada: puedes volver a cualquier otra versión de la lista, y tu web publicada no cambia hasta que le des a «Publicar cambios»."
+                    >
+                      Restaurar
+                    </button>
+                  )
+                )}
               </li>
             ))}
           </ul>

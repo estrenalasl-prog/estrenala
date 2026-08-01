@@ -58,7 +58,10 @@ export function AssistantPanel({
     try {
       const res = await fetch(`/api/projects/${projectId}/edits`, {
         method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ ops: propuesta.ops }),
+        // `origen` deja el cambio marcado como del asistente en el Historial:
+        // si no, sale como «Edición» igual que uno hecho a mano y luego no hay
+        // forma de saber a qué versión volver.
+        body: JSON.stringify({ ops: propuesta.ops, origen: "ia" }),
       });
       const d = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) { setError(d.error ?? "Error al aplicar"); return; }

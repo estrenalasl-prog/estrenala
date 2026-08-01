@@ -195,3 +195,29 @@ describe("saveEdits", () => {
     expect(storage.files.get(np + `wc-uploads/${A}.png`)).toBeUndefined();
   });
 });
+
+// El asistente aplica sus cambios por el MISMO endpoint que la edición a mano,
+// así que en el Historial las dos salían como «Edición» y no había forma de
+// saber cuál fue cosa de la IA — justo lo que hace falta para decidir a qué
+// versión volver.
+describe("saveEdits · origen del cambio", () => {
+  async function guardarCon(origen?: "ia") {
+    const storage = new FakeStorage();
+    storage.files.set(CUR + "index.html", Buffer.from(`<h1>Hola</h1>`));
+    const store = new FakeStore();
+    await saveEdits({ store, storage }, {
+      orgId: "org1", projectId: "p1",
+      ops: [{ page: "index.html", nodeId: 0, kind: "text", value: "Adiós" }],
+      origen,
+    });
+    return store.creado!.tipo;
+  }
+
+  it("sin origen es una edición a mano", async () => {
+    expect(await guardarCon()).toBe("edit");
+  });
+
+  it("con origen «ia» queda marcada como edición del asistente", async () => {
+    expect(await guardarCon("ia")).toBe("edit-ia");
+  });
+});

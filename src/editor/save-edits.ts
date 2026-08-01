@@ -16,9 +16,22 @@ function toPageOp(op: EditOp): PageOp {
   }
 }
 
+/**
+ * De dónde salen estas ediciones.
+ *
+ * El asistente de IA aplica sus cambios por el mismo camino que la edición a
+ * mano, así que en el Historial las dos aparecían como «Edición» y no había
+ * forma de distinguirlas. Y ahí es justo donde se decide a qué versión volver:
+ * «lo que tocó la IA» y «lo que toqué yo» son la pregunta que uno se hace.
+ *
+ * Es solo una etiqueta: no da permisos ni cambia lo que se guarda, así que da
+ * igual que venga del cliente.
+ */
+export type OrigenEdicion = "ia";
+
 export async function saveEdits(
   deps: { store: ProjectStore; storage: StorageAdapter },
-  input: { orgId: string; projectId: string; ops: EditOp[] }
+  input: { orgId: string; projectId: string; ops: EditOp[]; origen?: OrigenEdicion }
 ): Promise<{ snapshotId: string }> {
   if (input.ops.length > 1000) throw new EditorError("Demasiadas ediciones (máx. 1000)", 400);
   if (input.ops.some((o) => typeof o.value === "string" && o.value.length > 50000)) {
@@ -59,6 +72,7 @@ export async function saveEdits(
       return ops ? applyEdits(html, ops) : null;
     },
     extras: assetCopias,
+    tipo: input.origen === "ia" ? "edit-ia" : "edit",
     operacionesJson: input.ops,
   });
 }

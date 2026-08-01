@@ -11,19 +11,22 @@ export const runtime = "nodejs";
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
   const { orgId } = await getContexto();
-  let body: { ops?: EditOp[] };
+  let body: { ops?: EditOp[]; origen?: unknown };
   try {
-    body = (await req.json()) as { ops?: EditOp[] };
+    body = (await req.json()) as { ops?: EditOp[]; origen?: unknown };
   } catch {
     return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
   }
   if (!Array.isArray(body.ops)) {
     return NextResponse.json({ error: "Faltan ops" }, { status: 400 });
   }
+  // Solo se reconoce el valor exacto; cualquier otra cosa cuenta como edición a
+  // mano. Es una etiqueta para el Historial, no un permiso.
+  const origen = body.origen === "ia" ? "ia" : undefined;
   try {
     const { snapshotId } = await saveEdits(
       { store: projectStore, storage: getStorage() },
-      { orgId, projectId: id, ops: body.ops }
+      { orgId, projectId: id, ops: body.ops, origen }
     );
     return NextResponse.json({ snapshotId }, { status: 201 });
   } catch (e) {
