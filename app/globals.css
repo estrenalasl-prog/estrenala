@@ -471,6 +471,18 @@ a:hover { color: var(--color-texto); }
   .previo.expandido .previo-barra { background: var(--color-superficie); border-bottom: 1px solid var(--color-borde); }
   .previo.expandido .lienzo-web { height: auto; flex: 1; }
 
+  /* ---------- Vista previa del blog ----------
+     Mismo gesto que la del sitio: se agranda el MISMO contenedor, así el iframe
+     no se remonta y no se pierde el scroll de lo que estabas mirando. */
+  .previo-blog { border: 1px solid var(--color-borde); border-radius: var(--radius-c);
+    background: var(--color-superficie); overflow: hidden; }
+  .previo-blog-barra { display: flex; justify-content: flex-end; padding: 7px 9px;
+    border-bottom: 1px solid var(--color-borde); background: var(--color-superficie); }
+  .previo-blog-lienzo { width: 100%; height: 384px; border: 0; display: block; background: var(--color-superficie); }
+  .previo-blog.expandido { position: fixed; inset: 0; z-index: 60; border: 0; border-radius: 0;
+    display: flex; flex-direction: column; }
+  .previo-blog.expandido .previo-blog-lienzo { height: auto; flex: 1; }
+
   /* ---------- Diálogos de la plataforma ----------
      Sustituyen a window.confirm, que pintaba la ventanita del navegador con un
      «estrenala.com dice» encima. Sobre <dialog> nativo: el centrado, la capa

@@ -48,8 +48,39 @@ function BadgeRelevancia({ relevancia }: { relevancia: number }) {
   );
 }
 
+// La vista previa, con pantalla completa como la del sitio: en un recuadro de
+// 384 px no se puede juzgar si una plantilla de blog está bien, que es justo lo
+// que se está mirando aquí.
 function IframePreview({ html }: { html: string }) {
-  return <iframe srcDoc={html} sandbox="" className="h-96 w-full rounded-c border border-borde bg-superficie" title="vista previa" />;
+  const [expandido, setExpandido] = useState(false);
+
+  useEffect(() => {
+    if (!expandido) return;
+    function onKey(e: KeyboardEvent) { if (e.key === "Escape") setExpandido(false); }
+    window.addEventListener("keydown", onKey);
+    const previo = document.body.style.overflow;
+    document.body.style.overflow = "hidden"; // que no se mueva el fondo detrás
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = previo;
+    };
+  }, [expandido]);
+
+  return (
+    <div className={expandido ? "previo-blog expandido" : "previo-blog"}>
+      <div className="previo-blog-barra">
+        <button
+          type="button"
+          className="btn btn-sec btn-sm"
+          onClick={() => setExpandido(!expandido)}
+          title={expandido ? "Salir de pantalla completa (Esc)" : "Ver la plantilla a tamaño real"}
+        >
+          {expandido ? "⤡ Salir" : "⤢ Expandir"}
+        </button>
+      </div>
+      <iframe srcDoc={html} sandbox="" className="previo-blog-lienzo" title="vista previa" />
+    </div>
+  );
 }
 
 // Carga un .html del disco a un textarea. Se lee en el navegador y no se sube a
@@ -110,7 +141,7 @@ export function BlogDePago() {
 
 export function BlogPanel({ projectId }: { projectId: string }) {
   const router = useRouter();
-  const { confirmar } = useDialogo();
+  const { confirmar, avisar } = useDialogo();
   const [abierto, setAbierto] = useState(false);
   const [vista, setVista] = useState<Vista>("lista");
   const [estado, setEstado] = useState<EstadoBlog | null>(null);
@@ -241,7 +272,19 @@ export function BlogPanel({ projectId }: { projectId: string }) {
 
   // Quien ya sabe dónde van los huecos los escribe él y no gasta ni un céntimo
   // de IA. Si se deja alguno, al guardar el servidor dice cuál falta.
-  function usarTalCual() {
+  //
+  // El índice es opcional SOLO en la vía de la IA, que lo construye a partir del
+  // artículo. Por este camino no hay quien lo construya, así que sin él se
+  // llegaba a la pantalla siguiente con un campo vacío y sin saber por qué no
+  // dejaba guardar.
+  async function usarTalCual() {
+    if (!miIndex.trim()) {
+      await avisar({
+        titulo: "Te falta la lista de artículos",
+        cuerpo: "Para hacerlo a mano hace falta también la página /blog/, con los marcadores <!--POST--> y <!--/POST--> rodeando el bloque que se repite por artículo. Si prefieres no escribirla, dale a «Colocar los huecos por mí» y la construimos con el diseño de tu artículo.",
+      });
+      return;
+    }
     setTplPost(miPost); setTplIndex(miIndex);
     setTraendo(false); setAvisosTpl([]); setPreviewTpl(null);
   }
@@ -743,7 +786,7 @@ export function BlogPanel({ projectId }: { projectId: string }) {
                       className="btn btn-primario btn-sm">
                       {rotulo("huecos", "Colocar los huecos por mí", "Colocando los huecos…")}
                     </button>
-                    <button onClick={usarTalCual} disabled={ocupado || !miPost.trim()}
+                    <button onClick={() => void usarTalCual()} disabled={ocupado || !miPost.trim()}
                       title="Si tu HTML ya trae los huecos escritos, no hace falta gastar IA"
                       className="btn btn-sec btn-sm">Ya lleva los huecos</button>
                     <button onClick={() => setTraendo(false)} disabled={ocupado} className="btn btn-sec btn-sm">Volver</button>

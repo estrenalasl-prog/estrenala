@@ -5,6 +5,11 @@ import { renderIndex } from "./blog-index";
 import { actualizarSitemap, quitarDelSitemap } from "./sitemap";
 import { validarPrePublicacion } from "./validate";
 import { validarPlantillas, MSG_SIN_PLANTILLA } from "./site-template";
+
+// Cuando el que pide la vista previa está escribiendo la plantilla AHORA, el
+// problema no es que el proyecto no tenga plantilla: es que ese campo está vacío.
+export const MSG_ARTICULO_VACIO = "Pega antes el HTML de la página de artículo";
+export const MSG_INDICE_VACIO = "Todavía no has traído la lista de artículos. Escríbela, o usa «Colocar los huecos por mí» y la construimos con el diseño de tu artículo";
 import { rewriteHtml } from "@/src/preview/rewrite";
 import { generarSubdominio } from "@/src/publish/publish-site";
 import type { StorageAdapter } from "@/src/storage/types";
@@ -217,8 +222,17 @@ export async function previewBlog(deps: Deps, input: {
   // al preview efímero; los archivos guardados conservan las rutas (correctas al publicar).
   const baseHref = `/api/projects/${input.projectId}/preview/`;
   if (cual === "index") {
-    const tplIndex = input.tplIndex ?? guardada?.tplIndex;
-    if (!tplIndex) throw new EditorError(MSG_SIN_PLANTILLA, 400);
+    const tplIndex = input.tplIndex || guardada?.tplIndex;
+    // Dos situaciones distintas y hasta ahora el mismo mensaje. Si el que pide la
+    // vista previa TRAE una plantilla en la mano —está escribiéndola ahora mismo—
+    // y le sale «el proyecto no tiene plantilla de blog (créala en la sección
+    // Blog)», se le está mintiendo y encima mandándole a donde ya está.
+    if (!tplIndex) {
+      throw new EditorError(
+        input.tplIndex !== undefined ? MSG_INDICE_VACIO : MSG_SIN_PLANTILLA,
+        400
+      );
+    }
     const item = { ...DATOS_EJEMPLO, fecha: hoy() };
     let html: string;
     try {
@@ -228,8 +242,13 @@ export async function previewBlog(deps: Deps, input: {
     }
     return { html };
   }
-  const tplPost = input.tplPost ?? guardada?.tplPost;
-  if (!tplPost) throw new EditorError(MSG_SIN_PLANTILLA, 400);
+  const tplPost = input.tplPost || guardada?.tplPost;
+  if (!tplPost) {
+    throw new EditorError(
+      input.tplPost !== undefined ? MSG_ARTICULO_VACIO : MSG_SIN_PLANTILLA,
+      400
+    );
+  }
   const datos = {
     titulo: input.titulo?.trim() ? input.titulo : DATOS_EJEMPLO.titulo,
     slug: input.slug?.trim() ? input.slug : DATOS_EJEMPLO.slug,

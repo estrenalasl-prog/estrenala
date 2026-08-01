@@ -5,6 +5,8 @@ import {
   borrarPost,
   guardarPlantillas,
   previewBlog,
+  MSG_ARTICULO_VACIO,
+  MSG_INDICE_VACIO,
 } from "@/src/blog/apply";
 import { validarPlantillas, MSG_SIN_PLANTILLA } from "@/src/blog/site-template";
 import { DATOS_EJEMPLO, IMAGEN_EJEMPLO } from "@/src/blog/render";
@@ -466,6 +468,37 @@ describe("previewBlog", () => {
     const r = await previewBlog(deps(f), { orgId: ORG, projectId: PROJECT_ID, cual: "index", tplIndex: TPL_INDEX });
     expect(r.html).toContain(DATOS_EJEMPLO.titulo);
     expect(r.html).toContain(IMAGEN_EJEMPLO);
+  });
+
+  // Quien está escribiendo la plantilla y pide la vista previa con el campo
+  // vacío NO tiene el mismo problema que quien no ha creado ninguna. Decirle
+  // «créala en la sección Blog» es mentirle y mandarle a donde ya está.
+  describe("qué se dice cuando falta la plantilla", () => {
+    it("con el campo del índice vacío, se habla de ESE campo", async () => {
+      const f = fakes({ tienePlantilla: false });
+      await expect(previewBlog(deps(f), {
+        orgId: ORG, projectId: PROJECT_ID, cual: "index", tplIndex: "",
+      })).rejects.toThrow(MSG_INDICE_VACIO);
+    });
+
+    it("con el campo del artículo vacío, igual", async () => {
+      const f = fakes({ tienePlantilla: false });
+      await expect(previewBlog(deps(f), {
+        orgId: ORG, projectId: PROJECT_ID, tplPost: "",
+      })).rejects.toThrow(MSG_ARTICULO_VACIO);
+    });
+
+    it("sin traer nada y sin plantilla guardada, sigue siendo el de siempre", async () => {
+      const f = fakes({ tienePlantilla: false });
+      await expect(previewBlog(deps(f), { orgId: ORG, projectId: PROJECT_ID }))
+        .rejects.toThrow(MSG_SIN_PLANTILLA);
+    });
+
+    it("con el campo vacío pero una plantilla YA guardada, se enseña la guardada", async () => {
+      const f = fakes({ tienePlantilla: true });
+      const r = await previewBlog(deps(f), { orgId: ORG, projectId: PROJECT_ID, tplPost: "" });
+      expect(r.html).toContain(DATOS_EJEMPLO.titulo);
+    });
   });
 
   it("reescribe la ruta absoluta del CSS enlazado para que el iframe la resuelva", async () => {
