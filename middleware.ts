@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { parseHost } from "@/src/publish/host";
+import { parseHost, esAliasDePlataforma } from "@/src/publish/host";
 import { verificarSesion, SESSION_COOKIE } from "@/src/auth/session-cookie";
 import { plataformaOculta, ROBOTS_NOINDEX, CABECERAS_SEGURIDAD, CABECERAS_SEGURIDAD_INCRUSTABLE } from "@/src/config/robots-plataforma";
 
@@ -36,6 +36,13 @@ export async function middleware(req: NextRequest) {
   // cliente (está en RESERVADOS, así que nadie puede tenerlo) y acabaría en la
   // 404 pública. Con el DNS comodín *.PLATAFORMA.com esto pasa de verdad.
   if (host === `www.${plat}`) {
+    return NextResponse.redirect(`https://${plat}${req.nextUrl.pathname}${req.nextUrl.search}`, 301);
+  }
+
+  // Otros dominios nuestros (estrenala.es) → 301 al principal, conservando la
+  // ruta y la query. TAMBIÉN antes de parseHost: si no, se tomarían por el
+  // dominio propio de un cliente y acabarían en la 404 pública.
+  if (esAliasDePlataforma(host, process.env.PLATFORM_ALIAS_HOSTS)) {
     return NextResponse.redirect(`https://${plat}${req.nextUrl.pathname}${req.nextUrl.search}`, 301);
   }
 

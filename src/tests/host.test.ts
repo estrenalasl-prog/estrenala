@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseHost } from "@/src/publish/host";
+import { parseHost, esAliasDePlataforma } from "@/src/publish/host";
 
 const PLAT = "localhost:3000";
 
@@ -57,5 +57,45 @@ describe("parseHost con panel separado (producción)", () => {
     expect(parseHost("sub.localhost:3000", "localhost:3000"))
       .toEqual({ tipo: "subdominio", valor: "sub" });
     expect(parseHost("localhost:3000", "localhost:3000")).toEqual({ tipo: "plataforma" });
+  });
+});
+
+// `estrenala.es` es nuestro y su DNS ya apunta al VPS. Sin reconocerlo, parseHost
+// lo toma por el dominio propio de un cliente y acaba en la 404 pública: quien
+// teclee el .es --en España, medio mundo-- se encuentra una página muerta.
+describe("esAliasDePlataforma", () => {
+  const LISTA = "estrenala.es";
+
+  it("reconoce el dominio listado", () => {
+    expect(esAliasDePlataforma("estrenala.es", LISTA)).toBe(true);
+  });
+
+  it("reconoce su www sin tener que listarlo aparte", () => {
+    expect(esAliasDePlataforma("www.estrenala.es", LISTA)).toBe(true);
+  });
+
+  it("no se lleva por delante el dominio principal ni el de un cliente", () => {
+    expect(esAliasDePlataforma("estrenala.com", LISTA)).toBe(false);
+    expect(esAliasDePlataforma("sucliente.com", LISTA)).toBe(false);
+    expect(esAliasDePlataforma("quantiva.estrenala.com", LISTA)).toBe(false);
+  });
+
+  it("no le vale a un dominio que solo TERMINE igual", () => {
+    expect(esAliasDePlataforma("noesestrenala.es", LISTA)).toBe(false);
+    expect(esAliasDePlataforma("estrenala.es.malo.com", LISTA)).toBe(false);
+  });
+
+  it("sin lista configurada no redirige nada (dev)", () => {
+    expect(esAliasDePlataforma("estrenala.es", undefined)).toBe(false);
+    expect(esAliasDePlataforma("estrenala.es", "")).toBe(false);
+  });
+
+  it("admite varios, con espacios y mayúsculas de por medio", () => {
+    expect(esAliasDePlataforma("ESTRENALA.ES", " estrenala.es , estrenala.eu ")).toBe(true);
+    expect(esAliasDePlataforma("www.estrenala.eu", " estrenala.es , estrenala.eu ")).toBe(true);
+  });
+
+  it("tolera el punto final del FQDN", () => {
+    expect(esAliasDePlataforma("estrenala.es.", LISTA)).toBe(true);
   });
 });
