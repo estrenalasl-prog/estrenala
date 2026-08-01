@@ -1,0 +1,195 @@
+<!doctype html>
+<!--
+  PÁGINA DE ARTÍCULO DE EJEMPLO — para probar «Ya tengo mi plantilla».
+
+  A propósito NO lleva ningún {{hueco}}: así se ve si «Colocar los huecos por mí»
+  hace su trabajo. Y a propósito tiene un diseño que NO se parece al de Estrénala
+  —serif, ancho estrecho, azul— para que se note de un vistazo si la IA ha
+  respetado el diseño o lo ha rehecho a su manera. Si al volver sigue siendo esto
+  con los huecos puestos, funciona.
+
+  Todo el CSS va aquí dentro: no depende de ningún archivo, así que se ve igual
+  aunque no esté subido en la web.
+-->
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cinco señales de que tu empresa ya necesita automatizar</title>
+  <meta name="description" content="Si te suenan tres de estas cinco, no es que trabajéis mucho: es que estáis haciendo a mano algo que ya podría hacerse solo.">
+  <style>
+    :root {
+      --tinta: #16202B;
+      --tinta-2: #4A5A6A;
+      --papel: #FBFAF7;
+      --linea: #E2DED6;
+      --azul: #1F5FA9;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--papel);
+      color: var(--tinta);
+      font: 18px/1.75 Georgia, "Iowan Old Style", "Times New Roman", serif;
+    }
+    .cinta {
+      border-bottom: 1px solid var(--linea);
+      background: #fff;
+    }
+    .cinta-int {
+      max-width: 720px; margin: 0 auto; padding: 18px 24px;
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    }
+    .marca { font: 700 19px/1 Georgia, serif; letter-spacing: -.02em; text-decoration: none; color: var(--tinta); }
+    .cinta nav { display: flex; gap: 20px; }
+    .cinta nav a {
+      font: 500 14px/1 system-ui, sans-serif; text-decoration: none; color: var(--tinta-2);
+    }
+    .cinta nav a:hover { color: var(--azul); }
+
+    .envoltura { max-width: 720px; margin: 0 auto; padding: 0 24px 72px; }
+
+    .portada {
+      width: 100%; height: 300px; object-fit: cover;
+      border-radius: 4px; margin: 36px 0 32px; display: block;
+    }
+
+    .fecha {
+      font: 600 12px/1 system-ui, sans-serif; letter-spacing: .12em;
+      text-transform: uppercase; color: var(--azul); margin: 0 0 12px;
+    }
+
+    h1 {
+      font-size: 40px; line-height: 1.15; letter-spacing: -.02em;
+      margin: 0 0 20px; text-wrap: balance;
+    }
+
+    .entradilla {
+      font-size: 21px; line-height: 1.6; color: var(--tinta-2);
+      margin: 0 0 36px; padding-bottom: 28px; border-bottom: 1px solid var(--linea);
+    }
+
+    article h2 { font-size: 27px; line-height: 1.25; margin: 40px 0 14px; letter-spacing: -.015em; }
+    article p { margin: 0 0 20px; }
+    article ul { margin: 0 0 20px; padding-left: 22px; }
+    article li { margin-bottom: 9px; }
+    article blockquote {
+      margin: 32px 0; padding: 4px 0 4px 22px;
+      border-left: 3px solid var(--azul);
+      font-style: italic; color: var(--tinta-2);
+    }
+    article a { color: var(--azul); }
+
+    .volver {
+      display: inline-block; margin-top: 44px;
+      font: 500 15px/1 system-ui, sans-serif; color: var(--azul); text-decoration: none;
+    }
+    .volver:hover { text-decoration: underline; }
+
+    .pie {
+      border-top: 1px solid var(--linea); background: #fff;
+      font: 400 14px/1.6 system-ui, sans-serif; color: var(--tinta-2);
+    }
+    .pie-int { max-width: 720px; margin: 0 auto; padding: 26px 24px; }
+
+    @media (max-width: 620px) {
+      body { font-size: 17px; }
+      h1 { font-size: 30px; }
+      .entradilla { font-size: 18px; }
+      .portada { height: 200px; }
+      .cinta nav { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="cinta">
+    <div class="cinta-int">
+      <a class="marca" href="/">Cuaderno</a>
+      <nav>
+        <a href="/">Inicio</a>
+        <a href="/blog/">Artículos</a>
+        <a href="/contacto.html">Contacto</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="envoltura">
+
+    <img class="portada" src="portada.jpg" alt="Ilustración del artículo">
+
+    <p class="fecha">12 de marzo de 2026</p>
+
+    <h1>Cinco señales de que tu empresa ya necesita automatizar</h1>
+
+    <p class="entradilla">
+      Si te suenan tres de estas cinco, no es que trabajéis mucho: es que estáis
+      haciendo a mano algo que ya podría hacerse solo.
+    </p>
+
+    <article>
+      <p>
+        Casi nadie decide automatizar de un día para otro. Lo normal es ir tirando
+        con hojas de cálculo y buena voluntad hasta que un día alguien se da cuenta
+        de que la mitad de la mañana se va en copiar datos de un sitio a otro.
+      </p>
+
+      <h2>1. Copiáis lo mismo en dos sitios</h2>
+      <p>
+        Es la señal más clara y la más fácil de pasar por alto, porque cada copia
+        cuesta dos minutos. Dos minutos, cuarenta veces al día, son hora y media.
+      </p>
+
+      <h2>2. Nadie sabe cuál es la versión buena</h2>
+      <p>
+        Cuando el mismo dato vive en tres sitios, tarde o temprano dejan de coincidir,
+        y a partir de ahí cada decisión se toma discutiendo cuál de los tres tiene razón.
+      </p>
+
+      <blockquote>
+        El coste de hacerlo a mano no es el tiempo que se tarda: es el rato que se
+        pierde después arreglando lo que salió mal.
+      </blockquote>
+
+      <h2>3. Las cosas se caen cuando alguien se va de vacaciones</h2>
+      <p>
+        Si un proceso solo funciona porque una persona concreta se acuerda de hacerlo
+        cada martes, ese proceso no existe todavía. Existe esa persona.
+      </p>
+
+      <h2>4. Contestáis lo mismo veinte veces al día</h2>
+      <ul>
+        <li>«¿Cuánto cuesta?»</li>
+        <li>«¿Dónde está mi pedido?»</li>
+        <li>«¿Podéis mandarme la factura otra vez?»</li>
+      </ul>
+      <p>
+        Ninguna de esas respuestas necesita a una persona pensando. Necesita a una
+        persona una sola vez, escribiéndola bien.
+      </p>
+
+      <h2>5. Sabéis que hay que arreglarlo, pero nunca hay tiempo</h2>
+      <p>
+        Esta es la definitiva. Si lleváis meses diciendo «cuando tengamos un hueco»,
+        el hueco no va a aparecer solo: hay que hacerlo, y suele salir más barato de
+        lo que os imagináis.
+      </p>
+
+      <p>
+        ¿Te has reconocido en tres o más? <a href="/contacto.html">Cuéntanoslo</a> y
+        le echamos un vistazo sin compromiso.
+      </p>
+    </article>
+
+    <a class="volver" href="/blog/">← Volver a los artículos</a>
+
+  </div>
+
+  <footer class="pie">
+    <div class="pie-int">
+      © 2026 Cuaderno · Todos los derechos reservados
+    </div>
+  </footer>
+
+</body>
+</html>

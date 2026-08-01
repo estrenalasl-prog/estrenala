@@ -701,27 +701,40 @@ export function BlogPanel({ projectId }: { projectId: string }) {
               {traendo ? (
                 <>
                   <p className="text-sm font-medium">Tu propia plantilla</p>
+                  {/* «¿Por qué tengo que subir dos?» fue lo primero que preguntó
+                      Sebas al verlo, y él conoce el sistema. Se explica aquí, que
+                      es donde surge la duda: una guía aparte hay que ir a buscarla
+                      y nadie sale del formulario a leerla. */}
                   <p className="text-xs text-texto-2">
-                    Pega el HTML de una página de artículo tal y como la quieres. No cambiamos tu diseño:
-                    solo le colocamos los huecos que el sistema rellena con cada artículo.
+                    Un blog tiene <b>dos tipos de página</b>: la <b>lista</b> de artículos —lo que se ve al
+                    entrar en <code>/blog/</code>— y <b>cada artículo por dentro</b>. Por eso te pedimos dos,
+                    aunque con una nos vale. No cambiamos tu diseño: solo le colocamos los huecos que el
+                    sistema rellena con cada artículo.
+                  </p>
+
+                  <div className="flex items-center gap-2">
+                    <label className="block text-xs font-medium">1 · Cómo se ve un artículo por dentro</label>
+                    <SubirHtml ocupado={ocupado} onTexto={setMiPost} />
+                  </div>
+                  <p className="text-xs text-texto-3" style={{ margin: 0 }}>
+                    Es la importante. Estos son los huecos que le colocamos:
                   </p>
                   <div className="rounded-c border border-borde p-2 text-xs text-texto-2">
                     {HUECOS_AYUDA.map(([h, q]) => (
                       <div key={h}><code className="font-mono">{h}</code> — {q}</div>
                     ))}
                   </div>
-
-                  <div className="flex items-center gap-2">
-                    <label className="block text-xs font-medium">Página de artículo</label>
-                    <SubirHtml ocupado={ocupado} onTexto={setMiPost} />
-                  </div>
                   <textarea value={miPost} onChange={(e) => setMiPost(e.target.value)} rows={8}
                     placeholder="Pega aquí el HTML de tu página de artículo…" className="campo font-mono" />
 
                   <div className="flex items-center gap-2">
-                    <label className="block text-xs font-medium">Página índice del blog <span className="font-normal text-texto-3">(opcional)</span></label>
+                    <label className="block text-xs font-medium">2 · La lista de artículos <span className="font-normal text-texto-3">(opcional)</span></label>
                     <SubirHtml ocupado={ocupado} onTexto={setMiIndex} />
                   </div>
+                  <p className="text-xs text-texto-3" style={{ margin: 0 }}>
+                    La página <code>/blog/</code>, con todos tus artículos listados. Aquí los huecos son
+                    otros —el título, la fecha y el enlace de cada uno— y se colocan solos.
+                  </p>
                   <textarea value={miIndex} onChange={(e) => setMiIndex(e.target.value)} rows={5}
                     placeholder="Si no la traes, la construimos con el mismo diseño de tu artículo." className="campo font-mono" />
 
