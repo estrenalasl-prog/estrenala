@@ -53,6 +53,43 @@ describe("DokployDeploy.connectDomain", () => {
     await expect(new DokployDeploy({ ...cfg, fetchImpl: f }).connectDomain({ dominio: "cliente.com" }))
       .rejects.toThrow(/domain\.create/);
   });
+
+  // Nadie escribe `www.` delante de un subdominio, así que ese registro no existe
+  // en el DNS del cliente: Traefik pedía un certificado imposible cada pocos
+  // minutos, para siempre. Visto el 2026-08-01 en los logs con
+  // `www.prueba.quantivatechnology.com`.
+  it("con un SUBDOMINIO no inventa el www: da de alta solo lo que existe", async () => {
+    const { f, llamadas } = fetchMock([yaHay([]), { ok: true }]);
+    await new DokployDeploy({ ...cfg, fetchImpl: f }).connectDomain({ dominio: "web.suempresa.com" });
+    const creados = llamadas.filter((l) => l.url.includes("domain.create"));
+    expect(creados).toHaveLength(1);
+    expect(JSON.parse(String(creados[0].init?.body)).host).toBe("web.suempresa.com");
+  });
+
+  it("un pelado con sufijo doble SIGUE llevando www (suempresa.co.uk es raíz)", async () => {
+    const { f, llamadas } = fetchMock([yaHay([]), { ok: true }, { ok: true }]);
+    await new DokployDeploy({ ...cfg, fetchImpl: f }).connectDomain({ dominio: "suempresa.co.uk" });
+    const hosts = llamadas.filter((l) => l.url.includes("domain.create"))
+      .map((l) => JSON.parse(String(l.init?.body)).host);
+    expect(hosts).toEqual(["suempresa.co.uk", "www.suempresa.co.uk"]);
+  });
+
+  // Los conectados ANTES del arreglo tienen su www dado de alta aunque fueran
+  // subdominios. Si la baja aplicara la regla nueva, se quedarían huérfanos
+  // renovando el certificado de un sitio que ya no existe.
+  it("la baja de un subdominio limpia también el www que quedara de antes", async () => {
+    const { f, llamadas } = fetchMock([
+      { ok: true, json: [
+        { domainId: "d1", host: "web.suempresa.com" },
+        { domainId: "d2", host: "www.web.suempresa.com" },
+      ]},
+      { ok: true }, { ok: true },
+    ]);
+    await new DokployDeploy({ ...cfg, fetchImpl: f }).disconnectDomain({ dominio: "web.suempresa.com" });
+    const borrados = llamadas.filter((l) => l.url.includes("domain.delete"))
+      .map((l) => JSON.parse(String(l.init?.body)).domainId);
+    expect(borrados).toEqual(["d1", "d2"]);
+  });
 });
 
 describe("DokployDeploy.publish / unpublish (subdominios de las webs)", () => {

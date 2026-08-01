@@ -1,4 +1,5 @@
 import type { DeployTarget } from "./deploy-target";
+import { esDominioRaiz } from "./domain";
 
 type DokployConfig = {
   url: string;             // p. ej. "https://dok.example" (sin barra final)
@@ -111,10 +112,29 @@ export class DokployDeploy implements DeployTarget {
     await this.baja([this.hostDe(input.subdominio)]);
   }
 
+  /**
+   * El `www.` solo se da de alta cuando el cliente conecta su dominio PELADO,
+   * que es donde la gente lo teclea. Con un subdominio (`web.suempresa.com`) no
+   * lo teclea nadie y ese registro no existe en su DNS: Traefik se queda pidiendo
+   * un certificado imposible, Let's Encrypt responde NXDOMAIN, y vuelta a empezar
+   * cada pocos minutos para siempre.
+   *
+   * Se vio el 2026-08-01 en los registros de Traefik, con
+   * `www.prueba.quantivatechnology.com` de una prueba. El daño no es el
+   * certificado que falta —nadie lo pide— sino el registro lleno de rojos: el día
+   * que se rompa algo de verdad, ya nadie mira ahí.
+   */
   async connectDomain({ dominio }: { dominio: string }): Promise<void> {
-    await this.alta([dominio, `www.${dominio}`]);
+    await this.alta(esDominioRaiz(dominio) ? [dominio, `www.${dominio}`] : [dominio]);
   }
 
+  /**
+   * La baja pide SIEMPRE los dos, sin mirar si es raíz. Los dominios conectados
+   * antes de este arreglo tienen su `www.` dado de alta aunque fueran
+   * subdominios; si la baja aplicase la regla nueva, esos se quedarían huérfanos
+   * en Traefik renovando un certificado de un sitio que ya no existe. `baja` solo
+   * borra lo que encuentra, así que pedir de más no cuesta nada.
+   */
   async disconnectDomain({ dominio }: { dominio: string }): Promise<void> {
     await this.baja([dominio, `www.${dominio}`]);
   }

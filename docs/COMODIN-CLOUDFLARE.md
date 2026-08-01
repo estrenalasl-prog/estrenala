@@ -153,28 +153,78 @@ toca ni una línea.
 Aquí es donde se gana el techo, y donde te puedes quedar sin panel. Haz este paso
 **con el panel de Dokploy abierto en otra pestaña ya logueado**, por si acaso.
 
-La regla, con la prioridad baja EXPLÍCITA:
+**No va como etiquetas de Docker.** El `traefik.yml` ya trae el proveedor de
+archivos apuntando a `/etc/dokploy/traefik/dynamic` con `watch: true`, así que la
+regla va como un archivo suelto ahí. Ventaja que importa: se deshace **borrando el
+archivo**, y Traefik lo recarga solo, sin reiniciar y sin restaurar copias.
+
+Archivo `/etc/dokploy/traefik/dynamic/estrenala-comodin.yml` (hecho 2026-08-01):
 
 ```yaml
-- 'traefik.http.routers.estrenala-comodin.rule=HostRegexp(`^[a-z0-9-]+\.estrenala\.com$`)'
-- 'traefik.http.routers.estrenala-comodin.entrypoints=websecure'
-- 'traefik.http.routers.estrenala-comodin.priority=1'
-- 'traefik.http.routers.estrenala-comodin.tls.certresolver=letsencrypt-dns'
-- 'traefik.http.routers.estrenala-comodin.tls.domains[0].main=estrenala.com'
-- 'traefik.http.routers.estrenala-comodin.tls.domains[0].sans=*.estrenala.com'
+http:
+  routers:
+    estrenala-comodin:
+      rule: HostRegexp(`^[a-z0-9-]+\.estrenala\.com$`)
+      priority: 1
+      entryPoints: [web]
+      middlewares: [redirect-to-https]
+      service: estrenala-comodin
+    estrenala-comodin-websecure:
+      rule: HostRegexp(`^[a-z0-9-]+\.estrenala\.com$`)
+      priority: 1
+      entryPoints: [websecure]
+      service: estrenala-comodin
+      tls:
+        certResolver: letsencrypt-dns
+        domains:
+          - main: estrenala.com
+            sans: ["*.estrenala.com"]
+  services:
+    estrenala-comodin:
+      loadBalancer:
+        servers:
+          - url: http://quantiva-technology-estrenala-wpsvbw:3000
+        passHostHeader: true
 ```
 
-`priority=1` **no es opcional**: sin ella la regla comodín le gana a
-`` Host(`panel.estrenala.com`) `` por ser más larga, y pierdes el panel.
+`priority: 1` **no es opcional**. Traefik, ante dos reglas que encajan, elige la de
+mayor prioridad, y por defecto la prioridad ES LA LONGITUD DE LA REGLA. Medido en
+el servidor el 2026-08-01:
+
+| Regla | Prioridad |
+|---|---|
+| `` Host(`estrenala.es`) `` | 20 |
+| `` Host(`estrenala.com`) `` | 21 |
+| `` Host(`www.estrenala.com`) `` | 25 |
+| `` Host(`panel.estrenala.com`) `` | 27 |
+| `` Host(`quantiva.estrenala.com`) `` | 30 |
+| la regex comodín | **41** |
+
+Sin el `1` explícito, la comodín le gana a todas y te quedas sin panel.
+
+El `1` se puede usar porque **no hay ningún atrapatodo compitiendo**: el
+`` PathPrefix(`/`) `` que sale en la lista de routers está en la entrada `traefik`
+(el panel interno, puerto 8080), no en `web` ni `websecure`. Compruébalo antes de
+copiar este número a otro servidor:
+
+```sh
+docker exec dokploy-traefik wget -qO- http://localhost:8080/api/http/routers | sed 's/},{/}\n{/g'
+```
 
 Verificación, **en este orden**:
 
-1. `panel.estrenala.com` → sigue siendo Dokploy. **Si no, deshaz ya.**
+1. `panel.estrenala.com` → sigue siendo Dokploy. **Si no, borra el archivo ya.**
 2. Un subdominio de cliente que YA estuviera publicado → sigue bien.
-3. **La prueba de fuego**: publica una web con un subdominio nuevo y **no la des de alta
-   a mano en Dokploy**. Tiene que responder con HTTPS válido igualmente. Eso demuestra
-   que el comodín cubre y enruta.
+3. **La prueba de fuego**: un subdominio que no esté dado de alta en ningún sitio
+   tiene que responder con certificado válido. Se comprueba sin publicar nada:
+   antes fallaba el TLS, después devuelve el 404 de la aplicación («esta web no
+   está publicada»), que es la respuesta correcta.
 4. El CRM y los agentes de Quantiva, otra vez.
+
+El certificado sale con `SAN: *.estrenala.com, estrenala.com`. Para verlo desde
+fuera vale cualquier cliente TLS; lo que NO vale es mirar los logs de Traefik:
+está en nivel ERROR, así que **un certificado emitido bien no deja ni una línea**.
+Silencio no es prueba de nada.
 
 ## Paso 4 — Dejar de gastar el cupo (✅ ya programado, solo hay que encenderlo)
 
@@ -219,9 +269,16 @@ calma.
 
 ## Suelto, para no olvidarlo
 
-- **`analitica` no está en `RESERVADOS`** (`src/publish/slug.ts`) y Umami va a vivir en
-  `analitica.estrenala.com`. Un cliente podría pedir ese subdominio antes. Añadirlo
-  **antes** de desplegar Umami.
+- ~~**`analitica` no está en `RESERVADOS`**~~ — hecho el 2026-08-01, junto con `send`,
+  `analytics`, `webmail`, `status`, `docs`, `soporte` y `ayuda`.
+- **`panel.estrenala.com` es el panel de ADMINISTRACIÓN de Dokploy**, no el de la
+  plataforma (`dokploy-service-app`, router `dokploy-router-app-secure@file`). Dos
+  problemas: ahí dentro están todas las variables de entorno —Stripe, la base de
+  datos, el token de Cloudflare—, y es el subdominio que cualquier cliente va a
+  teclear pensando que es su panel, con lo que le enseñas dónde está la puerta.
+  Pendiente moverlo a un nombre no adivinable, mejor bajo `quantivatechnology.com`.
+  La regla comodín NO lo tapa (`priority: 1`), pero el día que se mueva, `panel`
+  caerá en el comodín: ya está en `RESERVADOS`, así que ningún cliente puede pedirlo.
 - Cuando el DNS esté en Cloudflare, la instrucción de DNS que la plataforma le enseña al
   cliente para su **dominio propio** no cambia: sigue siendo un registro A a
   `72.61.176.214`.
