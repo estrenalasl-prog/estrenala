@@ -168,8 +168,53 @@ artifact de claude.ai (9 bloques). Resumen de lo que quedó montado:
   una línea.** Silencio no prueba nada, ni bueno ni malo. Se comprueba desde fuera.
 - **No todos los routers salen en la carpeta `dynamic`.** El inventario de verdad:
   `docker exec dokploy-traefik wget -qO- http://localhost:8080/api/http/routers`.
-- **`panel.estrenala.com` es el panel de administración de DOKPLOY**, no el de la
-  plataforma. Pendiente moverlo a un nombre no adivinable (ver COMODIN-CLOUDFLARE.md).
+- ~~**`panel.estrenala.com` es el panel de administración de DOKPLOY**~~ — movido el
+  mismo día a **`dk-8f24.quantivatechnology.com`** (ver abajo).
+
+## 🔒 2026-08-01 (noche) — Dokploy, fuera del dominio del producto
+
+Estaba en `panel.estrenala.com`: el subdominio más adivinable del producto, con
+todas las variables de entorno dentro (Stripe, base de datos, token de Cloudflare),
+y **además accesible en `http://72.61.176.214:3000` sin cifrar**. Cuatro pasos, en
+este orden y no en otro:
+
+1. Registro A `dk-8f24.quantivatechnology.com` → `72.61.176.214`.
+2. Dokploy → **Server Domain** → dominio nuevo, HTTPS, Let's Encrypt. Es un
+   **reemplazo**, no una lista: `panel.estrenala.com` deja de llevar a Dokploy en el
+   acto (ahora cae en el comodín y da el 404 de la plataforma; `panel` está en
+   `RESERVADOS`, así que ningún cliente puede quedárselo).
+3. **Webhook de GitHub a la URL nueva.** El propio Dokploy lo avisa en rojo. Sin
+   esto el despliegue automático muere en silencio. Se aprovechó para **rotar el
+   token**, que se había pegado en el chat esa mañana. Verificado con *Redeliver* en
+   GitHub → 200.
+4. Cerrar el 3000. Ver el gotcha de abajo, que es el importante.
+
+### ⚠️ GOTCHA grande: Docker se salta el cortafuegos. TODOS los cortafuegos.
+
+Se sabía de `ufw`. **También se salta el cortafuegos VPS de Hostinger**, que parece
+externo pero es iptables dentro de la misma máquina. Con el cortafuegos activo
+permitiendo solo 22/80/443, `http://IP:3000` seguía devolviendo Dokploy con un 200.
+
+El tráfico hacia un contenedor no pasa por la cadena `INPUT` donde están esas
+reglas. Hay que usar la cadena `DOCKER-USER`, que existe justo para esto:
+
+```sh
+iptables -I DOCKER-USER -i eth0 -p tcp --dport 3000 -j DROP
+```
+
+Y **eso se pierde al reiniciar**. Fijado con `/etc/systemd/system/cerrar-3000.service`
+(`Type=oneshot`, `RemainAfterExit=yes`, `After=docker.service`). NO se usó
+`iptables-persistent` a propósito: guarda una foto de todas las reglas actuales,
+incluidas las que Docker se genera solo, y al arrancar se pelean.
+
+**Pendiente de comprobar:** el 3000 tras el primer reinicio de verdad. Hasta
+entonces el servicio es una promesa, no un hecho. (Hay 26 actualizaciones y un
+reinicio pendientes desde el 2026-08-01.)
+
+El cortafuegos de Hostinger se deja activado igualmente: sí manda sobre lo que corre
+en la máquina y no en Docker. Reglas: `Accept TCP 22/80/443` + el `Drop Any` de
+serie. **Es lista de permitidos**: activarlo sin las reglas de aceptación deja el
+servidor incomunicado en el acto.
 
 ## ⏭️ En qué punto estamos y qué sigue
 
