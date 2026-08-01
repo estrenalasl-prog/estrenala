@@ -181,6 +181,11 @@ export function BlogPanel({ projectId }: { projectId: string }) {
   const [meta, setMeta] = useState("");
   const [md, setMd] = useState("");
   const mdRef = useRef<HTMLTextAreaElement>(null);
+  // Dónde ha dejado el cursor el usuario. `null` = todavía no ha pinchado dentro
+  // del texto. Se guarda aparte porque un textarea recién pegado tiene
+  // `selectionStart` en 0, y eso no significa «quiero la imagen arriba del todo»,
+  // significa «no he elegido». Ver `insertarEnCuerpo`.
+  const cursorMd = useRef<number | null>(null);
   const [imagenAssetId, setImagenAssetId] = useState("");
   const [imagenUrl, setImagenUrl] = useState("");
   const [previewArt, setPreviewArt] = useState<string | null>(null);
@@ -333,12 +338,14 @@ export function BlogPanel({ projectId }: { projectId: string }) {
   }
 
   function nuevoArticulo() {
+    cursorMd.current = null; // si no, se arrastraría la posición del artículo anterior
     setPostId(null); setTitulo(""); setSlug(""); setSlugTocado(false); setMeta(""); setMd("");
     setImagenAssetId(""); setImagenUrl(""); setPreviewArt(null); setProgFecha(""); setVista("editor");
   }
   async function editarArticulo(id: string) {
     const d = await llamar(`/api/projects/${projectId}/blog/posts/${id}`, { method: "GET" });
     if (!d) return;
+    cursorMd.current = null;
     setPostId(id); setTitulo(d.titulo as string); setSlug(d.slug as string); setSlugTocado(true);
     setMeta(d.metaDescripcion as string); setMd(d.md as string);
     setImagenAssetId(d.imagenAssetId as string);
@@ -364,12 +371,17 @@ export function BlogPanel({ projectId }: { projectId: string }) {
       const d = (await res.json().catch(() => ({}))) as { error?: string; assetId?: string; ext?: string };
       if (!res.ok || !d.assetId || !d.ext) { setError(d.error ?? "Error al subir la imagen"); return; }
       const ta = mdRef.current;
-      const cursor = ta ? ta.selectionStart : md.length;
+      // Si todavía no ha pinchado dentro del texto, la imagen va AL FINAL, no al
+      // principio. Lo normal es pegar el artículo entero e ir directo al botón: con
+      // el cursor a cero, la foto se colaría delante del primer párrafo, que es lo
+      // último que quiere nadie y encima parece un fallo del programa.
+      const cursor = cursorMd.current ?? md.length;
       const alt = f.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").trim();
       const r = insertarImagen(md, cursor, `/wc-uploads/${d.assetId}.${d.ext}`, alt);
       setMd(r.md);
       // Devolver el foco y dejar el cursor justo detrás de lo insertado: si no, hay
       // que volver a pinchar y buscar por dónde ibas, y se pierde el hilo.
+      cursorMd.current = r.cursor;
       requestAnimationFrame(() => {
         if (!ta) return;
         ta.focus();
@@ -924,11 +936,13 @@ export function BlogPanel({ projectId }: { projectId: string }) {
               <div className="flex flex-wrap items-center gap-2">
                 <BotonSubir texto="Insertar imagen aquí" ocupado={ocupado} onFile={(f) => void insertarEnCuerpo(f)} />
                 <span className="text-xs text-texto-3">
-                  Se coloca donde tengas el cursor. Un artículo con varias imágenes se lee mejor y
-                  retiene más.
+                  Escribe primero el artículo, haz clic donde la quieras y pulsa el botón. Si no
+                  eliges sitio, va al final.
                 </span>
               </div>
-              <textarea ref={mdRef} value={md} onChange={(e) => setMd(e.target.value)} rows={14}
+              <textarea ref={mdRef} value={md} rows={14}
+                onChange={(e) => { setMd(e.target.value); cursorMd.current = e.target.selectionStart; }}
+                onSelect={(e) => { cursorMd.current = e.currentTarget.selectionStart; }}
                 placeholder="Escribe o pega aquí el artículo en markdown (por ejemplo, el que te escribió tu IA)…"
                 className="campo font-mono" />
               <div className="flex gap-2">
