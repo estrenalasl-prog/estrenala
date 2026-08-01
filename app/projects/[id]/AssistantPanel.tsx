@@ -103,7 +103,7 @@ export function AssistantPanel({
 
         <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8 }}>
           <button className="btn btn-primario btn-sm" onClick={() => void proponer()} disabled={ocupado || !instruccion.trim()}>
-            {ocupado && !propuesta ? "Pensando…" : "Proponer cambios"}
+            {ocupado && !propuesta ? <><span className="cargador" /> Pensando…</> : "Proponer cambios"}
           </button>
           <small style={{ color: "var(--color-texto-3)" }}>Consume crédito de OpenRouter (tu clave).</small>
         </div>
@@ -150,7 +150,11 @@ export function AssistantPanel({
               </ul>
               <div style={{ display: "flex", gap: 8 }}>
                 <button className="btn btn-primario btn-sm" onClick={() => void aplicar()} disabled={ocupado}>
-                  Aplicar {propuesta.ops.length} {propuesta.ops.length === 1 ? "cambio" : "cambios"}
+                  {/* Con una propuesta en pantalla, `ocupado` solo puede ser esto:
+                      proponer() vacía la propuesta antes de empezar. */}
+                  {ocupado
+                    ? <><span className="cargador" /> Aplicando…</>
+                    : <>Aplicar {propuesta.ops.length} {propuesta.ops.length === 1 ? "cambio" : "cambios"}</>}
                 </button>
                 <button className="btn btn-fantasma btn-sm" onClick={() => setPropuesta(null)} disabled={ocupado}>Descartar</button>
               </div>

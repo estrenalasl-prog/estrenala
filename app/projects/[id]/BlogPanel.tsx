@@ -80,6 +80,12 @@ export function BlogPanel({ projectId }: { projectId: string }) {
   const [vista, setVista] = useState<Vista>("lista");
   const [estado, setEstado] = useState<EstadoBlog | null>(null);
   const [ocupado, setOcupado] = useState(false);
+  // QUÉ se está haciendo, no solo que hay algo en marcha. `ocupado` apaga todos
+  // los botones a la vez, así que sin esto no hay forma de poner el relojito en
+  // el que pulsaste sin ponerlo también en los otros seis. Y aquí hay esperas de
+  // medio minuto (la IA, el radar): sin señal ninguna, uno da por hecho que la
+  // página se ha quedado colgada y vuelve a pulsar.
+  const [enCurso, setEnCurso] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   // Qué acaba de pasar y qué falta para verlo online. Guardar un artículo NO lo
   // publica: reescribe el HTML, el índice y el sitemap, y eso queda como versión
@@ -151,19 +157,24 @@ export function BlogPanel({ projectId }: { projectId: string }) {
   }
   useEffect(() => { if (abierto && !estado) void cargar(); }, [abierto]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function llamar(url: string, init: RequestInit): Promise<Record<string, unknown> | null> {
-    setOcupado(true); setError(null); setAviso(null); // el aviso es de lo ÚLTIMO que pasó
+  async function llamar(url: string, init: RequestInit, tarea?: string): Promise<Record<string, unknown> | null> {
+    setOcupado(true); setEnCurso(tarea ?? null); setError(null); setAviso(null); // el aviso es de lo ÚLTIMO que pasó
     try {
       const res = await fetch(url, init);
       const d = (await res.json().catch(() => ({}))) as Record<string, unknown>;
       if (!res.ok) { setError((d.error as string) ?? "Error"); return null; }
       return d;
     } catch { setError("Error de conexión"); return null; }
-    finally { setOcupado(false); }
+    finally { setOcupado(false); setEnCurso(null); }
+  }
+
+  /** Texto de un botón: con relojito mientras esa tarea concreta está en marcha. */
+  function rotulo(tarea: string, reposo: string, trabajando: string) {
+    return enCurso === tarea ? <><span className="cargador" /> {trabajando}</> : <>{reposo}</>;
   }
 
   async function generarPlantillas() {
-    const d = await llamar(`/api/projects/${projectId}/blog/template`, { method: "POST" });
+    const d = await llamar(`/api/projects/${projectId}/blog/template`, { method: "POST" }, "plantilla");
     if (d) { setTplPost(d.tplPost as string); setTplIndex(d.tplIndex as string); setPreviewTpl(null); }
   }
   async function abrirPlantillas() {
@@ -220,8 +231,8 @@ export function BlogPanel({ projectId }: { projectId: string }) {
   async function guardarArticulo() {
     const body = JSON.stringify({ titulo, slug, metaDescripcion: meta, md, imagenAssetId });
     const d = postId
-      ? await llamar(`/api/projects/${projectId}/blog/posts/${postId}`, { method: "PUT", headers: { "content-type": "application/json" }, body })
-      : await llamar(`/api/projects/${projectId}/blog/posts`, { method: "POST", headers: { "content-type": "application/json" }, body });
+      ? await llamar(`/api/projects/${projectId}/blog/posts/${postId}`, { method: "PUT", headers: { "content-type": "application/json" }, body }, "guardarArticulo")
+      : await llamar(`/api/projects/${projectId}/blog/posts`, { method: "POST", headers: { "content-type": "application/json" }, body }, "guardarArticulo");
     if (d) {
       if (draftOrigenId) {
         // El artículo ya está guardado: el borrador IA sobra. Si el DELETE
@@ -256,7 +267,7 @@ export function BlogPanel({ projectId }: { projectId: string }) {
     const d = await llamar(`/api/projects/${projectId}/blog/portada`, {
       method: "POST", headers: { "content-type": "application/json" },
       body: JSON.stringify({ titulo, modo }),
-    });
+    }, `portada:${modo}`);
     if (d && d.assetId) {
       setImagenAssetId(d.assetId as string);
       setImagenUrl(d.url as string);
@@ -313,7 +324,7 @@ export function BlogPanel({ projectId }: { projectId: string }) {
     const d = await llamar(`/api/projects/${projectId}/blog/drafts`, {
       method: "POST", headers: { "content-type": "application/json" },
       body: JSON.stringify({ keyword: kw }),
-    });
+    }, "borrador");
     if (d && d.draftId) {
       setKw(""); setMostrarKw(false);
       setDraftId(d.draftId as string); setVista("ia");
@@ -331,7 +342,7 @@ export function BlogPanel({ projectId }: { projectId: string }) {
     const d = await llamar(`/api/projects/${projectId}/blog/keywords/radar`, {
       method: "POST", headers: { "content-type": "application/json" },
       body: JSON.stringify({ forzar }),
-    });
+    }, "temas");
     if (!d) return;
     if (d.actualizado === false) setRadarMsg("El radar ya se actualizó hoy.");
     else {
@@ -347,7 +358,7 @@ export function BlogPanel({ projectId }: { projectId: string }) {
     const d = await llamar(`/api/projects/${projectId}/blog/drafts`, {
       method: "POST", headers: { "content-type": "application/json" },
       body: JSON.stringify({ keyword: t.keyword }),
-    });
+    }, `tema:${t.id}`);
     if (!d || !d.draftId) return;
     // Marcarla usada es best-effort: si falla, seguirá en la lista.
     try {
@@ -400,7 +411,9 @@ export function BlogPanel({ projectId }: { projectId: string }) {
                   <p className="text-sm font-medium">El blog de tu web</p>
                   <p className="mb-2 text-xs text-texto-2">Artículos con tu diseño, índice y sitemap automáticos. Primero crea la plantilla: la IA lee tu portada y propone el diseño del blog.</p>
                   <button onClick={() => { setVista("plantillas"); void generarPlantillas(); }} disabled={ocupado}
-                    className="btn btn-primario btn-sm">Crear la plantilla del blog con IA</button>
+                    className="btn btn-primario btn-sm">
+                    {rotulo("plantilla", "Crear la plantilla del blog con IA", "Creando la plantilla…")}
+                  </button>
                 </div>
               ) : (
                 <div>
@@ -432,7 +445,9 @@ export function BlogPanel({ projectId }: { projectId: string }) {
                         <input value={kw} placeholder="Keyword o tema del artículo"
                           onChange={(e) => setKw(e.target.value)} className="campo" />
                         <button onClick={() => void crearBorrador()} disabled={ocupado}
-                          className="btn btn-primario btn-sm shrink-0">Crear borrador</button>
+                          className="btn btn-primario btn-sm shrink-0">
+                          {rotulo("borrador", "Crear borrador", "Creando…")}
+                        </button>
                         <button onClick={() => { setMostrarKw(false); setKw(""); }}
                           className="btn btn-sec btn-sm shrink-0">Cancelar</button>
                       </div>
@@ -457,7 +472,9 @@ export function BlogPanel({ projectId }: { projectId: string }) {
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-medium">Temas en tendencia</p>
                         <button onClick={() => void buscarTemas(false)} disabled={ocupado}
-                          className="btn btn-sec btn-sm">🔍 Buscar temas de hoy</button>
+                          className="btn btn-sec btn-sm">
+                          {rotulo("temas", "🔍 Buscar temas de hoy", "Buscando en Google…")}
+                        </button>
                         {radarMsg?.startsWith("El radar ya") && (
                           <button onClick={() => void buscarTemas(true)} disabled={ocupado}
                             className="btn btn-fantasma btn-sm">Forzar</button>
@@ -479,7 +496,9 @@ export function BlogPanel({ projectId }: { projectId: string }) {
                               </span>
                               <span className="flex shrink-0 gap-2">
                                 <button onClick={() => void escribirDesdeTema(t)} disabled={ocupado}
-                                  className="btn btn-primario btn-sm">Escribir artículo</button>
+                                  className="btn btn-primario btn-sm">
+                                  {rotulo(`tema:${t.id}`, "Escribir artículo", "Preparando…")}
+                                </button>
                                 <button onClick={() => void descartarTema(t)} disabled={ocupado}
                                   className="btn btn-fantasma btn-sm">descartar</button>
                               </span>
@@ -636,10 +655,10 @@ export function BlogPanel({ projectId }: { projectId: string }) {
                 {imagenUrl && <img src={imagenUrl} alt="" className="h-8 w-14 rounded object-cover" />}
                 <button onClick={() => void generarPortadaAuto("diseno")} disabled={ocupado || !titulo.trim()}
                   title="Gratis: un diseño con el título y los colores de tu web"
-                  className="btn btn-sec btn-sm">Generar diseño</button>
+                  className="btn btn-sec btn-sm">{rotulo("portada:diseno", "Generar diseño", "Dibujando…")}</button>
                 <button onClick={() => void generarPortadaAuto("ia")} disabled={ocupado || !titulo.trim()}
                   title="Imagen generada con IA (céntimos por imagen, a tu cuenta de OpenRouter)"
-                  className="btn btn-sec btn-sm">Generar con IA</button>
+                  className="btn btn-sec btn-sm">{rotulo("portada:ia", "Generar con IA", "Generando…")}</button>
                 <BotonSubir texto={imagenAssetId ? "Cambiar imagen" : "Subir imagen"} ocupado={ocupado} onFile={(f) => void subirPortada(f)} />
                 {!titulo.trim() && <span className="text-xs text-texto-3">(escribe el título para generarla)</span>}
               </div>
@@ -647,7 +666,9 @@ export function BlogPanel({ projectId }: { projectId: string }) {
                 placeholder="Escribe o pega aquí el artículo en markdown (por ejemplo, el que te escribió tu IA)…"
                 className="campo font-mono" />
               <div className="flex gap-2">
-                <button onClick={() => void guardarArticulo()} disabled={ocupado} className="btn btn-primario btn-sm">Guardar artículo</button>
+                <button onClick={() => void guardarArticulo()} disabled={ocupado} className="btn btn-primario btn-sm">
+                  {rotulo("guardarArticulo", "Guardar artículo", "Guardando…")}
+                </button>
                 <button onClick={() => void verPreviewArticulo()} disabled={ocupado} className="btn btn-sec btn-sm">Vista previa</button>
                 <button onClick={() => setVista("lista")} className="btn btn-sec btn-sm">Cancelar</button>
               </div>

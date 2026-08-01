@@ -45,8 +45,14 @@ export function PublishBar({
       ? "Subdominio activo · sin dominio propio"
       : "Sin dirección";
 
+  // `ocupado` apaga TODOS los botones de la barra a la vez, así que no sirve
+  // para saber cuál se pulsó. Publicar es la acción principal del panel y la que
+  // más tarda (copia el sitio y mueve el puntero público): sin señal, uno cree
+  // que no ha pasado nada y vuelve a darle.
+  const [publicando, setPublicando] = useState(false);
+
   async function llamar(metodo: "POST" | "DELETE") {
-    setOcupado(true); setError(null);
+    setOcupado(true); setPublicando(metodo === "POST"); setError(null);
     try {
       const res = await fetch(`/api/projects/${projectId}/publish`, { method: metodo });
       const d = (await res.json().catch(() => ({}))) as { error?: string };
@@ -54,7 +60,7 @@ export function PublishBar({
       setConfirmando(false);
       router.refresh();
     } finally {
-      setOcupado(false);
+      setOcupado(false); setPublicando(false);
     }
   }
 
@@ -97,6 +103,14 @@ export function PublishBar({
   // siendo un dominio pelado. Así que con uno ya conectado se enseña la dirección
   // exacta que tiene que resolver a nuestra IP, y aparte se explica el campo
   // «Nombre», que es donde cada proveedor hace lo suyo.
+  // Lo que el usuario teclea puede venir pegado del navegador («https://x.com/»).
+  // Se limpia solo para ENSEÑAR los registros; lo que se envía al conectar sigue
+  // siendo lo que escribió, que ya valida el servidor.
+  const paraDns = (v: string): string | null => {
+    const limpio = v.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+    return limpio.includes(".") ? limpio : null;
+  };
+
   const dns = (d: string | null) => (
     <>
       <div className="bloque-codigo">
@@ -140,7 +154,9 @@ export function PublishBar({
           {publicado && !sinPublicar && <span className="exito-inline"><span className="punto" />Publicado</span>}
           {sinPublicar && <span className="aviso-inline"><span className="punto" />Tienes cambios sin publicar</span>}
           <button className="btn btn-primario" onClick={() => void llamar("POST")} disabled={ocupado}>
-            {!publicado ? "Publicar" : sinPublicar ? "Publicar cambios" : "Republicar"}
+            {publicando
+              ? <><span className="cargador" /> Publicando…</>
+              : !publicado ? "Publicar" : sinPublicar ? "Publicar cambios" : "Republicar"}
           </button>
         </div>
       </div>
@@ -188,7 +204,11 @@ export function PublishBar({
             ) : (
               <>
                 <p>Conecta tu dominio (p. ej. <b>tuempresa.com</b>) apuntando estos registros en tu proveedor:</p>
-                {dns(null)}
+                {/* En vivo, según lo que va escribiendo. El arreglo anterior solo
+                    acertaba DESPUÉS de conectar, y las instrucciones se leen
+                    ANTES: quien iba a conectar un subdominio seguía viendo `@` y
+                    `www`, que son los registros de su dominio principal. */}
+                {dns(paraDns(dom))}
                 <div className="fila">
                   <input className="campo" style={{ width: 240, maxWidth: "100%" }} value={dom}
                     onChange={(e) => setDom(e.target.value)} placeholder="tudominio.com" />
