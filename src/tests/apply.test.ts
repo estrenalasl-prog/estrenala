@@ -367,3 +367,53 @@ describe("applyEdits · tamano de la imagen", () => {
     expect(r).toContain("color: #333");
   });
 });
+
+// Sebas, al ver dos fotos seguidas: «que no queden tan pegadas».
+describe("applyEdits · margen de la imagen", () => {
+  const mg = (nodeId: number, value: "ninguno" | "poco" | "normal" | "mucho") =>
+    ({ nodeId, kind: "margen" as const, value });
+
+  it("pone la separacion arriba y abajo", () => {
+    const r = applyEdits(`<img src="/a.png">`, [mg(0, "normal")]);
+    expect(r).toContain("margin-top: 20px");
+    expect(r).toContain("margin-bottom: 20px");
+  });
+
+  it("«sin» de verdad quita el aire, no lo deja a medias", () => {
+    const r = applyEdits(`<img src="/a.png">`, [mg(0, "ninguno")]);
+    expect(r).toContain("margin-top: 0");
+    expect(r).toContain("margin-bottom: 0");
+  });
+
+  // EL punto: el margen NO toca los lados, que son de la alineacion. Si los
+  // tocara, poner «mucho» descentraria la foto que se acaba de centrar.
+  it("no descentra una imagen ya centrada", () => {
+    const r = applyEdits(`<img src="/a.png">`, [
+      { nodeId: 0, kind: "align", value: "centro" },
+      mg(0, "mucho"),
+    ]);
+    expect(r).toContain("margin-left: auto");
+    expect(r).toContain("margin-right: auto");
+    expect(r).toContain("margin-top: 40px");
+  });
+
+  // Los cuatro controles a la vez sobre la misma imagen, que es lo que acabara
+  // haciendo cualquiera que le coja el gusto.
+  it("tamano + alineacion + margen + color: UN solo atributo bien formado", () => {
+    const r = applyEdits(`<img src="/a.png" style="border-radius: 8px">`, [
+      { nodeId: 0, kind: "size", value: "mediana" },
+      { nodeId: 0, kind: "align", value: "centro" },
+      mg(0, "normal"),
+      { nodeId: 0, kind: "style", property: "color", value: "red" },
+    ]);
+    expect([...r.matchAll(/style=/g)]).toHaveLength(1);
+    expect(r).toContain("border-radius: 8px");
+    expect(r).toContain("width: 50%");
+    expect(r).toContain("margin-left: auto");
+    expect(r).toContain("margin-top: 20px");
+    expect(r).toContain("color: red");
+    // Y sin duplicar ninguna propiedad, que es como se cuela un valor muerto.
+    expect([...r.matchAll(/margin-top/g)]).toHaveLength(1);
+    expect([...r.matchAll(/width:/g)]).toHaveLength(1);
+  });
+});

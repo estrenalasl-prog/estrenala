@@ -13,6 +13,7 @@ export type EditOp =
   | { page: string; nodeId: number; kind: "insertImage"; value: string; assetId: string; alt: string; posicion: PosicionImagen }
   | { page: string; nodeId: number; kind: "align"; value: Alineacion }
   | { page: string; nodeId: number; kind: "size"; value: Tamano }
+  | { page: string; nodeId: number; kind: "margen"; value: Margen }
   | { page: string; nodeId: number; kind: "style"; property: "color"; value: string }
   | { page: string; nodeId: number; kind: "textNode"; index: number; value: string };
 
@@ -25,6 +26,7 @@ export type PageOp =
   | { nodeId: number; kind: "insertImage"; value: string; alt: string; posicion: PosicionImagen }
   | { nodeId: number; kind: "align"; value: Alineacion }
   | { nodeId: number; kind: "size"; value: Tamano }
+  | { nodeId: number; kind: "margen"; value: Margen }
   | { nodeId: number; kind: "style"; property: "color"; value: string }
   | { nodeId: number; kind: "textNode"; index: number; value: string };
 
@@ -64,6 +66,24 @@ const ANCHOS: Record<Tamano, string> = {
   completa: "100%",
 };
 
+/**
+ * Aire por ARRIBA y por ABAJO de la imagen. Sebas, al ver dos fotos seguidas:
+ * «que no queden tan pegadas».
+ *
+ * Solo vertical, a propósito: los márgenes de los lados los usa la alineación
+ * (`MARGENES`), y si el margen también los tocara, poner «mucho» descentraría la
+ * foto que el usuario acaba de centrar. Dos controles no pueden pelearse por la
+ * misma propiedad.
+ */
+export type Margen = "ninguno" | "poco" | "normal" | "mucho";
+
+const SEPARACIONES: Record<Margen, string> = {
+  ninguno: "0",
+  poco: "8px",
+  normal: "20px",
+  mucho: "40px",
+};
+
 export function escapeHtmlText(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
@@ -87,6 +107,16 @@ export function escapeAttr(s: string): string {
  */
 function imgHtml(src: string, alt: string): string {
   return `<img src="${escapeAttr(src)}" alt="${escapeAttr(alt)}" loading="lazy" style="max-width:100%;height:auto;display:block">`;
+}
+
+/**
+ * Las ops que escriben el atributo `style`. Están juntas porque comparten
+ * destino: si cada una empujara su propio tramo de bytes, dos de ellas sobre el
+ * mismo nodo producirían dos ediciones del mismo rango y el HTML saldría roto.
+ * Se funden en una cadena y se escribe una vez.
+ */
+function esOpDeEstilo(op: PageOp): op is Extract<PageOp, { kind: "style" | "align" | "size" | "margen" }> {
+  return op.kind === "style" || op.kind === "align" || op.kind === "size" || op.kind === "margen";
 }
 
 type Edit = { start: number; end: number; text: string };
@@ -148,7 +178,7 @@ export function applyEdits(html: string, ops: PageOp[]): string {
       const s = replacedAttrsPerNode.get(op.nodeId) ?? new Set();
       s.add("src");
       replacedAttrsPerNode.set(op.nodeId, s);
-    } else if ((op.kind === "style" || op.kind === "align" || op.kind === "size") && el.attrLocations["style"]) {
+    } else if (esOpDeEstilo(op) && el.attrLocations["style"]) {
       const s = replacedAttrsPerNode.get(op.nodeId) ?? new Set();
       s.add("style");
       replacedAttrsPerNode.set(op.nodeId, s);
@@ -161,7 +191,7 @@ export function applyEdits(html: string, ops: PageOp[]): string {
   // una sola vez, más abajo.
   const estiloPorNodo = new Map<number, string>();
   for (const op of dedup.values()) {
-    if (op.kind !== "style" && op.kind !== "align" && op.kind !== "size") continue;
+    if (!esOpDeEstilo(op)) continue;
     const el = byId.get(op.nodeId);
     if (!el) continue;
     let s = estiloPorNodo.get(op.nodeId) ?? el.attrs.style ?? "";
@@ -172,11 +202,16 @@ export function applyEdits(html: string, ops: PageOp[]): string {
       s = mergeStyleProperty(s, "display", "block");
       s = mergeStyleProperty(s, "margin-left", ml);
       s = mergeStyleProperty(s, "margin-right", mr);
-    } else {
+    } else if (op.kind === "size") {
       // `height: auto` va siempre: sin él, cambiar solo el ancho deforma la foto.
       s = mergeStyleProperty(s, "display", "block");
       s = mergeStyleProperty(s, "width", ANCHOS[op.value]);
       s = mergeStyleProperty(s, "height", "auto");
+    } else {
+      // Solo arriba y abajo: los lados son de la alineación (ver `Margen`).
+      const sep = SEPARACIONES[op.value];
+      s = mergeStyleProperty(s, "margin-top", sep);
+      s = mergeStyleProperty(s, "margin-bottom", sep);
     }
     estiloPorNodo.set(op.nodeId, s);
   }

@@ -219,6 +219,22 @@
     return b;
   }
 
+  // Las mismas separaciones que usa el servidor (ver `SEPARACIONES` en
+  // src/editor/apply.ts). Lo que se ve aquí y lo que se guarda tienen que ser lo
+  // mismo, o el usuario aprueba una cosa y se guarda otra.
+  var MARGENES_V_UI = { ninguno: "0", poco: "8px", normal: "20px", mucho: "40px" };
+  function botonMargen(txt, valor, el) {
+    var b = document.createElement("button");
+    b.type = "button"; b.textContent = txt;
+    b.style.cssText = "flex:1;height:30px;border-radius:9px;border:1px solid #DEDFD6;background:#fff;color:#141509;font-size:12px;font-weight:500;cursor:pointer";
+    b.addEventListener("click", function () {
+      el.style.marginTop = MARGENES_V_UI[valor];
+      el.style.marginBottom = MARGENES_V_UI[valor];
+      emitir({ page: PAGE, nodeId: idDe(el), kind: "margen", value: valor });
+    });
+    return b;
+  }
+
   function construir(el) {
     pop.innerHTML = "";
     objetivo = el;
@@ -308,6 +324,18 @@
       fa.appendChild(botonAlinear("Centro", "centro", el));
       fa.appendChild(botonAlinear("Der.", "derecha", el));
       pop.appendChild(fa);
+
+      // Aire por arriba y por abajo. Solo vertical: los lados son de la
+      // alineación, y si esto también los tocara, poner «mucho» descentraría la
+      // foto que se acaba de centrar.
+      pop.appendChild(etiqueta("Margen arriba y abajo"));
+      var fm = document.createElement("div");
+      fm.style.cssText = "display:flex;gap:6px";
+      fm.appendChild(botonMargen("Sin", "ninguno", el));
+      fm.appendChild(botonMargen("Poco", "poco", el));
+      fm.appendChild(botonMargen("Normal", "normal", el));
+      fm.appendChild(botonMargen("Mucho", "mucho", el));
+      pop.appendChild(fm);
     }
 
     // Meter una imagen NUEVA junto a lo que se ha pinchado. Hasta ahora solo se

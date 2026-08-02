@@ -54,6 +54,8 @@ export function isValidOp(op: EditOp): boolean {
       const m = op.value.match(SRC_RE);
       return !!m && m[1].toLowerCase() === op.assetId.toLowerCase();
     }
+    case "margen":
+      return op.value === "ninguno" || op.value === "poco" || op.value === "normal" || op.value === "mucho";
     case "size":
       return op.value === "pequena" || op.value === "mediana" || op.value === "grande" || op.value === "completa";
     case "align":
