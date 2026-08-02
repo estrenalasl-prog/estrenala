@@ -227,8 +227,15 @@
    * `onCambio(n, final)`: se llama en CADA movimiento para que se vea al vuelo,
    * pero solo con `final=true` al soltar. Si se emitiera en cada píxel del
    * arrastre, un solo gesto mandaría cientos de mensajes al panel.
+   *
+   * OJO CON EL NOMBRE: no puede llamarse `barra`. Ya hay un `var barra` en este
+   * archivo —la barra de formato de texto— y cuando un `var` y una función
+   * comparten nombre, el `var` gana: al abrir el menú, `barra` era un div y
+   * llamarlo reventaba `construir` entero, así que desaparecía todo lo que iba
+   * después. La sintaxis es válida, no falla ningún test y solo se ve abriendo
+   * el menú.
    */
-  function barra(titulo, unidad, min, max, valorInicial, onCambio) {
+  function deslizador(titulo, unidad, min, max, valorInicial, onCambio) {
     var caja = document.createElement("div");
     var cab = document.createElement("div");
     cab.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:8px;margin:2px 0 4px";
@@ -354,7 +361,7 @@
       // Ancho, en % de su hueco. La barra arranca donde está la imagen AHORA
       // —medida contra su contenedor—, no en un valor de fábrica: si empezara en
       // otro sitio, el primer arrastre daría un salto que nadie ha pedido.
-      pop.appendChild(barra("Tamaño", "%", 10, 100, anchoActual(el), function (n, final) {
+      pop.appendChild(deslizador("Tamaño", "%", 10, 100, anchoActual(el), function (n, final) {
         el.style.display = "block";
         el.style.width = n + "%";
         el.style.height = "auto"; // sin esto, cambiar solo el ancho deforma la foto
@@ -364,7 +371,7 @@
       // Aire por arriba y por abajo. Solo vertical: los lados son de la
       // alineación, y si esto también los tocara, subirlo descentraría la foto
       // que se acaba de centrar.
-      pop.appendChild(barra("Margen arriba y abajo", "px", 0, 120, margenActual(el), function (n, final) {
+      pop.appendChild(deslizador("Margen arriba y abajo", "px", 0, 120, margenActual(el), function (n, final) {
         el.style.marginTop = n + "px";
         el.style.marginBottom = n + "px";
         if (final) emitir({ page: PAGE, nodeId: idDe(el), kind: "margen", value: n });
