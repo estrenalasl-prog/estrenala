@@ -65,7 +65,7 @@ describe("invitar", () => {
 
   it("si ya es miembro → 409 y no reinvita", async () => {
     const f = memStore();
-    f.users.push({ id: "u1", email: "a@b.com", nombre: "A", passwordHash: "", googleSub: null, emailVerificadoAt: null });
+    f.users.push({ id: "u1", email: "a@b.com", nombre: "A", passwordHash: "", googleSub: null, emailVerificadoAt: null, idioma: null });
     f.memberships.push({ orgId: "o1", userId: "u1", rol: "editor" });
     await expect(invitar(f.store, { orgId: "o1", orgNombre: "X", email: "a@b.com", rol: "editor", base: "b" }))
       .rejects.toMatchObject({ status: 409, message: MSG_YA_MIEMBRO });

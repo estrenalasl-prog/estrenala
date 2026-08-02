@@ -14,13 +14,13 @@ function memStore() {
     async crearCuenta() { return { userId: "x", orgId: "y" }; },
     async crearCuentaGoogle(i) {
       const id = crypto.randomUUID();
-      users.push({ id, email: i.email, nombre: i.nombre, passwordHash: "", googleSub: i.googleSub, emailVerificadoAt: new Date().toISOString() });
+      users.push({ id, email: i.email, nombre: i.nombre, passwordHash: "", googleSub: i.googleSub, emailVerificadoAt: new Date().toISOString(), idioma: null });
       acciones.push("crear");
       return { userId: id, orgId: crypto.randomUUID() };
     },
     async vincularGoogle(userId, sub) { const u = users.find((x) => x.id === userId); if (u) u.googleSub = sub; acciones.push("vincular"); },
     async crearToken() {}, async getTokenPorHash() { return null; }, async marcarTokenUsado() {},
-    async invalidarTokens() {}, async marcarEmailVerificado() {}, async setPassword() {},
+    async invalidarTokens() {}, async marcarEmailVerificado() {}, async setPassword() {}, async setIdioma() {},
   };
   return { store, users, acciones };
 }
@@ -51,7 +51,7 @@ describe("resolverUsuarioGoogle", () => {
 
   it("mismo googleSub: entra sin crear ni vincular", async () => {
     const f = memStore();
-    f.users.push({ id: "u1", email: "ana@correo.com", nombre: "Ana", passwordHash: "", googleSub: "google-123", emailVerificadoAt: "x" });
+    f.users.push({ id: "u1", email: "ana@correo.com", nombre: "Ana", passwordHash: "", googleSub: "google-123", emailVerificadoAt: "x", idioma: null });
     const { userId } = await resolverUsuarioGoogle(f.store, perfil);
     expect(userId).toBe("u1");
     expect(f.acciones).toEqual([]);
@@ -59,7 +59,7 @@ describe("resolverUsuarioGoogle", () => {
 
   it("email ya existe con contraseña pero sin Google: vincula y entra", async () => {
     const f = memStore();
-    f.users.push({ id: "u2", email: "ana@correo.com", nombre: "Ana", passwordHash: "s1.a.b", googleSub: null, emailVerificadoAt: null });
+    f.users.push({ id: "u2", email: "ana@correo.com", nombre: "Ana", passwordHash: "s1.a.b", googleSub: null, emailVerificadoAt: null, idioma: null });
     const { userId } = await resolverUsuarioGoogle(f.store, perfil);
     expect(userId).toBe("u2");
     expect(f.acciones).toEqual(["vincular"]);

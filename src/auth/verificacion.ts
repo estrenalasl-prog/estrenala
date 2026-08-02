@@ -3,7 +3,7 @@ import { generarToken, hashToken, DURACION_MS, type TipoToken } from "./tokens";
 import { enviarCorreo, envioActivo } from "@/src/email/enviar";
 import { textosCuenta } from "@/src/i18n/cuenta";
 import { rellenar } from "@/src/i18n/rellenar";
-import { IDIOMA_POR_DEFECTO, conIdioma, type Idioma } from "@/src/i18n/idiomas";
+import { IDIOMA_POR_DEFECTO, conIdioma, esIdioma, type Idioma } from "@/src/i18n/idiomas";
 import type { AccountStore, TokenRow } from "@/src/repositories/accounts";
 
 // Mensaje único para cualquier token inválido/caducado/usado: no distingue el
@@ -105,8 +105,16 @@ export async function solicitarReset(
     email, userId: user.id, tipo: "reset",
     tokenHash: hash, expiraAt: new Date(Date.now() + DURACION_MS.reset),
   });
-  const enlace = conIdioma(`${base}/restablecer?token=${token}`, idioma ?? IDIOMA_POR_DEFECTO);
-  const c = textosCuenta(idioma ?? IDIOMA_POR_DEFECTO).correos;
+  // El idioma de SU cuenta si lo tiene elegido. Aquí sí se puede: ya se ha
+  // buscado al usuario, y quien pide recuperar la contraseña puede estar en el
+  // ordenador de otro o en un locutorio — el navegador no dice nada de él.
+  //
+  // Solo afecta al CORREO. La respuesta de la pantalla sigue saliendo en el
+  // idioma de la petición, y tiene que seguir así: si cambiara según la cuenta,
+  // la propia respuesta delataría que ese correo está registrado aquí.
+  const suyo = esIdioma(user.idioma) ? user.idioma : (idioma ?? IDIOMA_POR_DEFECTO);
+  const enlace = conIdioma(`${base}/restablecer?token=${token}`, suyo);
+  const c = textosCuenta(suyo).correos;
   await enviarCorreo({
     para: email,
     asunto: c.reset.asunto,

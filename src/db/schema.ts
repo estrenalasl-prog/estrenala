@@ -28,6 +28,9 @@ export const users = pgTable("users", {
   passwordHash: text("password_hash").notNull().default(""), // '' = sin contraseña (p. ej. alta por Google)
   googleSub: text("google_sub").unique(), // id de cuenta Google vinculada (6c)
   emailVerificadoAt: timestamp("email_verificado_at", { withTimezone: true }),
+  // Idioma de la plataforma. Nulo = no lo ha elegido a mano todavía, así que se
+  // sigue haciendo caso a la landing por la que entró o a su navegador.
+  idioma: text("idioma"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

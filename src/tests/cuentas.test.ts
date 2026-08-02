@@ -15,7 +15,7 @@ function memStore(): AccountStore & { users: UserRow[] } {
     async crearCuenta(input) {
       const userId = crypto.randomUUID();
       const orgId = crypto.randomUUID();
-      users.push({ id: userId, email: input.email, nombre: input.nombre, passwordHash: input.passwordHash, googleSub: null, emailVerificadoAt: null });
+      users.push({ id: userId, email: input.email, nombre: input.nombre, passwordHash: input.passwordHash, googleSub: null, emailVerificadoAt: null, idioma: null });
       return { userId, orgId };
     },
     async getMembership() { return null; },
@@ -28,11 +28,12 @@ function memStore(): AccountStore & { users: UserRow[] } {
     async invalidarTokens() {},
     async marcarEmailVerificado() {},
     async setPassword() {},
+    async setIdioma() {},
   };
 }
 
 async function conUsuario(store: ReturnType<typeof memStore>, email: string, password: string) {
-  store.users.push({ id: crypto.randomUUID(), email, nombre: "Ya", passwordHash: await hashPassword(password), googleSub: null, emailVerificadoAt: null });
+  store.users.push({ id: crypto.randomUUID(), email, nombre: "Ya", passwordHash: await hashPassword(password), googleSub: null, emailVerificadoAt: null, idioma: null });
 }
 
 describe("registrar", () => {
@@ -92,7 +93,7 @@ describe("autenticar", () => {
   });
 
   it("cuenta sin contraseña (solo Google) no entra por contraseña", async () => {
-    store.users.push({ id: crypto.randomUUID(), email: "g@b.com", nombre: "G", passwordHash: "", googleSub: "sub-1", emailVerificadoAt: null });
+    store.users.push({ id: crypto.randomUUID(), email: "g@b.com", nombre: "G", passwordHash: "", googleSub: "sub-1", emailVerificadoAt: null, idioma: null });
     await expect(autenticar(store, { email: "g@b.com", password: "" }))
       .rejects.toMatchObject({ status: 401 });
   });

@@ -26,6 +26,7 @@ function fakeStore(membership: MembershipInfo | null): AccountStore {
     invalidarTokens: async () => {},
     marcarEmailVerificado: async () => {},
     setPassword: async () => {},
+    setIdioma: async () => {},
   };
 }
 

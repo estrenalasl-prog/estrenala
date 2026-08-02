@@ -4,6 +4,7 @@ import Link from "next/link";
 import { AppHeader } from "../_components/AppHeader";
 import { MODELOS, nombreModelo } from "../_components/modelos";
 import { useDialogo } from "../_components/Dialogo";
+import { IDIOMAS, NOMBRE_IDIOMA } from "@/src/i18n/idiomas";
 
 // Cada espacio usa SU clave. Hubo un origen "env" —«usando la del servidor»—
 // que se quitó: significaba que la IA del cliente la pagaba la plataforma.
@@ -577,7 +578,11 @@ function SeccionEquipo() {
   );
 }
 
-type Cuenta = { nombre: string; email: string; tienePassword: boolean; google: boolean; verificado: boolean };
+type Cuenta = {
+  nombre: string; email: string; tienePassword: boolean; google: boolean; verificado: boolean;
+  /** Nulo = no lo ha elegido a mano; manda su navegador o la landing por la que entró. */
+  idioma: string | null;
+};
 
 // Sección Tu cuenta: nombre, contraseña (pide la actual) y correo (doble confirmación).
 function SeccionCuenta() {
@@ -619,6 +624,34 @@ function SeccionCuenta() {
             <button className="btn btn-sec btn-sm">Guardar</button>
           </div>
         </form>
+
+        {/* Se guarda al elegir, sin botón: no hay nada que confirmar y el
+            resultado se ve al instante —la página se recarga en el idioma nuevo—,
+            así que un «Guardar» solo sería un paso de más. */}
+        <div className="fila-conf" style={{ gap: 8, flexWrap: "wrap" }}>
+          <div className="info">
+            <b>Idioma</b>
+            <small>En el que te hablamos a ti: el panel y los correos que te enviamos.</small>
+          </div>
+          <div className="control">
+            <select
+              className="campo"
+              style={{ minWidth: 180 }}
+              value={c?.idioma ?? ""}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (!v) return;
+                void pedir("/api/cuenta/idioma", { idioma: v }, "Idioma guardado.")
+                  .then((ok) => { if (ok) window.location.reload(); });
+              }}
+            >
+              {/* Mientras no elija, se enseña que va en automático. Poner
+                  «Español» aquí sería enseñarle una decisión que no ha tomado. */}
+              {!c?.idioma && <option value="">Automático (el de tu navegador)</option>}
+              {IDIOMAS.map((i) => <option key={i} value={i}>{NOMBRE_IDIOMA[i]}</option>)}
+            </select>
+          </div>
+        </div>
 
         <form className="fila-conf" style={{ gap: 8, flexWrap: "wrap" }}
           onSubmit={(e) => { e.preventDefault(); void pedir("/api/cuenta/password", { actual, nueva }, "Contraseña cambiada.").then((ok) => { if (ok) { setActual(""); setNueva(""); } }); }}>

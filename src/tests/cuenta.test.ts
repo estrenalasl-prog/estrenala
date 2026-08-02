@@ -34,7 +34,7 @@ const tokenDelCorreo = (): string => {
 };
 
 async function conUsuario(f: ReturnType<typeof memStore>, id: string, email: string, password: string) {
-  f.users.push({ id, email, nombre: "Ana", passwordHash: password ? await hashPassword(password) : "", googleSub: null, emailVerificadoAt: null });
+  f.users.push({ id, email, nombre: "Ana", passwordHash: password ? await hashPassword(password) : "", googleSub: null, emailVerificadoAt: null, idioma: null });
 }
 
 beforeEach(() => vi.mocked(enviarCorreo).mockReset());

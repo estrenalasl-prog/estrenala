@@ -6,7 +6,7 @@ import { accountStore } from "@/src/repositories/accounts";
 import { baseApp } from "@/src/auth/url";
 import { errorJson } from "@/src/auth/http";
 import { exigirCapacidad } from "@/src/planes/planes";
-import { idiomaActual } from "@/src/i18n/servidor";
+import { idiomaDeSesion } from "@/src/i18n/servidor";
 
 export const runtime = "nodejs";
 
@@ -20,7 +20,7 @@ export async function POST(req: Request) {
     await invitar(accountStore, {
       orgId, orgNombre: org?.nombre ?? "tu espacio",
       email: typeof body.email === "string" ? body.email : "",
-      rol: body.rol, base: baseApp(req), idioma: await idiomaActual(),
+      rol: body.rol, base: baseApp(req), idioma: await idiomaDeSesion(),
     });
     return NextResponse.json({ ok: true });
   } catch (e) {

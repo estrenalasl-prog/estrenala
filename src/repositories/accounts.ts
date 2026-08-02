@@ -9,6 +9,8 @@ export type UserRow = {
   passwordHash: string;
   googleSub: string | null;
   emailVerificadoAt: string | null;
+  /** Nulo mientras no lo elija a mano: entonces manda la landing o su navegador. */
+  idioma: string | null;
 };
 
 export type MembershipInfo = { orgId: string; rol: string };
@@ -54,6 +56,7 @@ export interface AccountStore {
 
   marcarEmailVerificado(userId: string): Promise<void>;
   setPassword(userId: string, passwordHash: string): Promise<void>;
+  setIdioma(userId: string, idioma: string): Promise<void>;
 }
 
 function toUserRow(r: typeof users.$inferSelect): UserRow {
@@ -64,6 +67,7 @@ function toUserRow(r: typeof users.$inferSelect): UserRow {
     passwordHash: r.passwordHash,
     googleSub: r.googleSub,
     emailVerificadoAt: r.emailVerificadoAt ? r.emailVerificadoAt.toISOString() : null,
+    idioma: r.idioma,
   };
 }
 
@@ -330,6 +334,10 @@ export class DrizzleAccountStore implements AccountStore {
 
   async setEmail(userId: string, email: string): Promise<void> {
     await db.update(users).set({ email }).where(eq(users.id, userId));
+  }
+
+  async setIdioma(userId: string, idioma: string): Promise<void> {
+    await db.update(users).set({ idioma }).where(eq(users.id, userId));
   }
 }
 

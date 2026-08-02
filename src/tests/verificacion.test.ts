@@ -36,6 +36,7 @@ function memStore() {
     async invalidarTokens(email, tipo) { for (const t of tokens) if (t.email === email && t.tipo === tipo) t.usadoAt = new Date().toISOString(); },
     async marcarEmailVerificado(userId) { marcados.verificado.push(userId); },
     async setPassword(userId, hash) { marcados.passwords[userId] = hash; },
+    async setIdioma() {},
   };
   return { store, tokens, users, marcados };
 }
@@ -86,7 +87,7 @@ describe("verificación de email", () => {
 
 describe("reset de contraseña", () => {
   const conUsuario = (f: ReturnType<typeof memStore>) =>
-    f.users.push({ id: "u1", email: "a@b.com", nombre: "Ana", passwordHash: "s1.x.y", googleSub: null, emailVerificadoAt: null });
+    f.users.push({ id: "u1", email: "a@b.com", nombre: "Ana", passwordHash: "s1.x.y", googleSub: null, emailVerificadoAt: null, idioma: null });
 
   it("solicitar con cuenta existente envía el correo; el token cambia la contraseña", async () => {
     const f = memStore(); conUsuario(f);

@@ -1,0 +1,11 @@
+-- El idioma de la plataforma, por PERSONA (incremento 20).
+--
+-- Por persona y no por espacio: en una agencia cada uno lee el panel en el suyo,
+-- y el espacio es compartido. Los textos NUESTROS que salen en la web publicada
+-- de un cliente (el sello del plan gratuito, la pagina de «no publicada») son
+-- otra cosa y se deciden aparte, con el idioma del dueno del proyecto.
+--
+-- Nulo a proposito = «todavia no lo ha elegido». Asi se sigue haciendo caso a lo
+-- que eligio en la landing o a lo que pida su navegador. Poner 'es' por defecto
+-- congelaria en espanol a todo el que se registre desde la landing italiana.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS idioma text;

@@ -18,6 +18,10 @@ export async function GET() {
     return NextResponse.json({
       nombre: u.nombre, email: u.email,
       tienePassword: !!u.passwordHash, google: !!u.googleSub, verificado: !!u.emailVerificadoAt,
+      // El que tenga GUARDADO, no el que se le esté sirviendo ahora mismo. Nulo
+      // significa «no lo ha elegido», y el selector lo enseña como «Automático»:
+      // decir «Español» cuando nadie lo eligió sería inventarse una decisión.
+      idioma: u.idioma,
     });
   } catch (e) {
     return errorJson(e);
