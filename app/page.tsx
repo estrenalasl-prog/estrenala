@@ -9,6 +9,8 @@ import { ImportDropzone } from "./_components/ImportDropzone";
 import { AppHeader } from "./_components/AppHeader";
 import { BannerVerifica } from "./_components/BannerVerifica";
 import { Landing } from "./_landing/Landing";
+import { textosLanding } from "@/src/i18n/landing";
+import { IDIOMA_POR_DEFECTO, alternativasHreflang } from "@/src/i18n/idiomas";
 
 export const dynamic = "force-dynamic";
 
@@ -16,10 +18,14 @@ export const dynamic = "force-dynamic";
 // panel «Tus webs». Por eso el título depende de quién mire.
 export async function generateMetadata(): Promise<Metadata> {
   if (await haySesion()) return { title: "Tus webs · Estrénala" };
+  const t = textosLanding(IDIOMA_POR_DEFECTO);
   return {
-    title: "Estrénala — Tu web hecha con IA, por fin en directo",
-    description:
-      "¿La IA te hizo una web y no sabes cómo subirla? Estrénala la pone online en un clic con dominio y HTTPS, la editas sin código y su blog escribe solo. Gratis para empezar.",
+    title: t.meta.titulo,
+    description: t.meta.descripcion,
+    // La raíz es la versión española de la landing, así que también declara sus
+    // cuatro hermanas. Si solo lo hicieran ellas, Google no se fiaría de ninguna:
+    // el hreflang tiene que ser recíproco.
+    alternates: { canonical: "/", languages: alternativasHreflang() },
   };
 }
 

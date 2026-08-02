@@ -7,7 +7,8 @@ import { idAds } from "@/src/config/ads";
 import {
   COOKIE_CONSENTIMIENTO, estadoConsentMode, haceFaltaBanner, leerDecision,
 } from "@/src/legal/consentimiento";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
+import { CABECERA_IDIOMA, idiomaDeCabecera } from "@/src/i18n/idiomas";
 import { ProveedorDialogo } from "./_components/Dialogo";
 import { Cookies } from "./_components/Cookies";
 
@@ -75,8 +76,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const banner = haceFaltaBanner(ads ?? undefined, decision);
   const seguro = urlPlataforma().startsWith("https://");
 
+  // Lo pone el middleware en las landings traducidas (/en, /pt…). En el resto de
+  // la app no viene y sale español, que es lo correcto: el panel todavía no está
+  // traducido, así que anunciar otro idioma sería mentir.
+  const idioma = idiomaDeCabecera((await headers()).get(CABECERA_IDIOMA));
+
   return (
-    <html lang="es" className={spaceGrotesk.variable}>
+    <html lang={idioma} className={spaceGrotesk.variable}>
       <head>
         {medir && <script defer src={medir.src} data-website-id={medir.websiteId} />}
         {/* Consent Mode v2. Este bloque va SIEMPRE ANTES del script de Google y

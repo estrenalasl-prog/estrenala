@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { parseHost, esAliasDePlataforma } from "@/src/publish/host";
 import { verificarSesion, SESSION_COOKIE } from "@/src/auth/session-cookie";
 import { plataformaOculta, ROBOTS_NOINDEX, CABECERAS_SEGURIDAD, CABECERAS_SEGURIDAD_INCRUSTABLE } from "@/src/config/robots-plataforma";
+import { PREFIJOS_PUBLICOS, CABECERA_IDIOMA } from "@/src/i18n/idiomas";
 
 // Rutas del panel accesibles sin sesión. Los cron son para disparadores
 // externos (sin cookie): solo hacen lo que el tick del servidor haría igual en
@@ -19,6 +20,18 @@ const RUTAS_PUBLICAS = ["/login", "/api/login", "/registro", "/api/registro",
 // (no por prefijo como RUTAS_PUBLICAS: no queremos abrir "/icon.png/loquesea").
 // Sin esto acababan en el 307 a /login y el icono no se veía en la landing.
 const ARCHIVOS_PUBLICOS = new Set(["/robots.txt", "/sitemap.xml", "/icon.png", "/apple-icon.png"]);
+
+// La landing en los otros idiomas: /en, /pt, /fr, /it. Sale de la MISMA lista que
+// las rutas (ver src/i18n/idiomas.ts) para que no puedan discrepar: un idioma que
+// se añadiera allí y no aquí acabaría en el 307 a /login, o sea que esa landing
+// no existiría para nadie.
+//
+// Por coincidencia EXACTA, como los archivos y no como RUTAS_PUBLICAS: abrir
+// "/en/" entero dejaría sin candado cualquier página que algún día colgara de
+// ahí. El idioma va en la URL solo en la landing, que es la única que necesita
+// una dirección propia por idioma para que Google indexe las cinco; el resto del
+// panel lo saca de la cuenta.
+const RUTAS_IDIOMA = new Set(PREFIJOS_PUBLICOS);
 
 // 1) Hosts que no son la plataforma → se sirven como sitio publicado (/sites/<host>).
 // 2) La raíz del dominio madre → redirect al panel.
@@ -92,6 +105,13 @@ export async function middleware(req: NextRequest) {
   // panel (lo decide app/page.tsx). Va aparte de RUTAS_PUBLICAS a propósito:
   // meter "/" en esa lista abriría TODA la app por el startsWith.
   if (pathname === "/") return sellar(NextResponse.next());
+  if (RUTAS_IDIOMA.has(pathname)) {
+    // El layout no sabe en qué ruta está; aquí sí se sabe. Se le pasa el idioma
+    // por cabecera de petición para que `<html lang>` no mienta.
+    const cabeceras = new Headers(req.headers);
+    cabeceras.set(CABECERA_IDIOMA, pathname.slice(1));
+    return sellar(NextResponse.next({ request: { headers: cabeceras } }));
+  }
   if (ARCHIVOS_PUBLICOS.has(pathname)) return sellar(NextResponse.next());
   if (RUTAS_PUBLICAS.some((r) => pathname === r || pathname.startsWith(r + "/"))) {
     return sellar(NextResponse.next());

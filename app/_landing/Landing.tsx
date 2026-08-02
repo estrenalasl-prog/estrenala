@@ -1,6 +1,9 @@
 import "./landing.css";
 import { Reveal } from "./Reveal";
 import { FirmaQuantiva } from "../_components/FirmaQuantiva";
+import { conFormato, sinFormato } from "@/src/i18n/formato";
+import { textosLanding } from "@/src/i18n/landing";
+import { IDIOMAS, NOMBRE_IDIOMA, rutaDeIdioma, type Idioma } from "@/src/i18n/idiomas";
 
 // Landing pública de estrenala.com. Viene del mockup 11-landing.html de la sesión
 // de diseño (Claude Design). Cambios deliberados al integrar, para no prometer
@@ -15,36 +18,41 @@ import { FirmaQuantiva } from "../_components/FirmaQuantiva";
 //    suelto o una carpeta.
 //  - La sección del blog dice que va con los planes de pago (incremento 17): sin
 //    precios todavía, pero sin dar a entender que entra en el gratuito.
+//
+// Los textos viven en src/i18n/landing/. Aquí solo queda la estructura, que es la
+// misma en los cinco idiomas: el catálogo manda qué dice y esto manda cómo se ve.
 
 const CTA = "/registro";
 
-export function Landing() {
+export function Landing({ idioma = "es" }: { idioma?: Idioma }) {
+  const t = textosLanding(idioma);
+
   return (
-    <div className="landing">
+    <div className="landing" lang={idioma}>
       <Reveal />
 
       <header className="top">
         <div className="contenedor top-int">
-          <a href="/" aria-label="Estrénala — inicio">
+          <a href={rutaDeIdioma(idioma)} aria-label={t.nav.inicio}>
             <img className="logo" src="/brand/logo-tinta.png" alt="Estrénala" />
           </a>
-          <nav aria-label="Principal">
+          <nav aria-label={t.nav.principal}>
             <div className="enlaces">
-              <a href="#como">Cómo funciona</a>
-              <a href="#editar">Editar</a>
-              <a href="#blog">Blog</a>
-              <a href="#faq">Preguntas</a>
+              <a href="#como">{t.nav.como}</a>
+              <a href="#editar">{t.nav.editar}</a>
+              <a href="#blog">{t.nav.blog}</a>
+              <a href="#faq">{t.nav.faq}</a>
             </div>
-            <a className="btn btn-primario btn-sm" href={CTA}>Sube tu web gratis</a>
+            <a className="btn btn-primario btn-sm" href={CTA}>{t.nav.cta}</a>
             <details className="menu-movil">
-              <summary aria-label="Abrir menú"><span className="barras" /></summary>
+              <summary aria-label={t.nav.abrirMenu}><span className="barras" /></summary>
               <div className="panel">
-                <a href="#como">Cómo funciona</a>
-                <a href="#editar">Editar</a>
-                <a href="#blog">Blog</a>
-                <a href="#equipo">Equipos</a>
-                <a href="#faq">Preguntas</a>
-                <a className="btn btn-primario btn-sm" href={CTA}>Sube tu web gratis</a>
+                <a href="#como">{t.nav.como}</a>
+                <a href="#editar">{t.nav.editar}</a>
+                <a href="#blog">{t.nav.blog}</a>
+                <a href="#equipo">{t.nav.equipos}</a>
+                <a href="#faq">{t.nav.faq}</a>
+                <a className="btn btn-primario btn-sm" href={CTA}>{t.nav.cta}</a>
               </div>
             </details>
           </nav>
@@ -56,36 +64,29 @@ export function Landing() {
         <section className="hero" aria-labelledby="dolor">
           <div className="grano" />
           <div className="contenedor" style={{ position: "relative" }}>
-            <p className="eyebrow reveal">La IA te hizo una web preciosa…</p>
-            <h1 id="dolor" className="reveal d1">…y lleva semanas muerta en una carpeta.</h1>
-            <p className="promesa reveal d2">Nosotros la ponemos <span className="hl">en el mundo</span>.</p>
-            <p className="sub reveal d2">
-              Arrastra la web que te dio Claude, ChatGPT o v0 y queda online con dominio y HTTPS.
-              Edítala como quieras. El blog escribe solo. Sin saber programar.
-            </p>
+            <p className="eyebrow reveal">{t.hero.eyebrow}</p>
+            <h1 id="dolor" className="reveal d1">{t.hero.titular}</h1>
+            <p className="promesa reveal d2">{conFormato(t.hero.promesa)}</p>
+            <p className="sub reveal d2">{t.hero.sub}</p>
             <div className="acciones reveal d3">
-              <a className="btn btn-primario" href={CTA}>Sube tu web gratis →</a>
-              <span className="nota">Gratis para empezar · sin tarjeta</span>
+              <a className="btn btn-primario" href={CTA}>{t.hero.cta}</a>
+              <span className="nota">{t.hero.nota}</span>
             </div>
 
-            <div
-              className="mock reveal d3"
-              role="img"
-              aria-label="Vista del panel de proyecto de Estrénala: la web Clínica Sonrisa publicada, con los pasos Súbela, Publica y Edítala."
-            >
+            <div className="mock reveal d3" role="img" aria-label={t.hero.mockAria}>
               <div className="mock-barra">
-                <span className="nom">Clínica Sonrisa</span>
-                <span className="badge"><span className="punto" />Publicado</span>
+                <span className="nom">{t.hero.mockNombre}</span>
+                <span className="badge"><span className="punto" />{t.hero.mockPublicado}</span>
                 <span className="url">clinica-sonrisa.estrenala.com</span>
               </div>
               <div className="mock-lienzo">
                 <span className="mock-cinta" />
-                <span className="mock-etq">en directo ✂</span>
+                <span className="mock-etq">{t.hero.mockEtiqueta}</span>
               </div>
               <div className="mock-pasos">
-                <div className="p"><b>1.</b> Súbela</div>
-                <div className="p"><b>2.</b> Publica</div>
-                <div className="p on">3. Edítala</div>
+                <div className="p"><b>1.</b> {t.hero.mockPaso1}</div>
+                <div className="p"><b>2.</b> {t.hero.mockPaso2}</div>
+                <div className="p on">3. {t.hero.mockPaso3}</div>
               </div>
             </div>
           </div>
@@ -95,18 +96,10 @@ export function Landing() {
         <section className="seccion problema">
           <div className="contenedor">
             <div className="problema-caja reveal">
-              <span className="eyebrow">El momento en que te quedas atascado</span>
-              <h2 style={{ marginTop: 14 }}>
-                La IA te hizo la web en minutos. <span className="tach">Subirla</span> te lleva semanas.
-              </h2>
-              <p>
-                Tienes un ZIP con tu web dentro, o unos archivos que no sabes dónde poner. Aparecen
-                palabras como «hosting», «DNS», «servidor»… y la ilusión se apaga. La web que te
-                encantó se queda en tu ordenador, sin que la vea nadie.
-              </p>
-              <p className="firma">
-                Estrénala empieza justo <span className="hl">donde la IA te deja tirado</span>.
-              </p>
+              <span className="eyebrow">{t.problema.eyebrow}</span>
+              <h2 style={{ marginTop: 14 }}>{conFormato(t.problema.titulo)}</h2>
+              <p>{t.problema.texto}</p>
+              <p className="firma">{conFormato(t.problema.firma)}</p>
             </div>
           </div>
         </section>
@@ -115,28 +108,28 @@ export function Landing() {
         <section className="seccion" id="como">
           <div className="contenedor">
             <div className="cab-seccion reveal">
-              <span className="eyebrow">Cómo funciona</span>
-              <h2>De la carpeta a internet, en tres pasos</h2>
-              <p>Sin instalar nada, sin tocar código, sin llamar a tu sobrino que «sabe de ordenadores».</p>
+              <span className="eyebrow">{t.como.eyebrow}</span>
+              <h2>{t.como.titulo}</h2>
+              <p>{t.como.texto}</p>
             </div>
             <div className="pasos">
               <div className="paso reveal">
                 <div className="n">1</div>
-                <h3>Súbela</h3>
-                <p>Arrastra el archivo o la carpeta que te dio la IA. Da igual si es de Claude, ChatGPT o v0: si es una web en HTML, vale.</p>
-                <span className="chip">.html · .zip · carpeta</span>
+                <h3>{t.como.paso1Titulo}</h3>
+                <p>{t.como.paso1Texto}</p>
+                <span className="chip">{t.como.paso1Chip}</span>
               </div>
               <div className="paso reveal d1">
                 <div className="n">2</div>
-                <h3>Publica</h3>
-                <p>En un clic queda online con una dirección propia y HTTPS. ¿Tienes tu dominio? Conéctalo y listo.</p>
-                <span className="chip">subdominio o dominio propio · HTTPS</span>
+                <h3>{t.como.paso2Titulo}</h3>
+                <p>{t.como.paso2Texto}</p>
+                <span className="chip">{t.como.paso2Chip}</span>
               </div>
               <div className="paso reveal d2">
                 <div className="n">3</div>
-                <h3>Edítala</h3>
-                <p>Cambia textos, imágenes, botones y colores cuando quieras. Con historial, para volver atrás sin miedo.</p>
-                <span className="chip">historial y revertir</span>
+                <h3>{t.como.paso3Titulo}</h3>
+                <p>{t.como.paso3Texto}</p>
+                <span className="chip">{t.como.paso3Chip}</span>
               </div>
             </div>
           </div>
@@ -146,50 +139,48 @@ export function Landing() {
         <section className="seccion" id="editar" style={{ background: "var(--superficie-2)" }}>
           <div className="contenedor">
             <div className="cab-seccion reveal">
-              <span className="eyebrow">Edítala como quieras · sin encierro</span>
-              <h2>Tres formas de editar. Eliges tú, no nosotros.</h2>
-              <p>Puedes usar una, otra o las tres a la vez. Pases por donde pases, siempre queda guardado en el historial.</p>
+              <span className="eyebrow">{t.editar.eyebrow}</span>
+              <h2>{t.editar.titulo}</h2>
+              <p>{t.editar.texto}</p>
             </div>
             <div className="vias">
               <div className="tarjeta-via reveal">
                 <div className="via-icono suave">✎</div>
-                <span className="etq">Gratis</span>
-                <h3>A mano, aquí mismo</h3>
-                <p>Haz clic sobre tu web real y cambia lo que veas: textos (con negrita, cursiva y enlaces), imágenes, botones y colores.</p>
+                <span className="etq">{t.editar.via1Etq}</span>
+                <h3>{t.editar.via1Titulo}</h3>
+                <p>{t.editar.via1Texto}</p>
                 <ul>
-                  <li><span className="tick">✓</span> Sin código, sobre la web real</li>
-                  <li><span className="tick">✓</span> Historial y revertir siempre</li>
-                  <li><span className="tick">✓</span> Gratis, sin límite</li>
+                  <li><span className="tick">✓</span> {t.editar.via1Punto1}</li>
+                  <li><span className="tick">✓</span> {t.editar.via1Punto2}</li>
+                  <li><span className="tick">✓</span> {t.editar.via1Punto3}</li>
                 </ul>
               </div>
               <div className="tarjeta-via destacada reveal d1">
                 <div className="via-icono lima">✦</div>
-                <span className="etq">Con tu clave de IA · opt-in</span>
-                <h3>Con el asistente de IA</h3>
-                <p>Dile en tus palabras qué cambiar («haz el titular más corto», «pon el teléfono en la cabecera») y lo hace por ti.</p>
+                <span className="etq">{t.editar.via2Etq}</span>
+                <h3>{t.editar.via2Titulo}</h3>
+                <p>{t.editar.via2Texto}</p>
                 <ul>
-                  <li><span className="tick">✓</span> Conectas tu propia clave de IA</li>
-                  <li><span className="tick">✓</span> Tú decides cuándo gastas</li>
-                  <li><span className="tick">✓</span> Una opción potente, nunca obligatoria</li>
+                  <li><span className="tick">✓</span> {t.editar.via2Punto1}</li>
+                  <li><span className="tick">✓</span> {t.editar.via2Punto2}</li>
+                  <li><span className="tick">✓</span> {t.editar.via2Punto3}</li>
                 </ul>
               </div>
               <div className="tarjeta-via reveal d2">
                 <div className="via-icono tinta">⭳</div>
-                <span className="etq">Sigue en tu herramienta</span>
-                <h3>En tu propia herramienta</h3>
-                <p>¿Prefieres seguir en Claude Code, ChatGPT o v0? Edita allí y vuelve a subir el ZIP: tu web online se actualiza en un clic.</p>
+                <span className="etq">{t.editar.via3Etq}</span>
+                <h3>{t.editar.via3Titulo}</h3>
+                <p>{t.editar.via3Texto}</p>
                 <ul>
-                  <li><span className="tick">✓</span> Re-subes el ZIP y ya está</li>
-                  <li><span className="tick">✓</span> La versión anterior queda guardada</li>
-                  <li><span className="tick">✓</span> Nunca te encerramos aquí</li>
+                  <li><span className="tick">✓</span> {t.editar.via3Punto1}</li>
+                  <li><span className="tick">✓</span> {t.editar.via3Punto2}</li>
+                  <li><span className="tick">✓</span> {t.editar.via3Punto3}</li>
                 </ul>
               </div>
             </div>
             <div className="banda-revertir reveal">
-              <span className="badge badge-neutro"><span className="punto" />Historial</span>
-              <span className="txt">
-                Cambies como cambies, <b>siempre puedes volver atrás</b>. Si algo se rompe, lo restauras en un clic.
-              </span>
+              <span className="badge badge-neutro"><span className="punto" />{t.editar.bandaBadge}</span>
+              <span className="txt">{conFormato(t.editar.bandaTexto)}</span>
             </div>
           </div>
         </section>
@@ -199,78 +190,71 @@ export function Landing() {
           <div className="grano" />
           <div className="contenedor" style={{ position: "relative" }}>
             <div className="cab-seccion claro reveal">
-              <span className="eyebrow" style={{ color: "var(--acento)" }}>El blog que se escribe solo</span>
-              <h2>Aparece en Google sin que tengas que escribir</h2>
-              <p>Un blog con contenido fresco te trae visitas. El nuestro se ocupa: encuentra los temas, los escribe y los publica.</p>
+              <span className="eyebrow" style={{ color: "var(--acento)" }}>{t.blog.eyebrow}</span>
+              <h2>{t.blog.titulo}</h2>
+              <p>{t.blog.texto}</p>
             </div>
             <div className="blog-grid">
               <div className="blog-features">
                 <div className="blog-feature reveal">
                   <div className="ic">◎</div>
                   <div>
-                    <h3>Radar de temas en tendencia</h3>
-                    <p>Detecta qué busca la gente de tu sector este mes, con datos reales de búsquedas.</p>
+                    <h3>{t.blog.f1Titulo}</h3>
+                    <p>{t.blog.f1Texto}</p>
                   </div>
                 </div>
                 <div className="blog-feature reveal d1">
                   <div className="ic">✎</div>
                   <div>
-                    <h3>Redacción por etapas</h3>
-                    <p>La IA escribe el artículo paso a paso y tú lo revisas cuando quieras, no de golpe.</p>
+                    <h3>{t.blog.f2Titulo}</h3>
+                    <p>{t.blog.f2Texto}</p>
                   </div>
                 </div>
                 <div className="blog-feature reveal d1">
                   <div className="ic">◳</div>
                   <div>
-                    <h3>Portada automática</h3>
-                    <p>Cada artículo sale con su imagen de portada, sin que tengas que buscarla.</p>
+                    <h3>{t.blog.f3Titulo}</h3>
+                    <p>{t.blog.f3Texto}</p>
                   </div>
                 </div>
                 <div className="blog-feature reveal d2">
                   <div className="ic">◷</div>
                   <div>
-                    <h3>Programación y piloto automático</h3>
-                    <p>Publica en la fecha que elijas, o deja el piloto y sale solo cada semana.</p>
+                    <h3>{t.blog.f4Titulo}</h3>
+                    <p>{t.blog.f4Texto}</p>
                   </div>
                 </div>
-                <div className="aviso-coste reveal d2">
-                  El blog va con los planes de pago, y escribe con tu propia clave de IA · opt-in: tú decides
-                  cuándo gastas. Publicar y editar a mano es gratis.
-                </div>
+                <div className="aviso-coste reveal d2">{t.blog.aviso}</div>
               </div>
 
-              <div
-                className="blog-panel reveal d1"
-                role="img"
-                aria-label="Panel del blog: un artículo publicado, un borrador escrito por IA, uno programado, y el piloto automático activado."
-              >
+              <div className="blog-panel reveal d1" role="img" aria-label={t.blog.panelAria}>
                 <div className="item">
                   <div className="t">
-                    <b>5 señales de que necesitas una revisión</b>
-                    <small>Publicado el 3 de julio</small>
+                    <b>{t.blog.art1Titulo}</b>
+                    <small>{t.blog.art1Pie}</small>
                   </div>
-                  <span className="badge badge-dark ok"><span className="punto" />Publicado</span>
+                  <span className="badge badge-dark ok"><span className="punto" />{t.blog.art1Badge}</span>
                 </div>
                 <div className="item">
                   <div className="t">
-                    <b>Blanqueamiento: mitos y verdades</b>
-                    <small>Redacción por etapas · 2 de 4</small>
+                    <b>{t.blog.art2Titulo}</b>
+                    <small>{t.blog.art2Pie}</small>
                   </div>
-                  <span className="badge badge-ia">Borrador IA</span>
+                  <span className="badge badge-ia">{t.blog.art2Badge}</span>
                 </div>
                 <div className="item">
                   <div className="t">
-                    <b>Cuidar tu ortodoncia en verano</b>
-                    <small>Se publica el 20 jul</small>
+                    <b>{t.blog.art3Titulo}</b>
+                    <small>{t.blog.art3Pie}</small>
                   </div>
-                  <span className="badge badge-dark prog"><span className="punto" />Programado</span>
+                  <span className="badge badge-dark prog"><span className="punto" />{t.blog.art3Badge}</span>
                 </div>
                 <div className="piloto">
                   <div className="t">
-                    <b>Piloto automático</b>
-                    <small>Un artículo nuevo cada semana</small>
+                    <b>{t.blog.pilotoTitulo}</b>
+                    <small>{t.blog.pilotoPie}</small>
                   </div>
-                  <span className="interruptor" role="img" aria-label="Activado" />
+                  <span className="interruptor" role="img" aria-label={t.blog.pilotoActivado} />
                 </div>
               </div>
             </div>
@@ -282,22 +266,21 @@ export function Landing() {
           <div className="contenedor">
             <div className="equipo-grid">
               <div className="reveal">
-                <span className="eyebrow">¿Trabajas con más gente?</span>
+                <span className="eyebrow">{t.equipo.eyebrow}</span>
                 <h2 style={{
                   font: "700 clamp(26px,4.2vw,36px)/1.1 var(--sans)",
                   letterSpacing: "-.02em",
                   marginTop: 14,
                 }}>
-                  Tu equipo, en el mismo sitio
+                  {t.equipo.titulo}
                 </h2>
                 <p style={{ fontSize: "16.5px", color: "var(--texto-2)", marginTop: 16, maxWidth: "44ch" }}>
-                  Tanto si eres tú solo como si eres una agencia con varios clientes, cada web vive en
-                  su espacio y trabajáis sin pisaros.
+                  {t.equipo.texto}
                 </p>
                 <div className="equipo-lista">
-                  <div className="fila"><span className="tick">✓</span> Entra con tu correo o con Google</div>
-                  <div className="fila"><span className="tick">✓</span> Invita a más gente a tu espacio</div>
-                  <div className="fila"><span className="tick">✓</span> Roles claros: propietario y editor</div>
+                  <div className="fila"><span className="tick">✓</span> {t.equipo.punto1}</div>
+                  <div className="fila"><span className="tick">✓</span> {t.equipo.punto2}</div>
+                  <div className="fila"><span className="tick">✓</span> {t.equipo.punto3}</div>
                 </div>
               </div>
               <div className="reveal d1" style={{ textAlign: "center" }}>
@@ -307,7 +290,7 @@ export function Landing() {
                   <span className="ava" style={{ background: "var(--superficie-2)", color: "var(--texto-2)" }}>EM</span>
                   <span className="ava" style={{ background: "var(--acento-suave)", color: "var(--acento-texto)" }}>+3</span>
                 </div>
-                <p style={{ marginTop: 18, fontSize: 14, color: "var(--texto-3)" }}>Propietario · Editor</p>
+                <p style={{ marginTop: 18, fontSize: 14, color: "var(--texto-3)" }}>{t.equipo.roles}</p>
               </div>
             </div>
           </div>
@@ -317,24 +300,24 @@ export function Landing() {
         <section className="seccion" style={{ background: "var(--superficie-2)" }}>
           <div className="contenedor">
             <div className="cab-seccion reveal">
-              <span className="eyebrow">Para quién es</span>
-              <h2>Pensada para quien no quiere pelearse con la técnica</h2>
+              <span className="eyebrow">{t.publico.eyebrow}</span>
+              <h2>{t.publico.titulo}</h2>
             </div>
             <div className="publico">
               <div className="card reveal">
                 <span className="em">🌱</span>
-                <h3>Emprendedores</h3>
-                <p>Lanzas tu proyecto sin depender de nadie ni esperar semanas a un desarrollador.</p>
+                <h3>{t.publico.c1Titulo}</h3>
+                <p>{t.publico.c1Texto}</p>
               </div>
               <div className="card reveal d1">
                 <span className="em">💼</span>
-                <h3>Pequeñas agencias</h3>
-                <p>Publicas y mantienes las webs de tus clientes en un sitio, con tu equipo dentro.</p>
+                <h3>{t.publico.c2Titulo}</h3>
+                <p>{t.publico.c2Texto}</p>
               </div>
               <div className="card reveal d2">
                 <span className="em">✋</span>
-                <h3>Gente no técnica</h3>
-                <p>Si sabes usar el correo, sabes usar Estrénala. Nada de código ni servidores.</p>
+                <h3>{t.publico.c3Titulo}</h3>
+                <p>{t.publico.c3Texto}</p>
               </div>
             </div>
           </div>
@@ -344,38 +327,16 @@ export function Landing() {
         <section className="seccion" id="faq">
           <div className="contenedor">
             <div className="cab-seccion reveal">
-              <span className="eyebrow">Preguntas frecuentes</span>
-              <h2>Lo que sueles querer saber</h2>
+              <span className="eyebrow">{t.faq.eyebrow}</span>
+              <h2>{t.faq.titulo}</h2>
             </div>
             <div className="faq-lista">
-              <details className="faq reveal">
-                <summary>¿Necesito saber programar?<span className="mas" /></summary>
-                <div className="resp">No. Subes tu web, la publicas y la editas haciendo clic sobre ella. Si sabes usar el correo o WhatsApp, sabes usar Estrénala.</div>
-              </details>
-              <details className="faq reveal">
-                <summary>¿Sirve la web que me hizo ChatGPT, Claude o v0?<span className="mas" /></summary>
-                <div className="resp">Sí. Si es una web en HTML —lo que generan estas herramientas—, la subes tal cual (un archivo, un ZIP o la carpeta entera) y queda online.</div>
-              </details>
-              <details className="faq reveal">
-                <summary>¿Puedo usar mi propio dominio?<span className="mas" /></summary>
-                <div className="resp">Sí. Puedes empezar con una dirección gratuita <b>tunombre.estrenala.com</b> y, cuando quieras, conectar tu dominio propio (p. ej. <b>tunegocio.com</b>). Todo con HTTPS.</div>
-              </details>
-              <details className="faq reveal">
-                <summary>¿Cuánto cuesta la parte de IA?<span className="mas" /></summary>
-                <div className="resp">Editar <b>a mano es gratis</b>. La IA (asistente de edición y blog) funciona con <b>tu propia clave</b> y es opt-in: la conectas si quieres y <b>tú decides cuándo gastas</b>. No vendemos «IA ilimitada gratis»: pagas tu consumo real a tu proveedor.</div>
-              </details>
-              <details className="faq reveal">
-                <summary>¿Y si prefiero seguir editando en mi herramienta de IA?<span className="mas" /></summary>
-                <div className="resp">Perfecto. Sigue en Claude Code, ChatGPT o v0 y, cuando termines, vuelve a subir el ZIP: tu web online se actualiza en un clic y la versión anterior queda en el historial. No te encerramos aquí.</div>
-              </details>
-              <details className="faq reveal">
-                <summary>¿Puedo volver atrás si rompo algo?<span className="mas" /></summary>
-                <div className="resp">Siempre. Cada cambio queda en el historial y puedes restaurar una versión anterior en un clic. Editar sin miedo es parte del trato.</div>
-              </details>
-              <details className="faq reveal">
-                <summary>¿Puedo trabajar en equipo?<span className="mas" /></summary>
-                <div className="resp">Sí. Entras con tu correo o con Google e invitas a más gente a tu espacio con roles (propietario o editor). Ideal para agencias con varios clientes.</div>
-              </details>
+              {t.faq.preguntas.map((q) => (
+                <details className="faq reveal" key={q.p}>
+                  <summary>{q.p}<span className="mas" /></summary>
+                  <div className="resp">{conFormato(q.r)}</div>
+                </details>
+              ))}
             </div>
           </div>
         </section>
@@ -384,11 +345,11 @@ export function Landing() {
         <section className="seccion-oscura cta-final">
           <div className="grano" />
           <div className="contenedor" style={{ position: "relative" }}>
-            <h2 className="reveal">Tu web ya está lista. <span className="hl">Estrénala</span>.</h2>
-            <p className="reveal d1">Súbela ahora y verla online en internet te llevará menos de lo que has tardado en leer esto.</p>
+            <h2 className="reveal">{conFormato(t.ctaFinal.titulo)}</h2>
+            <p className="reveal d1">{t.ctaFinal.texto}</p>
             <div className="acciones reveal d2">
-              <a className="btn btn-primario" href={CTA}>Sube tu web gratis →</a>
-              <span className="nota">Gratis para empezar · sin tarjeta · sin saber programar</span>
+              <a className="btn btn-primario" href={CTA}>{t.ctaFinal.cta}</a>
+              <span className="nota">{t.ctaFinal.nota}</span>
             </div>
           </div>
         </section>
@@ -399,34 +360,55 @@ export function Landing() {
           <div className="pie-int">
             <div className="marca">
               <img className="logo-pie" src="/brand/logo-blanco.png" alt="Estrénala" />
-              <p>El sitio donde tu web hecha con IA por fin sale al mundo.</p>
+              <p>{t.pie.lema}</p>
             </div>
             <div className="pie-cols">
               <div className="pie-col">
-                <h4>Producto</h4>
-                <a href="#como">Cómo funciona</a>
-                <a href="#editar">Editar sin código</a>
-                <a href="#blog">Blog automático</a>
-                <a href="#equipo">Equipos</a>
+                <h4>{t.pie.colProducto}</h4>
+                <a href="#como">{t.nav.como}</a>
+                <a href="#editar">{t.pie.editarSinCodigo}</a>
+                <a href="#blog">{t.pie.blogAutomatico}</a>
+                <a href="#equipo">{t.nav.equipos}</a>
               </div>
               <div className="pie-col">
-                <h4>Empezar</h4>
-                <a href={CTA}>Sube tu web</a>
-                <a href="/login">Entrar</a>
-                <a href="#faq">Preguntas frecuentes</a>
+                <h4>{t.pie.colEmpezar}</h4>
+                <a href={CTA}>{t.pie.subeTuWeb}</a>
+                <a href="/login">{t.pie.entrar}</a>
+                <a href="#faq">{t.pie.preguntasFrecuentes}</a>
               </div>
               <div className="pie-col">
-                <h4>Legal</h4>
-                <a href="/legal/aviso-legal">Aviso legal</a>
-                <a href="/legal/privacidad">Privacidad</a>
-                <a href="/legal/cookies">Cookies</a>
-                <a href="/legal/terminos">Términos</a>
+                <h4>{t.pie.colLegal}</h4>
+                <a href="/legal/aviso-legal">{t.pie.avisoLegal}</a>
+                <a href="/legal/privacidad">{t.pie.privacidad}</a>
+                <a href="/legal/cookies">{t.pie.cookies}</a>
+                <a href="/legal/terminos">{t.pie.terminos}</a>
+              </div>
+              {/* El selector va aquí y no en la cabecera a propósito: quien llega
+                  desde Google ya viene en su idioma (cada uno tiene su dirección),
+                  así que esto es la salida de emergencia del que cayó en la que no
+                  era — no una decisión que haya que tomar nada más entrar.
+                  Enlaces de verdad, no un desplegable con JavaScript: así Google
+                  encuentra las cinco versiones y funcionan sin scripts. */}
+              <div className="pie-col">
+                <h4>{t.pie.idioma}</h4>
+                {IDIOMAS.map((i) => (
+                  <a
+                    key={i}
+                    href={rutaDeIdioma(i)}
+                    hrefLang={i}
+                    lang={i}
+                    aria-current={i === idioma ? "true" : undefined}
+                    style={i === idioma ? { color: "var(--acento)" } : undefined}
+                  >
+                    {NOMBRE_IDIOMA[i]}
+                  </a>
+                ))}
               </div>
             </div>
           </div>
           <div className="pie-abajo">
             <span>© {new Date().getFullYear()} Estrénala · estrenala.com</span>
-            <span>Hecho en España · Tu web hecha con IA, por fin en directo.</span>
+            <span>{sinFormato(t.pie.hechoEn)}</span>
             <FirmaQuantiva tono="oscuro" />
           </div>
         </div>
