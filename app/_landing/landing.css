@@ -202,6 +202,9 @@ html:has(.landing){scroll-behavior:smooth}
 .landing .pie-col h4{font:600 12px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--tinta-txt3);margin-bottom:14px}
 .landing .pie-col a{display:block;color:var(--tinta-txt2);font-size:14px;margin-bottom:10px}
 .landing .pie-col a:hover{color:#fff}
+/* El idioma que estas viendo, marcado. Aqui el fondo es oscuro, asi que va el
+   lima directo sobre el texto y no la pastilla clara del desplegable de arriba. */
+.landing .pie-col a[aria-current]{color:var(--acento);font-weight:600}
 .landing .pie-abajo{border-top:1px solid var(--tinta-borde);margin-top:38px;padding-top:22px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--tinta-txt3)}
 .landing .reveal{opacity:0;transform:translateY(20px);transition:opacity .6s cubic-bezier(.2,.8,.2,1),transform .6s cubic-bezier(.2,.8,.2,1)}
 .landing .reveal.visible{opacity:1;transform:none}
@@ -231,6 +234,7 @@ html:has(.landing){scroll-behavior:smooth}
 .landing .menu-idioma{display:none}
 .landing .idiomas-movil{display:block;margin-top:8px;padding-top:8px;border-top:1px solid var(--borde)}
 .landing .idiomas-movil .tit{display:block;padding:0 12px 4px;font-size:12px;color:var(--texto-3)}
+.landing .idiomas-movil a[aria-current]{background:var(--acento-suave);color:var(--acento-texto)}
 }
 @media (max-width:400px){
 .landing .seccion{padding:60px 0}

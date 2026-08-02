@@ -1,10 +1,33 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { conFormato, sinFormato } from "@/src/i18n/formato";
 import { CATALOGO_LANDING, textosLanding } from "@/src/i18n/landing";
 import { IDIOMAS, type Idioma } from "@/src/i18n/idiomas";
 
 const pinta = (n: React.ReactNode) => renderToStaticMarkup(<>{n}</>);
+
+/**
+ * El selector de idioma se pinta en TRES sitios: la cabecera, el menú del móvil
+ * y el pie. Los tres marcan el idioma actual con `aria-current`, pero cada uno
+ * cuelga de un contenedor distinto y por tanto necesita SU regla de CSS.
+ *
+ * El 2026-08-02, al unificar los tres en una sola lista de enlaces, la regla se
+ * escribió solo para el desplegable de la cabecera. En el pie, el italiano salía
+ * del mismo color que los otros cuatro: no se sabía cuál estabas viendo. Lo vio
+ * Sebas en el paso 4 de la guía — y yo mismo había escrito en esa guía que tenía
+ * que verse marcado.
+ */
+it("el idioma actual se marca en los tres sitios donde está el selector", () => {
+  const css = readFileSync(resolve(process.cwd(), "app/_landing/landing.css"), "utf-8");
+  const sitios = [
+    ".landing .menu-idioma .panel a[aria-current]", // cabecera
+    ".landing .idiomas-movil a[aria-current]",      // menú del móvil
+    ".landing .pie-col a[aria-current]",            // pie
+  ];
+  for (const s of sitios) expect(css, `sin marcar: ${s}`).toContain(s);
+});
 
 describe("formato dentro de las frases", () => {
   it("**así** es negrita", () => {
