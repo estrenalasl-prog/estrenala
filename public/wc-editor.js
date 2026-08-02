@@ -166,6 +166,21 @@
     return h;
   }
 
+  // Botón «Encima»/«Debajo» del bloque de añadir imagen. El padre abre el selector
+  // de archivo y contesta con `wc-image-insert-set`.
+  function botonInsertar(txt, posicion, el) {
+    var b = document.createElement("button");
+    b.type = "button"; b.textContent = txt;
+    b.style.cssText = "flex:1;height:32px;border-radius:9px;border:1px solid #DEDFD6;background:#fff;color:#141509;font-size:13px;font-weight:500;cursor:pointer";
+    b.addEventListener("click", function () {
+      window.parent.postMessage(
+        { type: "wc-image-insert-request", nodeId: idDe(el), page: PAGE, posicion: posicion },
+        "*"
+      );
+    });
+    return b;
+  }
+
   function construir(el) {
     pop.innerHTML = "";
     objetivo = el;
@@ -234,8 +249,24 @@
       pop.appendChild(btn);
     }
 
-    // Cabecera (título + tipo + cerrar) solo si hay controles: si el elemento no es
-    // editable, pop queda vacío y mostrar() lo oculta por el guard !pop.firstChild.
+    // Meter una imagen NUEVA junto a lo que se ha pinchado. Hasta ahora solo se
+    // podía cambiar una que ya estuviera, así que quien no tenía hueco para foto
+    // en su diseño no podía ponerla.
+    //
+    // Dos botones y no uno con opciones: «encima» y «debajo» se entienden sin
+    // leer nada, y esconder la elección detrás de un desplegable convierte un
+    // gesto en dos decisiones.
+    pop.appendChild(etiqueta("Añadir una imagen"));
+    var fila = document.createElement("div");
+    fila.style.cssText = "display:flex;gap:6px";
+    fila.appendChild(botonInsertar("Encima", "antes", el));
+    fila.appendChild(botonInsertar("Debajo", "despues", el));
+    pop.appendChild(fila);
+
+    // Cabecera (título + tipo + cerrar) solo si hay controles. Desde que «Añadir
+    // una imagen» se pone en TODOS, siempre hay al menos uno; el guard se queda
+    // porque `mostrar()` depende de él y quitarlo dejaría el popover abriéndose
+    // vacío el día que se toque `construir`.
     if (pop.firstChild) pop.insertBefore(cabecera(tipoDe(el)), pop.firstChild);
   }
 
@@ -359,8 +390,33 @@
   window.addEventListener("message", function (e) {
     if (e.source !== window.parent) return;
     var d = e.data;
-    if (!d || d.type !== "wc-image-set" || typeof d.previewUrl !== "string") return;
-    var img = document.querySelector('[data-wc-id="' + Number(d.nodeId) + '"]');
-    if (img && img.tagName.toLowerCase() === "img") img.src = d.previewUrl;
+    if (!d || typeof d.previewUrl !== "string") return;
+
+    if (d.type === "wc-image-set") {
+      var img = document.querySelector('[data-wc-id="' + Number(d.nodeId) + '"]');
+      if (img && img.tagName.toLowerCase() === "img") img.src = d.previewUrl;
+      return;
+    }
+
+    // Imagen NUEVA: se pinta ya, para que se vea dónde ha quedado antes de
+    // guardar. El <img> se crea con el MISMO estilo que le pondrá el servidor al
+    // guardar (ver `imgHtml` en src/editor/apply.ts); si aquí se viera de otra
+    // manera, el usuario aprobaría una cosa y se guardaría otra.
+    //
+    // A propósito SIN `data-wc-id`: no existe en el documento guardado todavía,
+    // así que no es editable ni se le puede pinchar. Lo será tras guardar, cuando
+    // la página se vuelva a numerar.
+    if (d.type === "wc-image-insert-set" && (d.posicion === "antes" || d.posicion === "despues")) {
+      var ancla = document.querySelector('[data-wc-id="' + Number(d.nodeId) + '"]');
+      if (!ancla || !ancla.parentNode) return;
+      var nueva = document.createElement("img");
+      nueva.src = d.previewUrl;
+      nueva.alt = typeof d.alt === "string" ? d.alt : "";
+      nueva.setAttribute("loading", "lazy");
+      nueva.style.cssText = "max-width:100%;height:auto;display:block";
+      if (d.posicion === "antes") ancla.parentNode.insertBefore(nueva, ancla);
+      else ancla.parentNode.insertBefore(nueva, ancla.nextSibling);
+      nueva.scrollIntoView({ block: "nearest" });
+    }
   });
 })();

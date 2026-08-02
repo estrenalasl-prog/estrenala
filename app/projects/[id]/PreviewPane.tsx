@@ -7,13 +7,30 @@ type EditOp =
   | { page: string; nodeId: number; kind: "text"; value: string }
   | { page: string; nodeId: number; kind: "href"; value: string }
   | { page: string; nodeId: number; kind: "src"; value: string; assetId: string }
+  | { page: string; nodeId: number; kind: "insertImage"; value: string; assetId: string; alt: string; posicion: "antes" | "despues" }
   | { page: string; nodeId: number; kind: "style"; property: "color"; value: string }
   | { page: string; nodeId: number; kind: "textNode"; index: number; value: string };
 type SnapshotInfo = { id: string; tipo: string; parentId: string | null; createdAt: string; esActual: boolean };
 
 function opKey(op: EditOp): string {
-  const extra = op.kind === "style" ? op.property : op.kind === "textNode" ? String(op.index) : "";
+  // Las imágenes NUEVAS se distinguen además por cuál es y dónde va: si no, poner
+  // dos fotos distintas debajo del mismo párrafo dejaría solo la última. Mismo
+  // criterio que en `applyEdits`, y tiene que seguir siéndolo.
+  const extra =
+    op.kind === "style" ? op.property
+      : op.kind === "textNode" ? String(op.index)
+      : op.kind === "insertImage" ? `${op.posicion}#${op.value}`
+      : "";
   return `${op.page}#${op.nodeId}#${op.kind}#${extra}`;
+}
+
+/**
+ * Texto alternativo por defecto, sacado del nombre del archivo. No es perfecto,
+ * pero una imagen sin `alt` es invisible para Google y para quien use lector de
+ * pantalla, y nadie lo escribe si hay que escribirlo a mano.
+ */
+function altDeNombre(nombre: string): string {
+  return nombre.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").trim().slice(0, 300);
 }
 
 const NOMBRE_TIPO: Record<string, string> = {
@@ -56,7 +73,9 @@ export function PreviewPane({
   const [recarga, setRecarga] = useState(0);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const pendingImg = useRef<{ nodeId: number; page: string } | null>(null);
+  // `posicion` null = se está CAMBIANDO la imagen de un <img> que ya existe;
+  // "antes"/"despues" = se está metiendo una nueva junto al elemento elegido.
+  const pendingImg = useRef<{ nodeId: number; page: string; posicion: "antes" | "despues" | null } | null>(null);
   const router = useRouter();
 
   const relPath = actual === entryPath ? "" : actual;
@@ -86,7 +105,9 @@ export function PreviewPane({
   useEffect(() => {
     function onMsg(e: MessageEvent) {
       if (!iframeRef.current || e.source !== iframeRef.current.contentWindow) return;
-      const data = e.data as { type?: string; op?: EditOp; nodeId?: number; page?: string };
+      const data = e.data as {
+        type?: string; op?: EditOp; nodeId?: number; page?: string; posicion?: "antes" | "despues";
+      };
       if (data?.type === "wc-edit" && data.op) {
         setOps((prev) => {
           const next = new Map(prev);
@@ -94,7 +115,14 @@ export function PreviewPane({
           return next;
         });
       } else if (data?.type === "wc-image-request" && typeof data.nodeId === "number" && data.page) {
-        pendingImg.current = { nodeId: data.nodeId, page: data.page };
+        pendingImg.current = { nodeId: data.nodeId, page: data.page, posicion: null };
+        fileInputRef.current?.click();
+      } else if (
+        data?.type === "wc-image-insert-request" && typeof data.nodeId === "number" && data.page &&
+        (data.posicion === "antes" || data.posicion === "despues")
+      ) {
+        // Igual que cambiar una imagen, pero recordando ADEMÁS dónde va la nueva.
+        pendingImg.current = { nodeId: data.nodeId, page: data.page, posicion: data.posicion };
         fileInputRef.current?.click();
       }
     }
@@ -119,8 +147,23 @@ export function PreviewPane({
         return;
       }
       const { assetId, ext, url } = (await res.json()) as { assetId: string; ext: string; url: string };
-      iframeRef.current?.contentWindow?.postMessage({ type: "wc-image-set", nodeId: pend.nodeId, previewUrl: url }, "*");
-      const op: EditOp = { page: pend.page, nodeId: pend.nodeId, kind: "src", value: `/wc-uploads/${assetId}.${ext}`, assetId };
+      // Dos direcciones para la misma imagen: `url` es la del panel, que existe YA
+      // y sirve para que se vea al momento; la de `/wc-uploads/` es la que tendrá
+      // en la web publicada, y es la que se guarda en la op. El archivo viaja
+      // dentro del snapshot al guardar (ver save-edits).
+      const valor = `/wc-uploads/${assetId}.${ext}`;
+      let op: EditOp;
+      if (pend.posicion) {
+        const alt = altDeNombre(file.name);
+        iframeRef.current?.contentWindow?.postMessage(
+          { type: "wc-image-insert-set", nodeId: pend.nodeId, posicion: pend.posicion, previewUrl: url, alt },
+          "*"
+        );
+        op = { page: pend.page, nodeId: pend.nodeId, kind: "insertImage", value: valor, assetId, alt, posicion: pend.posicion };
+      } else {
+        iframeRef.current?.contentWindow?.postMessage({ type: "wc-image-set", nodeId: pend.nodeId, previewUrl: url }, "*");
+        op = { page: pend.page, nodeId: pend.nodeId, kind: "src", value: valor, assetId };
+      }
       setOps((prev) => {
         const next = new Map(prev);
         next.set(opKey(op), op);
