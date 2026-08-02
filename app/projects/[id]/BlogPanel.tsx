@@ -9,6 +9,12 @@ import { insertarImagen } from "@/src/blog/imagenes-cuerpo";
 import { BotonSubir } from "./ToolsPanel";
 import { ArticleAiWorkspace, type DraftDetalle } from "./ArticleAiWorkspace";
 import { nombreModelo } from "../../_components/modelos";
+import type { TextosBlog } from "@/src/i18n/blog";
+import { conFormato, conValores } from "@/src/i18n/formato";
+import { rellenar } from "@/src/i18n/rellenar";
+import { LOCALE_INTL, type Idioma } from "@/src/i18n/idiomas";
+
+type Textos = TextosBlog;
 
 type EstadoBlog = { tienePlantilla: boolean; posts: { id: string; titulo: string; slug: string; fecha: string }[] };
 type BorradorItem = { id: string; keyword: string; estado: string; titulo: string | null; createdAt: string };
@@ -26,24 +32,29 @@ type PilotoConfig = {
 };
 type Vista = "lista" | "plantillas" | "editor" | "ia";
 
-const AVISO = "Las páginas del blog se generan desde aquí; si las tocas con el editor visual, la próxima regeneración del blog deshará esos cambios.";
-
-function estadoLegible(estado: string): string {
-  if (estado === "revision") return "✅ para revisar";
-  if (estado === "error") return "⚠ error";
-  return "⏳ en marcha";
+// La fecha y la hora, en el idioma de la cuenta. Iban con `undefined`, que es el
+// del navegador: en una fecha de publicación programada eso puede leerse al
+// revés (8/3 en vez de 3/8) sin que nada avise.
+function cuando(iso: string, idioma: Idioma): string {
+  return new Date(iso).toLocaleString(LOCALE_INTL[idioma]);
 }
 
-function estadoProgramadoLegible(estado: string): string {
-  if (estado === "publicado") return "✓ publicado";
-  if (estado === "error") return "⚠ error";
-  return "⏳ pendiente"; // pendiente | publicando
+function estadoLegible(estado: string, t: Textos): string {
+  if (estado === "revision") return t.borradorRevision;
+  if (estado === "error") return t.borradorError;
+  return t.borradorEnMarcha;
 }
 
-function BadgeRelevancia({ relevancia }: { relevancia: number }) {
+function estadoProgramadoLegible(estado: string, t: Textos): string {
+  if (estado === "publicado") return t.programadoPublicado;
+  if (estado === "error") return t.programadoError;
+  return t.programadoPendiente; // pendiente | publicando
+}
+
+function BadgeRelevancia({ relevancia, titulo }: { relevancia: number; titulo: string }) {
   const clase = relevancia >= 70 ? "badge-exito" : relevancia >= 40 ? "badge-aviso" : "badge-neutro";
   return (
-    <span className={`badge ${clase}`} title="Relevancia para tu nicho (0-100)">
+    <span className={`badge ${clase}`} title={titulo}>
       <span className="punto" />{relevancia}
     </span>
   );
@@ -52,7 +63,7 @@ function BadgeRelevancia({ relevancia }: { relevancia: number }) {
 // La vista previa, con pantalla completa como la del sitio: en un recuadro de
 // 384 px no se puede juzgar si una plantilla de blog está bien, que es justo lo
 // que se está mirando aquí.
-function IframePreview({ html }: { html: string }) {
+function IframePreview({ html, t }: { html: string; t: Textos["previo"] }) {
   const [expandido, setExpandido] = useState(false);
 
   useEffect(() => {
@@ -74,22 +85,22 @@ function IframePreview({ html }: { html: string }) {
           type="button"
           className="btn btn-sec btn-sm"
           onClick={() => setExpandido(!expandido)}
-          title={expandido ? "Salir de pantalla completa (Esc)" : "Ver la plantilla a tamaño real"}
+          title={expandido ? t.salirTitulo : t.expandirTitulo}
         >
-          {expandido ? "⤡ Salir" : "⤢ Expandir"}
+          {expandido ? t.salir : t.expandir}
         </button>
       </div>
-      <iframe srcDoc={html} sandbox="" className="previo-blog-lienzo" title="vista previa" />
+      <iframe srcDoc={html} sandbox="" className="previo-blog-lienzo" title={t.titulo} />
     </div>
   );
 }
 
 // Carga un .html del disco a un textarea. Se lee en el navegador y no se sube a
 // ningún sitio: hasta que no le dé a un botón, esto no sale de su ordenador.
-function SubirHtml({ ocupado, onTexto }: { ocupado: boolean; onTexto: (t: string) => void }) {
+function SubirHtml({ ocupado, onTexto, texto }: { ocupado: boolean; onTexto: (t: string) => void; texto: string }) {
   return (
     <label className={"btn btn-sec btn-sm" + (ocupado ? " pointer-events-none opacity-50" : "")} style={{ cursor: "pointer" }}>
-      Subir archivo .html
+      {texto}
       <input
         type="file"
         accept=".html,.htm,text/html"
@@ -107,40 +118,47 @@ function SubirHtml({ ocupado, onTexto }: { ocupado: boolean; onTexto: (t: string
 
 // Qué significa cada hueco. Sin esto, «traer tu plantilla» solo lo puede usar
 // quien ya se sepa el sistema, y son justo los que quieren hacerlo a mano.
-const HUECOS_AYUDA: [string, string][] = [
-  ["{{titulo}}", "el título del artículo"],
-  ["{{contenido}}", "el cuerpo, ya en HTML"],
-  ["{{meta_descripcion}}", "el resumen para Google"],
-  ["{{imagen}}", "la imagen de portada"],
-  ["{{fecha}}", "la fecha de publicación"],
-  ["{{canonical}}", "la dirección buena de la página"],
-  ["{{json_ld}}", "los datos para Google (se inyecta solo)"],
-];
+//
+// El nombre del hueco NO se traduce: es lo que el sistema busca dentro del HTML
+// del usuario. Lo que se traduce es la explicación.
+function huecosAyuda(t: Textos["plantillas"]): [string, string][] {
+  return [
+    ["{{titulo}}", t.huecoTitulo],
+    ["{{contenido}}", t.huecoContenido],
+    ["{{meta_descripcion}}", t.huecoMeta],
+    ["{{imagen}}", t.huecoImagen],
+    ["{{fecha}}", t.huecoFecha],
+    ["{{canonical}}", t.huecoCanonical],
+    ["{{json_ld}}", t.huecoJsonLd],
+  ];
+}
 
 // Sin plan que incluya blog no se monta el panel: se enseña qué se pierde y por
 // dónde se consigue. El candado de verdad está en la API (402), esto es cortesía.
-export function BlogDePago() {
+export function BlogDePago({ t }: { t: Textos }) {
   return (
     <details className="direccion">
       <summary>
-        <span className="flecha">▸</span> Blog
-        <span className="estado-dom">Incluido en los planes de pago</span>
+        <span className="flecha">▸</span> {t.titulo}
+        <span className="estado-dom">{t.dePago.resumen}</span>
       </summary>
       <div className="direccion-cuerpo" style={{ display: "block" }}>
         <div className="tarjeta p-3">
-          <p className="text-sm font-medium">Un blog que escribe solo</p>
+          <p className="text-sm font-medium">{t.dePago.titulo}</p>
           <p className="mb-2 text-xs text-texto-2">
-            Artículos con el diseño de tu propia web, índice y sitemap al día, y un piloto automático que
-            busca temas y publica cada pocos días. Desde {PLANES.personal.precioMes} €/mes con el plan {PLANES.personal.nombre}.
+            {rellenar(t.dePago.texto, {
+              precio: String(PLANES.personal.precioMes),
+              plan: PLANES.personal.nombre,
+            })}
           </p>
-          <Link href="/settings#plan" className="btn btn-primario btn-sm">Ver los planes</Link>
+          <Link href="/settings#plan" className="btn btn-primario btn-sm">{t.dePago.boton}</Link>
         </div>
       </div>
     </details>
   );
 }
 
-export function BlogPanel({ projectId }: { projectId: string }) {
+export function BlogPanel({ projectId, idioma, t }: { projectId: string; idioma: Idioma; t: Textos }) {
   const router = useRouter();
   const { confirmar } = useDialogo();
   const [abierto, setAbierto] = useState(false);
@@ -161,7 +179,6 @@ export function BlogPanel({ projectId }: { projectId: string }) {
   // ni debe existir —el blog es parte de la web, no algo aparte—. El botón está
   // arriba del todo de la pantalla, lejos de aquí.
   const [aviso, setAviso] = useState<string | null>(null);
-  const AVISO_PUBLICAR = "Para que se vea en tu web, dale a «Publicar cambios» arriba del todo.";
   // plantillas
   const [tplPost, setTplPost] = useState("");
   const [tplIndex, setTplIndex] = useState("");
@@ -203,6 +220,10 @@ export function BlogPanel({ projectId }: { projectId: string }) {
   const [semillas, setSemillas] = useState("");
   const [temas, setTemas] = useState<TemaItem[]>([]);
   const [radarMsg, setRadarMsg] = useState<string | null>(null);
+  // Si el radar dijo «ya se actualizó hoy». Va en su propio booleano y no se
+  // adivina mirando cómo empieza `radarMsg`: ese texto se traduce, y el botón de
+  // «Forzar» dejaría de aparecer en cuanto alguien cambiara de idioma.
+  const [radarYaHoy, setRadarYaHoy] = useState(false);
   // publicación programada (4e)
   const [programados, setProgramados] = useState<ProgramadoItem[]>([]);
   const [progFecha, setProgFecha] = useState(""); // valor del datetime-local del editor
@@ -242,9 +263,9 @@ export function BlogPanel({ projectId }: { projectId: string }) {
     try {
       const res = await fetch(url, init);
       const d = (await res.json().catch(() => ({}))) as Record<string, unknown>;
-      if (!res.ok) { setError((d.error as string) ?? "Error"); return null; }
+      if (!res.ok) { setError((d.error as string) ?? t.errores.generico); return null; }
       return d;
-    } catch { setError("Error de conexión"); return null; }
+    } catch { setError(t.errores.conexion); return null; }
     finally { setOcupado(false); setEnCurso(null); }
   }
 
@@ -291,11 +312,11 @@ export function BlogPanel({ projectId }: { projectId: string }) {
     // entender por qué. Le pasó a Sebas con la plantilla de ejemplo.
     if (!/\{\{\s*[a-z_]+\s*\}\}/i.test(miPost)) {
       const construir = await confirmar({
-        titulo: "Tu HTML no lleva ningún hueco todavía",
-        cuerpo: "Este botón es para cuando ya has escrito tú los {{titulo}}, {{contenido}}… dentro de tu HTML. No los encontramos, así que el blog no sabría dónde poner cada cosa. Podemos colocarlos nosotros sin tocarte el diseño.",
+        titulo: t.plantillas.sinHuecosTitulo,
+        cuerpo: t.plantillas.sinHuecosCuerpo,
         tono: "coste",
-        aceptar: "Colocadlos vosotros",
-        cancelar: "Los pongo yo",
+        aceptar: t.plantillas.sinHuecosAceptar,
+        cancelar: t.plantillas.sinHuecosCancelar,
       });
       if (construir) await colocarHuecos();
       return;
@@ -304,11 +325,11 @@ export function BlogPanel({ projectId }: { projectId: string }) {
       // Un aviso que solo dice «te falta esto» es un callejón sin salida: te
       // deja leyendo y sin nada que pulsar. Las dos salidas van en los botones.
       const construir = await confirmar({
-        titulo: "Te falta la lista de artículos",
-        cuerpo: "Es la página /blog/ donde aparecen todos tus artículos. A mano se escribe rodeando con <!--POST--> y <!--/POST--> el bloque que se repite por cada uno. O la construimos nosotros con el diseño de tu artículo.",
+        titulo: t.plantillas.sinIndiceTitulo,
+        cuerpo: t.plantillas.sinIndiceCuerpo,
         tono: "coste",
-        aceptar: "Construidla vosotros",
-        cancelar: "La escribo yo",
+        aceptar: t.plantillas.sinIndiceAceptar,
+        cancelar: t.plantillas.sinIndiceCancelar,
       });
       if (construir) await colocarHuecos();
       return;
@@ -369,7 +390,7 @@ export function BlogPanel({ projectId }: { projectId: string }) {
       const fd = new FormData(); fd.append("file", f);
       const res = await fetch(`/api/projects/${projectId}/assets`, { method: "POST", body: fd });
       const d = (await res.json().catch(() => ({}))) as { error?: string; assetId?: string; ext?: string };
-      if (!res.ok || !d.assetId || !d.ext) { setError(d.error ?? "Error al subir la imagen"); return; }
+      if (!res.ok || !d.assetId || !d.ext) { setError(d.error ?? t.errores.subirImagen); return; }
       const ta = mdRef.current;
       // Si todavía no ha pinchado dentro del texto, la imagen va AL FINAL, no al
       // principio. Lo normal es pegar el artículo entero e ir directo al botón: con
@@ -396,9 +417,9 @@ export function BlogPanel({ projectId }: { projectId: string }) {
       const fd = new FormData(); fd.append("file", f);
       const res = await fetch(`/api/projects/${projectId}/assets`, { method: "POST", body: fd });
       const d = (await res.json().catch(() => ({}))) as { error?: string; assetId?: string; url?: string };
-      if (!res.ok || !d.assetId) { setError(d.error ?? "Error al subir la imagen"); return; }
+      if (!res.ok || !d.assetId) { setError(d.error ?? t.errores.subirImagen); return; }
       setImagenAssetId(d.assetId); setImagenUrl(d.url ?? "");
-    } catch { setError("Error de conexión"); }
+    } catch { setError(t.errores.conexion); }
     finally { setOcupado(false); }
   }
   async function verPreviewArticulo() {
@@ -420,20 +441,20 @@ export function BlogPanel({ projectId }: { projectId: string }) {
         try { await fetch(`/api/projects/${projectId}/blog/drafts/${draftOrigenId}`, { method: "DELETE" }); } catch { /* silencioso */ }
         setDraftOrigenId(null);
       }
-      setAviso(`Artículo guardado. ${AVISO_PUBLICAR}`);
+      setAviso(rellenar(t.lista.guardado, { aviso: t.avisoPublicar }));
       setVista("lista"); setEstado(null); await cargar(); router.refresh();
     }
   }
   async function borrarArticulo(id: string, tituloPost: string) {
     if (!(await confirmar({
-      titulo: `¿Borrar el artículo «${tituloPost}»?`,
-      cuerpo: "Se quita del blog y del índice. Para que desaparezca también de tu web publicada, acuérdate de darle después a «Publicar cambios».",
+      titulo: rellenar(t.lista.borrarPregunta, { titulo: tituloPost }),
+      cuerpo: t.lista.borrarCuerpo,
       tono: "peligro",
-      aceptar: "Sí, borrar",
+      aceptar: t.lista.borrarAceptar,
     }))) return;
     const d = await llamar(`/api/projects/${projectId}/blog/posts/${id}`, { method: "DELETE" });
     // Borrarlo tampoco lo quita de la web publicada hasta que se publique.
-    if (d) { setAviso(`Artículo borrado. ${AVISO_PUBLICAR}`); setEstado(null); await cargar(); router.refresh(); }
+    if (d) { setAviso(rellenar(t.lista.borrado, { aviso: t.avisoPublicar })); setEstado(null); await cargar(); router.refresh(); }
   }
 
   // --- piloto automático (4g) ---
@@ -444,7 +465,7 @@ export function BlogPanel({ projectId }: { projectId: string }) {
       method: "PUT", headers: { "content-type": "application/json" },
       body: JSON.stringify({ activo: piloto.activo, cadaDias: piloto.cadaDias, hora: piloto.hora, portada: piloto.portada }),
     });
-    if (d) setPilotoMsg(piloto.activo ? "Guardado. El piloto está EN MARCHA." : "Guardado (piloto apagado).");
+    if (d) setPilotoMsg(piloto.activo ? t.piloto.guardadoActivo : t.piloto.guardadoApagado);
   }
 
   // --- portada automática (4f) ---
@@ -474,7 +495,7 @@ export function BlogPanel({ projectId }: { projectId: string }) {
       try { await fetch(`/api/projects/${projectId}/blog/drafts/${draftOrigenId}`, { method: "DELETE" }); } catch { /* silencioso */ }
       setDraftOrigenId(null);
     }
-    setProgMsg(`Artículo programado para el ${new Date(progFecha).toLocaleString()}. A esa hora se publica solo (artículo y sitio).`);
+    setProgMsg(rellenar(t.programados.hecho, { fecha: cuando(new Date(progFecha).toISOString(), idioma) }));
     setProgFecha("");
     setVista("lista"); setEstado(null); await cargar();
   }
@@ -503,7 +524,7 @@ export function BlogPanel({ projectId }: { projectId: string }) {
       method: "PUT", headers: { "content-type": "application/json" },
       body: JSON.stringify({ nicho, keywordsSemilla: semillas }),
     });
-    if (d) setNichoMsg("Guardado");
+    if (d) setNichoMsg(t.ia.guardado);
   }
   async function crearBorrador() {
     const d = await llamar(`/api/projects/${projectId}/blog/drafts`, {
@@ -518,28 +539,31 @@ export function BlogPanel({ projectId }: { projectId: string }) {
   }
   async function borrarBorrador(id: string, keyword: string) {
     if (!(await confirmar({
-      titulo: `¿Borrar el borrador «${keyword}»?`,
-      cuerpo: "Se pierde lo que la IA ya haya escrito para él. Volver a generarlo gastaría crédito otra vez.",
+      titulo: rellenar(t.ia.borrarPregunta, { keyword }),
+      cuerpo: t.ia.borrarCuerpo,
       tono: "peligro",
-      aceptar: "Sí, borrar",
+      aceptar: t.ia.borrarAceptar,
     }))) return;
     const d = await llamar(`/api/projects/${projectId}/blog/drafts/${id}`, { method: "DELETE" });
     if (d) await cargar();
   }
   // --- radar de temas (4c) ---
   async function buscarTemas(forzar: boolean) {
-    setRadarMsg(null);
+    setRadarMsg(null); setRadarYaHoy(false);
     const d = await llamar(`/api/projects/${projectId}/blog/keywords/radar`, {
       method: "POST", headers: { "content-type": "application/json" },
       body: JSON.stringify({ forzar }),
     }, "temas");
     if (!d) return;
-    if (d.actualizado === false) setRadarMsg("El radar ya se actualizó hoy.");
+    if (d.actualizado === false) { setRadarMsg(t.radar.yaHoy); setRadarYaHoy(true); }
     else {
       const rel = (d.relacionadas as number) ?? 0;
       setRadarMsg(
-        `Radar actualizado: ${d.candidatos as number} temas analizados (${(d.tendencias as number) ?? 0} de tendencias de hoy, ${rel} de tus semillas).` +
-        (rel === 0 ? " Tus semillas no dieron resultados en Google Trends: prueba con otras más habituales." : "")
+        rellenar(t.radar.actualizado, {
+          candidatos: String((d.candidatos as number) ?? 0),
+          tendencias: String((d.tendencias as number) ?? 0),
+          relacionadas: String(rel),
+        }) + (rel === 0 ? ` ${t.radar.sinSemillas}` : "")
       );
     }
     await cargar();
@@ -583,10 +607,10 @@ export function BlogPanel({ projectId }: { projectId: string }) {
 
   return (
     <details className="direccion" onToggle={(e) => { if (e.currentTarget.open) setAbierto(true); }}>
-      <summary><span className="flecha">▸</span> Blog</summary>
+      <summary><span className="flecha">▸</span> {t.titulo}</summary>
       {abierto && (
         <div className="direccion-cuerpo" style={{ display: "block" }}>
-          <p className="ayuda-campo" style={{ marginBottom: 12 }}>{AVISO}</p>
+          <p className="ayuda-campo" style={{ marginBottom: 12 }}>{t.aviso}</p>
 
           {aviso && (
             <div className="aviso-ok" role="status" style={{ marginBottom: 12 }}>
@@ -598,65 +622,68 @@ export function BlogPanel({ projectId }: { projectId: string }) {
             <div>
               {estado && !estado.tienePlantilla ? (
                 <div className="tarjeta p-3">
-                  <p className="text-sm font-medium">El blog de tu web</p>
-                  <p className="mb-2 text-xs text-texto-2">Artículos con tu diseño, índice y sitemap automáticos. Primero, la plantilla: o la IA lee tu portada y propone el diseño, o traes la tuya ya hecha.</p>
+                  <p className="text-sm font-medium">{t.vacio.titulo}</p>
+                  <p className="mb-2 text-xs text-texto-2">{t.vacio.texto}</p>
                   <div className="flex flex-wrap gap-2">
                     <button onClick={() => { setVista("plantillas"); void generarPlantillas(); }} disabled={ocupado}
                       className="btn btn-primario btn-sm">
-                      {rotulo("plantilla", "Crear la plantilla del blog con IA", "Creando la plantilla…")}
+                      {rotulo("plantilla", t.vacio.crear, t.vacio.creando)}
                     </button>
                     <button onClick={abrirTraer} disabled={ocupado} className="btn btn-sec btn-sm">
-                      Ya tengo mi plantilla
+                      {t.vacio.yaTengo}
                     </button>
                   </div>
                 </div>
               ) : (
                 <div>
                   <div className="tarjeta p-3 mb-2">
-                    <p className="text-sm font-medium">Escribir con IA</p>
-                    <label className="mt-1 block text-xs text-texto-2">De qué va tu blog (la IA lo usa para enfocar los artículos)</label>
+                    <p className="text-sm font-medium">{t.ia.titulo}</p>
+                    <label className="mt-1 block text-xs text-texto-2">{t.ia.nicho}</label>
                     <textarea value={nicho} rows={2}
-                      placeholder="p. ej.: Automatización e IA para pymes: agentes, herramientas y casos prácticos"
+                      placeholder={t.ia.nichoEjemplo}
                       onChange={(e) => { setNicho(e.target.value); setNichoMsg(null); }}
                       className="campo mt-1" />
-                    <label className="mt-1 block text-xs text-texto-2">Keywords semilla (separadas por comas; ayudan al radar a buscar temas de tu nicho)</label>
+                    <label className="mt-1 block text-xs text-texto-2">{t.ia.semillas}</label>
                     <input value={semillas}
-                      placeholder="p. ej.: agentes ia, automatización pymes, chatbots"
+                      placeholder={t.ia.semillasEjemplo}
                       onChange={(e) => { setSemillas(e.target.value); setNichoMsg(null); }}
                       className="campo mt-1" />
                     <div className="mt-2 flex items-center gap-2">
                       <button onClick={() => void guardarConfig()} disabled={ocupado}
-                        className="btn btn-sec btn-sm">Guardar configuración</button>
+                        className="btn btn-sec btn-sm">{t.ia.guardarConfig}</button>
                       {nichoMsg && <span className="text-xs text-exito-texto">{nichoMsg}</span>}
                     </div>
                     <p className="mt-1 text-xs text-texto-3">
-                      Modelo de IA: {nombreModelo(modeloOrg)} — se cambia en <a href="/settings" className="underline">Configuración</a>.
+                      {conValores(t.ia.modelo, {
+                        modelo: nombreModelo(modeloOrg),
+                        enlace: <a href="/settings" className="underline">{t.ia.modeloEnlace}</a>,
+                      })}
                     </p>
                     {!mostrarKw ? (
                       <button onClick={() => setMostrarKw(true)} disabled={ocupado}
-                        className="btn btn-primario btn-sm mt-2">Escribir artículo con IA</button>
+                        className="btn btn-primario btn-sm mt-2">{t.ia.escribir}</button>
                     ) : (
                       <div className="mt-2 flex items-center gap-2">
-                        <input value={kw} placeholder="Keyword o tema del artículo"
+                        <input value={kw} placeholder={t.ia.keyword}
                           onChange={(e) => setKw(e.target.value)} className="campo" />
                         <button onClick={() => void crearBorrador()} disabled={ocupado}
                           className="btn btn-primario btn-sm shrink-0">
-                          {rotulo("borrador", "Crear borrador", "Creando…")}
+                          {rotulo("borrador", t.ia.crearBorrador, t.ia.creando)}
                         </button>
                         <button onClick={() => { setMostrarKw(false); setKw(""); }}
-                          className="btn btn-sec btn-sm shrink-0">Cancelar</button>
+                          className="btn btn-sec btn-sm shrink-0">{t.ia.cancelar}</button>
                       </div>
                     )}
                     {borradores.length > 0 && (
                       <ul className="lista mt-2">
                         {borradores.map((b) => (
                           <li key={b.id} className="item justify-between">
-                            <span>{b.titulo ?? b.keyword} <span className="text-xs text-texto-3">· {estadoLegible(b.estado)}</span></span>
+                            <span>{b.titulo ?? b.keyword} <span className="text-xs text-texto-3">· {estadoLegible(b.estado, t)}</span></span>
                             <span className="flex gap-2">
                               <button onClick={() => { setDraftId(b.id); setVista("ia"); }} disabled={ocupado}
-                                className="btn btn-sec btn-sm">Abrir</button>
+                                className="btn btn-sec btn-sm">{t.ia.abrir}</button>
                               <button onClick={() => void borrarBorrador(b.id, b.keyword)} disabled={ocupado}
-                                className="btn btn-fantasma btn-sm">borrar</button>
+                                className="btn btn-fantasma btn-sm">{t.ia.borrar}</button>
                             </span>
                           </li>
                         ))}
@@ -665,37 +692,37 @@ export function BlogPanel({ projectId }: { projectId: string }) {
 
                     <div className="mt-3 border-t pt-2">
                       <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium">Temas en tendencia</p>
+                        <p className="text-sm font-medium">{t.radar.titulo}</p>
                         <button onClick={() => void buscarTemas(false)} disabled={ocupado}
                           className="btn btn-sec btn-sm">
-                          {rotulo("temas", "🔍 Buscar temas de hoy", "Buscando en Google…")}
+                          {rotulo("temas", t.radar.buscar, t.radar.buscando)}
                         </button>
-                        {radarMsg?.startsWith("El radar ya") && (
+                        {radarYaHoy && (
                           <button onClick={() => void buscarTemas(true)} disabled={ocupado}
-                            className="btn btn-fantasma btn-sm">Forzar</button>
+                            className="btn btn-fantasma btn-sm">{t.radar.forzar}</button>
                         )}
                       </div>
-                      <p className="mt-0.5 text-xs text-texto-3">Busca lo que sube hoy en Google (España), lo cruza con tu nicho y te propone temas. Gasta hasta 4 créditos de SerpAPI + 1 llamada de IA; una vez al día.</p>
+                      <p className="mt-0.5 text-xs text-texto-3">{t.radar.texto}</p>
                       {radarMsg && <p className="mt-1 text-xs text-texto-2">{radarMsg}</p>}
-                      {temas.filter((t) => t.estado === "nueva").length > 0 && (
+                      {temas.filter((x) => x.estado === "nueva").length > 0 && (
                         <ul className="lista mt-2">
-                          {temas.filter((t) => t.estado === "nueva").map((t) => (
-                            <li key={t.id} className="item justify-between">
+                          {temas.filter((x) => x.estado === "nueva").map((tema) => (
+                            <li key={tema.id} className="item justify-between">
                               <span className="flex items-center gap-2">
-                                <BadgeRelevancia relevancia={t.relevancia} />
-                                {t.keyword}
+                                <BadgeRelevancia relevancia={tema.relevancia} titulo={t.radar.relevanciaTitulo} />
+                                {tema.keyword}
                                 <span className="text-xs text-texto-3">
-                                  {t.crecimientoPct != null ? `+${t.crecimientoPct}% ` : ""}
-                                  {t.fuente === "trends" ? "· tendencia de hoy" : "· relacionada con tus semillas"}
+                                  {tema.crecimientoPct != null ? `+${tema.crecimientoPct}% ` : ""}
+                                  {tema.fuente === "trends" ? t.radar.deTendencias : t.radar.deSemillas}
                                 </span>
                               </span>
                               <span className="flex shrink-0 gap-2">
-                                <button onClick={() => void escribirDesdeTema(t)} disabled={ocupado}
+                                <button onClick={() => void escribirDesdeTema(tema)} disabled={ocupado}
                                   className="btn btn-primario btn-sm">
-                                  {rotulo(`tema:${t.id}`, "Escribir artículo", "Preparando…")}
+                                  {rotulo(`tema:${tema.id}`, t.radar.escribir, t.radar.preparando)}
                                 </button>
-                                <button onClick={() => void descartarTema(t)} disabled={ocupado}
-                                  className="btn btn-fantasma btn-sm">descartar</button>
+                                <button onClick={() => void descartarTema(tema)} disabled={ocupado}
+                                  className="btn btn-fantasma btn-sm">{t.radar.descartar}</button>
                               </span>
                             </li>
                           ))}
@@ -707,68 +734,65 @@ export function BlogPanel({ projectId }: { projectId: string }) {
                     <div className="card-piloto mb-2">
                       <div className="grano" />
                       <div className="top">
-                        <h3>Piloto automático</h3>
+                        <h3>{t.piloto.titulo}</h3>
                         <button type="button" role="switch" aria-checked={piloto.activo} className="interruptor"
-                          aria-label="Piloto automático"
+                          aria-label={t.piloto.titulo}
                           onClick={() => { setPiloto({ ...piloto, activo: !piloto.activo }); setPilotoMsg(null); }} />
                       </div>
-                      <p>
-                        El blog se escribe solo: el radar busca el tema del día, la IA redacta con tu modelo,
-                        se genera la portada y la publicación se programa automáticamente. Solo escribe si hay
-                        un tema con relevancia &gt; 60 (si no, ese día no gasta nada en redactar). Gasto por
-                        artículo: las llamadas de IA de tu modelo + el radar (hasta 4 créditos de SerpAPI al día).
-                      </p>
+                      <p>{t.piloto.texto}</p>
                       <div className="relative mt-3 flex flex-wrap items-center gap-2 text-xs">
                         <select value={piloto.cadaDias} onChange={(e) => { setPiloto({ ...piloto, cadaDias: Number(e.target.value) }); setPilotoMsg(null); }}
                           className="campo">
-                          <option value={1}>Cada día</option>
-                          <option value={3}>Cada 3 días</option>
-                          <option value={7}>Cada semana</option>
+                          <option value={1}>{t.piloto.cadaDia}</option>
+                          <option value={3}>{t.piloto.cada3Dias}</option>
+                          <option value={7}>{t.piloto.cadaSemana}</option>
                         </select>
                         <select value={piloto.hora} onChange={(e) => { setPiloto({ ...piloto, hora: Number(e.target.value) }); setPilotoMsg(null); }}
                           className="campo">
                           {Array.from({ length: 24 }, (_, h) => (
-                            <option key={h} value={h}>a partir de las {h}:00</option>
+                            <option key={h} value={h}>{rellenar(t.piloto.aPartirDeLas, { hora: String(h) })}</option>
                           ))}
                         </select>
                         <select value={piloto.portada} onChange={(e) => { setPiloto({ ...piloto, portada: e.target.value }); setPilotoMsg(null); }}
                           className="campo">
-                          <option value="diseno">Portada: diseño (gratis)</option>
-                          <option value="ia">Portada: imagen con IA (céntimos)</option>
+                          <option value="diseno">{t.piloto.portadaDiseno}</option>
+                          <option value="ia">{t.piloto.portadaIa}</option>
                         </select>
                         <button onClick={() => void guardarPiloto()} disabled={ocupado}
-                          className="btn btn-primario btn-sm">Guardar</button>
+                          className="btn btn-primario btn-sm">{t.piloto.guardar}</button>
                         {pilotoMsg && <span style={{ color: "#9BE0AC" }}>{pilotoMsg}</span>}
                       </div>
                       {piloto.ultimoMsg && (
                         <p className="ultima">
-                          Última ejecución{piloto.ultimoDia ? ` (${piloto.ultimoDia})` : ""}: {piloto.ultimoMsg}
+                          {piloto.ultimoDia
+                            ? rellenar(t.piloto.ultimaConDia, { dia: piloto.ultimoDia, msg: piloto.ultimoMsg })
+                            : rellenar(t.piloto.ultima, { msg: piloto.ultimoMsg })}
                         </p>
                       )}
                     </div>
                   )}
                   {(programados.length > 0 || progMsg) && (
                     <div className="tarjeta p-3 mb-2">
-                      <p className="text-sm font-medium">Programados</p>
+                      <p className="text-sm font-medium">{t.programados.titulo}</p>
                       {progMsg && <p className="mt-1 text-xs text-exito-texto">{progMsg}</p>}
                       <ul className="lista mt-1">
                         {programados.map((p) => (
                           <li key={p.id} className="item justify-between">
                             <span>
                               {p.titulo}{" "}
-                              <span className="text-xs text-texto-3">· {new Date(p.publicarEn).toLocaleString()} · {estadoProgramadoLegible(p.estado)}</span>
+                              <span className="text-xs text-texto-3">· {cuando(p.publicarEn, idioma)} · {estadoProgramadoLegible(p.estado, t)}</span>
                               {p.estado === "error" && p.errorMsg && <span className="text-xs text-peligro-texto"> — {p.errorMsg}</span>}
                             </span>
                             <span className="flex shrink-0 gap-2">
                               {(p.estado === "pendiente" || p.estado === "error") && (
                                 <button onClick={() => void editarProgramado(p)} disabled={ocupado}
-                                  title="Recupera el contenido al editor y quita la programación (reprograma desde ahí)"
-                                  className="btn btn-sec btn-sm">Editar</button>
+                                  title={t.programados.editarTitulo}
+                                  className="btn btn-sec btn-sm">{t.programados.editar}</button>
                               )}
                               {p.estado === "publicado" && (
                                 <button onClick={() => void ocultarProgramado(p.id)} disabled={ocupado}
-                                  title="Quita esta fila; el artículo ya está en la lista de abajo"
-                                  className="btn btn-fantasma btn-sm">Ocultar</button>
+                                  title={t.programados.ocultarTitulo}
+                                  className="btn btn-fantasma btn-sm">{t.programados.ocultar}</button>
                               )}
                             </span>
                           </li>
@@ -777,17 +801,17 @@ export function BlogPanel({ projectId }: { projectId: string }) {
                     </div>
                   )}
                   <div className="mb-2 flex items-center gap-2">
-                    <button onClick={nuevoArticulo} className="btn btn-primario btn-sm">Nuevo artículo</button>
-                    <button onClick={() => void abrirPlantillas()} className="btn btn-fantasma btn-sm">Editar plantillas</button>
-                    {ocupado && <span className="text-sm text-texto-3">cargando…</span>}
+                    <button onClick={nuevoArticulo} className="btn btn-primario btn-sm">{t.lista.nuevo}</button>
+                    <button onClick={() => void abrirPlantillas()} className="btn btn-fantasma btn-sm">{t.lista.editarPlantillas}</button>
+                    {ocupado && <span className="text-sm text-texto-3">{t.lista.cargando}</span>}
                   </div>
                   <ul className="lista">
                     {(estado?.posts ?? []).map((p) => (
                       <li key={p.id} className="item justify-between">
                         <span>{p.titulo} <span className="text-xs text-texto-3">· {p.fecha} · /blog/{p.slug}.html</span></span>
                         <span className="flex gap-2">
-                          <button onClick={() => void editarArticulo(p.id)} disabled={ocupado} className="btn btn-sec btn-sm">Editar</button>
-                          <button onClick={() => void borrarArticulo(p.id, p.titulo)} disabled={ocupado} className="btn btn-fantasma btn-sm">borrar</button>
+                          <button onClick={() => void editarArticulo(p.id)} disabled={ocupado} className="btn btn-sec btn-sm">{t.lista.editar}</button>
+                          <button onClick={() => void borrarArticulo(p.id, p.titulo)} disabled={ocupado} className="btn btn-fantasma btn-sm">{t.lista.borrar}</button>
                         </span>
                       </li>
                     ))}
@@ -804,6 +828,8 @@ export function BlogPanel({ projectId }: { projectId: string }) {
               modelo={nombreModelo(modeloOrg)}
               onUsar={usarBorrador}
               onSalir={() => { setVista("lista"); void cargar(); }}
+              t={t.taller}
+              errores={t.errores}
             />
           )}
 
@@ -811,71 +837,58 @@ export function BlogPanel({ projectId }: { projectId: string }) {
             <div className="space-y-2">
               {traendo ? (
                 <>
-                  <p className="text-sm font-medium">Tu propia plantilla</p>
+                  <p className="text-sm font-medium">{t.plantillas.misTitulo}</p>
                   {/* «¿Por qué tengo que subir dos?» fue lo primero que preguntó
                       Sebas al verlo, y él conoce el sistema. Se explica aquí, que
                       es donde surge la duda: una guía aparte hay que ir a buscarla
                       y nadie sale del formulario a leerla. */}
-                  <p className="text-xs text-texto-2">
-                    Un blog tiene <b>dos tipos de página</b>: la <b>lista</b> de artículos —lo que se ve al
-                    entrar en <code>/blog/</code>— y <b>cada artículo por dentro</b>. Por eso te pedimos dos,
-                    aunque con una nos vale. No cambiamos tu diseño: solo le colocamos los huecos que el
-                    sistema rellena con cada artículo.
-                  </p>
+                  <p className="text-xs text-texto-2">{conFormato(t.plantillas.misTexto)}</p>
 
                   <div className="flex items-center gap-2">
-                    <label className="block text-xs font-medium">1 · Cómo se ve un artículo por dentro</label>
-                    <SubirHtml ocupado={ocupado} onTexto={setMiPost} />
+                    <label className="block text-xs font-medium">{t.plantillas.paso1}</label>
+                    <SubirHtml ocupado={ocupado} onTexto={setMiPost} texto={t.plantillas.subirHtml} />
                   </div>
-                  <p className="text-xs text-texto-3" style={{ margin: 0 }}>
-                    Es la importante. Estos son los huecos que le colocamos:
-                  </p>
+                  <p className="text-xs text-texto-3" style={{ margin: 0 }}>{t.plantillas.paso1Texto}</p>
                   <div className="rounded-c border border-borde p-2 text-xs text-texto-2">
-                    {HUECOS_AYUDA.map(([h, q]) => (
+                    {huecosAyuda(t.plantillas).map(([h, q]) => (
                       <div key={h}><code className="font-mono">{h}</code> — {q}</div>
                     ))}
                   </div>
                   <textarea value={miPost} onChange={(e) => setMiPost(e.target.value)} rows={8}
-                    placeholder="Pega aquí el HTML de tu página de artículo…" className="campo font-mono" />
+                    placeholder={t.plantillas.paso1Ejemplo} className="campo font-mono" />
 
                   <div className="flex items-center gap-2">
-                    <label className="block text-xs font-medium">2 · La lista de artículos <span className="font-normal text-texto-3">(opcional)</span></label>
-                    <SubirHtml ocupado={ocupado} onTexto={setMiIndex} />
+                    <label className="block text-xs font-medium">
+                      {t.plantillas.paso2} <span className="font-normal text-texto-3">{t.plantillas.paso2Opcional}</span>
+                    </label>
+                    <SubirHtml ocupado={ocupado} onTexto={setMiIndex} texto={t.plantillas.subirHtml} />
                   </div>
-                  <p className="text-xs text-texto-3" style={{ margin: 0 }}>
-                    La página <code>/blog/</code>, con todos tus artículos listados. Aquí los huecos son
-                    otros —el título, la fecha y el enlace de cada uno— y se colocan solos.
-                  </p>
+                  <p className="text-xs text-texto-3" style={{ margin: 0 }}>{conFormato(t.plantillas.paso2Texto)}</p>
                   <textarea value={miIndex} onChange={(e) => setMiIndex(e.target.value)} rows={5}
-                    placeholder="Si no la traes, la construimos con el mismo diseño de tu artículo." className="campo font-mono" />
+                    placeholder={t.plantillas.paso2Ejemplo} className="campo font-mono" />
 
                   <div className="flex flex-wrap gap-2">
                     <button onClick={() => void colocarHuecos()} disabled={ocupado || !miPost.trim()}
                       className="btn btn-primario btn-sm">
-                      {rotulo("huecos", "Colocar los huecos por mí", "Colocando los huecos…")}
+                      {rotulo("huecos", t.plantillas.colocar, t.plantillas.colocando)}
                     </button>
                     <button onClick={() => void usarTalCual()} disabled={ocupado || !miPost.trim()}
-                      title="Solo si tú ya has escrito los {{titulo}}, {{contenido}}… dentro de tu HTML. Entonces no hace falta gastar IA."
-                      className="btn btn-sec btn-sm">Ya lleva los huecos</button>
-                    <button onClick={() => setTraendo(false)} disabled={ocupado} className="btn btn-sec btn-sm">Volver</button>
+                      title={t.plantillas.yaLlevaHuecosTitulo}
+                      className="btn btn-sec btn-sm">{t.plantillas.yaLlevaHuecos}</button>
+                    <button onClick={() => setTraendo(false)} disabled={ocupado} className="btn btn-sec btn-sm">{t.plantillas.volver}</button>
                   </div>
-                  <p className="text-xs text-texto-3">
-                    <b>¿Cuál de los dos?</b> Si tu HTML es una página normal, <b>«Colocar los huecos por mí»</b>
-                    —gasta una llamada de IA de tu cuenta de OpenRouter—. <b>«Ya lleva los huecos»</b> es solo
-                    para cuando tú mismo has escrito los <code>{"{{titulo}}"}</code>, <code>{"{{contenido}}"}</code>…
-                    dentro; ese no cuesta nada.
-                  </p>
+                  <p className="text-xs text-texto-3">{conFormato(t.plantillas.cual)}</p>
                 </>
               ) : (
                 <>
-                  {ocupado && !tplPost && <p className="text-sm text-texto-2">Preparando la plantilla con IA (puede tardar un minuto)…</p>}
+                  {ocupado && !tplPost && <p className="text-sm text-texto-2">{t.plantillas.preparando}</p>}
                   {!ocupado && !tplPost && (
                     <div className="flex flex-wrap gap-2">
                       <button onClick={() => void generarPlantillas()} className="btn btn-primario btn-sm">
-                        Crear la plantilla con IA
+                        {t.plantillas.crearConIa}
                       </button>
-                      <button onClick={abrirTraer} className="btn btn-sec btn-sm">Traer la mía</button>
-                      <button onClick={() => setVista("lista")} className="btn btn-sec btn-sm">Cancelar</button>
+                      <button onClick={abrirTraer} className="btn btn-sec btn-sm">{t.plantillas.traerLaMia}</button>
+                      <button onClick={() => setVista("lista")} className="btn btn-sec btn-sm">{t.plantillas.cancelar}</button>
                     </div>
                   )}
                   {tplPost && (
@@ -883,21 +896,21 @@ export function BlogPanel({ projectId }: { projectId: string }) {
                       {avisosTpl.map((a) => (
                         <p key={a} className="text-xs" style={{ color: "var(--color-peligro-texto)" }}>{a}</p>
                       ))}
-                      <label className="block text-xs font-medium">Plantilla de artículo</label>
+                      <label className="block text-xs font-medium">{t.plantillas.tplPost}</label>
                       <textarea value={tplPost} onChange={(e) => setTplPost(e.target.value)} rows={8} className="campo font-mono" />
-                      <label className="block text-xs font-medium">Plantilla del índice</label>
+                      <label className="block text-xs font-medium">{t.plantillas.tplIndex}</label>
                       <textarea value={tplIndex} onChange={(e) => setTplIndex(e.target.value)} rows={8} className="campo font-mono" />
                       <div className="flex flex-wrap gap-2">
                         <button onClick={() => void guardarPlantillas()} disabled={ocupado} className="btn btn-primario btn-sm">
-                          {rotulo("guardarPlantillas", "Guardar plantillas", "Guardando…")}
+                          {rotulo("guardarPlantillas", t.plantillas.guardar, t.plantillas.guardando)}
                         </button>
-                        <button onClick={() => void verPreview("post")} disabled={ocupado} className="btn btn-sec btn-sm">Vista previa artículo</button>
-                        <button onClick={() => void verPreview("index")} disabled={ocupado} className="btn btn-sec btn-sm">Vista previa índice</button>
-                        <button onClick={() => void generarPlantillas()} disabled={ocupado} className="btn btn-sec btn-sm">Volver a generar</button>
-                        <button onClick={abrirTraer} disabled={ocupado} className="btn btn-sec btn-sm">Traer la mía</button>
-                        <button onClick={() => setVista("lista")} className="btn btn-sec btn-sm">Cancelar</button>
+                        <button onClick={() => void verPreview("post")} disabled={ocupado} className="btn btn-sec btn-sm">{t.plantillas.previoPost}</button>
+                        <button onClick={() => void verPreview("index")} disabled={ocupado} className="btn btn-sec btn-sm">{t.plantillas.previoIndex}</button>
+                        <button onClick={() => void generarPlantillas()} disabled={ocupado} className="btn btn-sec btn-sm">{t.plantillas.regenerar}</button>
+                        <button onClick={abrirTraer} disabled={ocupado} className="btn btn-sec btn-sm">{t.plantillas.traerLaMia}</button>
+                        <button onClick={() => setVista("lista")} className="btn btn-sec btn-sm">{t.plantillas.cancelar}</button>
                       </div>
-                      {previewTpl && <IframePreview html={previewTpl} />}
+                      {previewTpl && <IframePreview html={previewTpl} t={t.previo} />}
                     </>
                   )}
                 </>
@@ -907,7 +920,7 @@ export function BlogPanel({ projectId }: { projectId: string }) {
 
           {vista === "editor" && (
             <div className="space-y-2">
-              <input value={titulo} placeholder="Título del artículo"
+              <input value={titulo} placeholder={t.editor.titulo}
                 onChange={(e) => { setTitulo(e.target.value); if (!slugTocado) setSlug(slugify(e.target.value)); }}
                 className="campo" />
               <div className="flex items-center gap-2">
@@ -917,51 +930,50 @@ export function BlogPanel({ projectId }: { projectId: string }) {
                 <span className="text-xs text-texto-2">.html</span>
               </div>
               <div>
-                <input value={meta} placeholder="Meta descripción (para Google)"
+                <input value={meta} placeholder={t.editor.meta}
                   onChange={(e) => setMeta(e.target.value)} className="campo" />
-                <span className={"text-xs " + (meta.length > 160 ? "text-peligro-texto" : "text-texto-3")}>{meta.length}/160</span>
+                <span className={"text-xs " + (meta.length > 160 ? "text-peligro-texto" : "text-texto-3")}>
+                  {rellenar(t.editor.contadorMeta, { n: String(meta.length) })}
+                </span>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs text-texto-2">Imagen de portada:</span>
+                <span className="text-xs text-texto-2">{t.editor.portada}</span>
                 {imagenUrl && <img src={imagenUrl} alt="" className="h-8 w-14 rounded object-cover" />}
                 <button onClick={() => void generarPortadaAuto("diseno")} disabled={ocupado || !titulo.trim()}
-                  title="Gratis: un diseño con el título y los colores de tu web"
-                  className="btn btn-sec btn-sm">{rotulo("portada:diseno", "Generar diseño", "Dibujando…")}</button>
+                  title={t.editor.generarDisenoTitulo}
+                  className="btn btn-sec btn-sm">{rotulo("portada:diseno", t.editor.generarDiseno, t.editor.dibujando)}</button>
                 <button onClick={() => void generarPortadaAuto("ia")} disabled={ocupado || !titulo.trim()}
-                  title="Imagen generada con IA (céntimos por imagen, a tu cuenta de OpenRouter)"
-                  className="btn btn-sec btn-sm">{rotulo("portada:ia", "Generar con IA", "Generando…")}</button>
-                <BotonSubir texto={imagenAssetId ? "Cambiar imagen" : "Subir imagen"} ocupado={ocupado} onFile={(f) => void subirPortada(f)} />
-                {!titulo.trim() && <span className="text-xs text-texto-3">(escribe el título para generarla)</span>}
+                  title={t.editor.generarIaTitulo}
+                  className="btn btn-sec btn-sm">{rotulo("portada:ia", t.editor.generarIa, t.editor.generando)}</button>
+                <BotonSubir texto={imagenAssetId ? t.editor.cambiarImagen : t.editor.subirImagen} ocupado={ocupado} onFile={(f) => void subirPortada(f)} />
+                {!titulo.trim() && <span className="text-xs text-texto-3">{t.editor.faltaTitulo}</span>}
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <BotonSubir texto="Insertar imagen aquí" ocupado={ocupado} onFile={(f) => void insertarEnCuerpo(f)} />
-                <span className="text-xs text-texto-3">
-                  Escribe primero el artículo, haz clic donde la quieras y pulsa el botón. Si no
-                  eliges sitio, va al final.
-                </span>
+                <BotonSubir texto={t.editor.insertarImagen} ocupado={ocupado} onFile={(f) => void insertarEnCuerpo(f)} />
+                <span className="text-xs text-texto-3">{t.editor.insertarTexto}</span>
               </div>
               <textarea ref={mdRef} value={md} rows={14}
                 onChange={(e) => { setMd(e.target.value); cursorMd.current = e.target.selectionStart; }}
                 onSelect={(e) => { cursorMd.current = e.currentTarget.selectionStart; }}
-                placeholder="Escribe o pega aquí el artículo en markdown (por ejemplo, el que te escribió tu IA)…"
+                placeholder={t.editor.cuerpoEjemplo}
                 className="campo font-mono" />
               <div className="flex gap-2">
                 <button onClick={() => void guardarArticulo()} disabled={ocupado} className="btn btn-primario btn-sm">
-                  {rotulo("guardarArticulo", "Guardar artículo", "Guardando…")}
+                  {rotulo("guardarArticulo", t.editor.guardar, t.editor.guardando)}
                 </button>
-                <button onClick={() => void verPreviewArticulo()} disabled={ocupado} className="btn btn-sec btn-sm">Vista previa</button>
-                <button onClick={() => setVista("lista")} className="btn btn-sec btn-sm">Cancelar</button>
+                <button onClick={() => void verPreviewArticulo()} disabled={ocupado} className="btn btn-sec btn-sm">{t.editor.vistaPrevia}</button>
+                <button onClick={() => setVista("lista")} className="btn btn-sec btn-sm">{t.editor.cancelar}</button>
               </div>
               {!postId && (
                 <div className="flex flex-wrap items-center gap-2 border-t pt-2">
-                  <span className="text-xs text-texto-2">O deja que se publique solo (artículo y sitio):</span>
+                  <span className="text-xs text-texto-2">{t.editor.programarTexto}</span>
                   <input type="datetime-local" value={progFecha} onChange={(e) => setProgFecha(e.target.value)}
                     className="campo w-auto" />
                   <button onClick={() => void programarArticulo()} disabled={ocupado || !progFecha}
-                    className="btn btn-sec btn-sm">Programar publicación</button>
+                    className="btn btn-sec btn-sm">{t.editor.programar}</button>
                 </div>
               )}
-              {previewArt && <IframePreview html={previewArt} />}
+              {previewArt && <IframePreview html={previewArt} t={t.previo} />}
             </div>
           )}
 

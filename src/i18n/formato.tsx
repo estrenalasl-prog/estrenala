@@ -1,4 +1,5 @@
 import { Fragment, type ReactNode } from "react";
+import { patronHuecos } from "./rellenar";
 
 /**
  * Marcas mínimas para el formato QUE VA DENTRO de una frase.
@@ -57,16 +58,18 @@ export function conFormato(texto: string): ReactNode {
  * donde toca — resaltar un dato es una decisión de la pantalla, no de la
  * traducción. Hay un test que lo vigila.
  */
-const HUECOS = /(\{[a-zA-Z]+\})/g;
-
 export function conValores(texto: string, valores: Record<string, ReactNode>): ReactNode {
-  return texto.split(HUECOS).map((trozo, i) => {
-    const hueco = /^\{([a-zA-Z]+)\}$/.exec(trozo);
-    const clave = hueco?.[1];
-    if (clave !== undefined && Object.prototype.hasOwnProperty.call(valores, clave)) {
-      return <Fragment key={i}>{valores[clave]}</Fragment>;
-    }
-    return <Fragment key={i}>{conFormato(trozo)}</Fragment>;
+  // `split` con un patrón que captura devuelve TAMBIÉN lo capturado, intercalado:
+  // los índices pares son texto y los impares, el nombre del hueco. El patrón
+  // sale de rellenar.ts para que los dos entiendan por hueco exactamente lo
+  // mismo — sobre todo lo de la llave doble.
+  return texto.split(patronHuecos()).map((trozo, i) => {
+    if (i % 2 === 0) return <Fragment key={i}>{conFormato(trozo)}</Fragment>;
+    // Un hueco sin valor se deja a la vista, con sus llaves: es feo, pero se ve.
+    // Borrarlo dejaría una frase incompleta con toda la pinta de estar bien.
+    return Object.prototype.hasOwnProperty.call(valores, trozo)
+      ? <Fragment key={i}>{valores[trozo]}</Fragment>
+      : <Fragment key={i}>{`{${trozo}}`}</Fragment>;
   });
 }
 

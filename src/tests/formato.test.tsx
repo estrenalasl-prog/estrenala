@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { conFormato, conValores, sinFormato } from "@/src/i18n/formato";
+import { rellenar } from "@/src/i18n/rellenar";
 
 const pinta = (n: React.ReactNode) => renderToStaticMarkup(<>{n}</>);
 
@@ -69,5 +70,33 @@ describe("conValores: los datos del usuario NO pasan por el intérprete", () => 
   it("un valor que parece un hueco no se vuelve a mirar", () => {
     expect(pinta(conValores("Hola {quien}", { quien: <b>{"{quien}"}</b> })))
       .toBe("Hola <b>{quien}</b>");
+  });
+});
+
+/**
+ * Los textos del blog hablan de los huecos de la plantilla DEL USUARIO, que
+ * llevan llave doble. Con el patrón de antes, «{{titulo}}» se leía como el hueco
+ * `titulo` metido entre dos llaves sueltas: bastaba con que una pantalla pasara
+ * un valor llamado `titulo` para que a alguien le saliera el título de su propio
+ * artículo en mitad de las instrucciones. Y ahí el hueco no es un hueco: es el
+ * nombre literal que el sistema busca dentro de su HTML.
+ */
+describe("la llave doble es literal, no un hueco", () => {
+  const frase = "escribe los {{titulo}}, {{contenido}}… dentro de tu HTML";
+
+  it("rellenar no la toca, ni con un valor de ese nombre", () => {
+    expect(rellenar(frase, { titulo: "Mi artículo" })).toBe(frase);
+  });
+
+  it("conValores tampoco", () => {
+    expect(pinta(conValores(frase, { titulo: <b>Mi artículo</b> }))).toBe(frase.replace("…", "…"));
+  });
+
+  it("y la llave simple de al lado sigue funcionando", () => {
+    expect(rellenar("{{titulo}} vale {n} euros", { titulo: "X", n: "3" })).toBe("{{titulo}} vale 3 euros");
+  });
+
+  it("con backticks alrededor, el <code> se pinta entero", () => {
+    expect(pinta(conFormato("los `{{titulo}}` van dentro"))).toBe("los <code>{{titulo}}</code> van dentro");
   });
 });

@@ -19,6 +19,7 @@ import { puede } from "@/src/planes/planes";
 import { dominiosAjenosDelSitemap } from "@/src/publish/seo";
 import { idiomaDeSesion } from "@/src/i18n/servidor";
 import { textosPanel, type TextosPanel } from "@/src/i18n/panel";
+import { textosBlog } from "@/src/i18n/blog";
 
 export const dynamic = "force-dynamic";
 
@@ -59,7 +60,8 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
   const platformHost = process.env.PLATFORM_HOST ?? "localhost:3000";
   const sitesBaseDomain = process.env.SITES_BASE_DOMAIN ?? platformHost;
   const dnsTargetIp = process.env.DNS_TARGET_IP ?? "127.0.0.1";
-  const textos = textosPanel(await idiomaDeSesion());
+  const idioma = await idiomaDeSesion();
+  const textos = textosPanel(idioma);
   const estado = estadoProyecto(project, textos.estado);
   const sitemapAjeno = await dominiosDelSitemap(orgId, id, sitesBaseDomain, project.dominio);
 
@@ -88,7 +90,9 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
         <AssistantPanel projectId={id} pages={pages} entryPath={project.entryPath} textos={textos.proyecto} />
         <ActualizarPanel projectId={id} textos={textos.proyecto} />
         <ToolsPanel projectId={id} textos={textos.proyecto} />
-        {puede(plan, "blog") ? <BlogPanel projectId={id} /> : <BlogDePago />}
+        {puede(plan, "blog")
+          ? <BlogPanel projectId={id} idioma={idioma} t={textosBlog(idioma)} />
+          : <BlogDePago t={textosBlog(idioma)} />}
         <PreviewPane projectId={id} entryPath={project.entryPath} pages={pages} t={textos.proyecto} />
         {esOwner(rol) && <DangerZone projectId={id} nombre={project.nombre} textos={textos.proyecto} />}
       </main>

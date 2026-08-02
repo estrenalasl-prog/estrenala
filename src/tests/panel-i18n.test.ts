@@ -3,7 +3,9 @@ import { CATALOGO_PANEL, textosPanel } from "@/src/i18n/panel";
 import { CATALOGO_LANDING } from "@/src/i18n/landing";
 import { CATALOGO_CUENTA } from "@/src/i18n/cuenta";
 import { CATALOGO_AJUSTES, textosAjustes } from "@/src/i18n/ajustes";
+import { CATALOGO_BLOG, textosBlog } from "@/src/i18n/blog";
 import { IDIOMAS, type Idioma } from "@/src/i18n/idiomas";
+import { patronHuecos } from "@/src/i18n/rellenar";
 
 type Hoja = { clave: string; valor: string };
 function hojas(obj: unknown, prefijo = ""): Hoja[] {
@@ -14,7 +16,9 @@ function hojas(obj: unknown, prefijo = ""): Hoja[] {
   }
   return [];
 }
-const huecos = (s: string) => [...s.matchAll(/\{([a-zA-Z]+)\}/g)].map((m) => m[1]).sort();
+// El MISMO patrón que usan `rellenar` y `conValores`. Si el test tuviera el suyo
+// estaría midiendo otra cosa que la que hace el código.
+const huecos = (s: string) => [...s.matchAll(patronHuecos())].map((m) => m[1]).sort();
 
 /**
  * TODOS los catálogos que existen, y las mismas comprobaciones para todos.
@@ -28,6 +32,7 @@ const CATALOGOS = {
   cuenta: CATALOGO_CUENTA,
   panel: CATALOGO_PANEL,
   ajustes: CATALOGO_AJUSTES,
+  blog: CATALOGO_BLOG,
 } as const;
 
 type Catalogo = Record<Idioma, unknown>;
@@ -88,7 +93,11 @@ describe.each(lista)("catálogo «%s»", (_nombre, cat) => {
     const malas: string[] = [];
     for (const idioma of IDIOMAS) {
       for (const { clave, valor } of hojas(cat[idioma])) {
-        for (const trozo of valor.split(/\{[a-zA-Z]+\}/)) {
+        // Exactamente los trozos que `conValores` le pasa a `conFormato`: el
+        // patrón captura, así que `split` intercala las claves y hay que quedarse
+        // con los pares. Si aquí se partiera de otra forma, el test estaría
+        // midiendo algo que el código no hace.
+        for (const trozo of valor.split(patronHuecos()).filter((_, i) => i % 2 === 0)) {
           for (const [marca, re] of pares) {
             if ((trozo.match(re)?.length ?? 0) % 2 === 1) {
               malas.push(`${idioma} · ${clave} · «${marca}» suelto en «${trozo}»`);
@@ -109,5 +118,6 @@ describe.each(IDIOMAS)("acceso por idioma · %s", (idioma: Idioma) => {
   it("devuelve el catálogo que toca", () => {
     expect(textosPanel(idioma)).toBe(CATALOGO_PANEL[idioma]);
     expect(textosAjustes(idioma)).toBe(CATALOGO_AJUSTES[idioma]);
+    expect(textosBlog(idioma)).toBe(CATALOGO_BLOG[idioma]);
   });
 });

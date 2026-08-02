@@ -1,4 +1,22 @@
 /**
+ * Un hueco: `{nombre}`. Con UNA sola llave a cada lado.
+ *
+ * Lo de mirar que no haya otra llave pegada no es capricho: los textos del blog
+ * hablan de los huecos de la plantilla del usuario, que llevan llave doble
+ * (`{{titulo}}`, `{{contenido}}`). Sin esta condición, «{{titulo}}» se leería
+ * como el hueco `titulo` metido entre dos llaves sueltas — y bastaría con que
+ * alguna pantalla pasara un valor llamado `titulo` para que a un usuario le
+ * saliera su propio título en mitad de las instrucciones.
+ *
+ * Vive aquí y lo usan también `conValores` y el test que vigila los catálogos:
+ * si cada uno llevara su copia, arreglarlo en uno dejaría los otros dos mal.
+ */
+const HUECO = "(?<!\\{)\\{([a-zA-Z]+)\\}(?!\\})";
+
+/** Uno nuevo en cada llamada: con `g`, el `lastIndex` se queda pegado y muerde. */
+export const patronHuecos = () => new RegExp(HUECO, "g");
+
+/**
  * Rellena los huecos de una plantilla: `Hola {nombre}` → `Hola Sebas`.
  *
  * UNA SOLA PASADA sobre la plantilla, no una vuelta por cada valor. La
@@ -16,7 +34,7 @@
  * ve. Borrarlo dejaría una frase incompleta con toda la pinta de estar bien.
  */
 export function rellenar(plantilla: string, valores: Record<string, string>): string {
-  return plantilla.replace(/\{([a-zA-Z]+)\}/g, (hueco, clave: string) =>
+  return plantilla.replace(patronHuecos(), (hueco, clave: string) =>
     Object.prototype.hasOwnProperty.call(valores, clave) ? valores[clave] : hueco
   );
 }
