@@ -34,6 +34,54 @@ export function rutaDeIdioma(idioma: Idioma): string {
 }
 
 /**
+ * El idioma elegido, para que sobreviva a la landing.
+ *
+ * Sin esto, alguien lee la landing en italiano, pulsa «Registrati» y el
+ * formulario le sale en español — y el correo de bienvenida, también. Traducir
+ * la landing y perder el idioma en el primer clic es peor que no traducirla:
+ * promete algo que se rompe a los cinco segundos.
+ *
+ * El registro y el login NO llevan el idioma en la URL, y es a propósito: nadie
+ * busca en Google la página de registro de nadie, así que darle cinco
+ * direcciones a cada una sería ensuciar el sitio sin ganar nada. Lo que hace
+ * falta ahí es continuidad, y eso lo da la cookie.
+ *
+ * Es una cookie TÉCNICA —guarda una preferencia que ha pedido el propio usuario
+ * y no identifica a nadie—, así que no necesita consentimiento previo. Mismo
+ * criterio y misma forma que la de la decisión de cookies (ver
+ * src/legal/consentimiento.ts).
+ */
+export const COOKIE_IDIOMA = "estrenala_idioma";
+export const DIAS_IDIOMA = 365;
+
+export function cookieIdioma(idioma: Idioma, seguro: boolean): string {
+  const partes = [
+    `${COOKIE_IDIOMA}=${idioma}`,
+    "Path=/",
+    `Max-Age=${DIAS_IDIOMA * 24 * 60 * 60}`,
+    "SameSite=Lax",
+  ];
+  if (seguro) partes.push("Secure");
+  return partes.join("; ");
+}
+
+/**
+ * El idioma de quien está pidiendo una página que NO lleva idioma en la URL
+ * (registro, login, correos…).
+ *
+ * Por orden: lo que eligió (cookie) → lo que pide su navegador → español. El
+ * navegador va después de la cookie porque una elección explícita gana siempre
+ * a una preferencia heredada del sistema operativo.
+ */
+export function idiomaDeLaPeticion(
+  cookie: string | null | undefined,
+  acceptLanguage: string | null | undefined
+): Idioma {
+  if (esIdioma(cookie)) return cookie;
+  return idiomaDeAcceptLanguage(acceptLanguage);
+}
+
+/**
  * Cómo le llega el idioma al layout.
  *
  * El layout es común a TODA la app y no sabe en qué ruta está, así que no puede

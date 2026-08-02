@@ -2,7 +2,9 @@ import { NextResponse, type NextRequest } from "next/server";
 import { parseHost, esAliasDePlataforma } from "@/src/publish/host";
 import { verificarSesion, SESSION_COOKIE } from "@/src/auth/session-cookie";
 import { plataformaOculta, ROBOTS_NOINDEX, CABECERAS_SEGURIDAD, CABECERAS_SEGURIDAD_INCRUSTABLE } from "@/src/config/robots-plataforma";
-import { PREFIJOS_PUBLICOS, CABECERA_IDIOMA } from "@/src/i18n/idiomas";
+import {
+  PREFIJOS_PUBLICOS, CABECERA_IDIOMA, IDIOMA_POR_DEFECTO, cookieIdioma, type Idioma,
+} from "@/src/i18n/idiomas";
 
 // Rutas del panel accesibles sin sesión. Los cron son para disparadores
 // externos (sin cookie): solo hacen lo que el tick del servidor haría igual en
@@ -104,13 +106,30 @@ export async function middleware(req: NextRequest) {
   // La raíz es pública: sin sesión sirve la landing de marketing, con sesión el
   // panel (lo decide app/page.tsx). Va aparte de RUTAS_PUBLICAS a propósito:
   // meter "/" en esa lista abriría TODA la app por el startsWith.
-  if (pathname === "/") return sellar(NextResponse.next());
+  // Se mira la cabecera del proxy y no PLATFORM_HOST a propósito: las variables
+  // de entorno del middleware se congelan al construir la imagen (runtime Edge),
+  // y esto tiene que ser verdad en tiempo de ejecución.
+  const seguro = (req.headers.get("x-forwarded-proto") ?? req.nextUrl.protocol.replace(":", "")) === "https";
+
+  if (pathname === "/") {
+    const res = sellar(NextResponse.next());
+    // Ver la landing en un idioma ES elegirlo, y así sigue puesto en el registro
+    // y en el correo de bienvenida. Con sesión no: ahí «/» es el panel, no una
+    // elección de idioma, y le pisaría al usuario la que ya tomó.
+    if (!req.cookies.get(SESSION_COOKIE)) {
+      res.headers.append("set-cookie", cookieIdioma(IDIOMA_POR_DEFECTO, seguro));
+    }
+    return res;
+  }
   if (RUTAS_IDIOMA.has(pathname)) {
     // El layout no sabe en qué ruta está; aquí sí se sabe. Se le pasa el idioma
     // por cabecera de petición para que `<html lang>` no mienta.
+    const idioma = pathname.slice(1) as Idioma;
     const cabeceras = new Headers(req.headers);
-    cabeceras.set(CABECERA_IDIOMA, pathname.slice(1));
-    return sellar(NextResponse.next({ request: { headers: cabeceras } }));
+    cabeceras.set(CABECERA_IDIOMA, idioma);
+    const res = sellar(NextResponse.next({ request: { headers: cabeceras } }));
+    res.headers.append("set-cookie", cookieIdioma(idioma, seguro));
+    return res;
   }
   if (ARCHIVOS_PUBLICOS.has(pathname)) return sellar(NextResponse.next());
   if (RUTAS_PUBLICAS.some((r) => pathname === r || pathname.startsWith(r + "/"))) {

@@ -27,6 +27,15 @@ const CTA = "/registro";
 export function Landing({ idioma = "es" }: { idioma?: Idioma }) {
   const t = textosLanding(idioma);
 
+  // Enlaces de verdad, no un desplegable con JavaScript: así Google encuentra
+  // las cinco versiones y funcionan aunque los scripts no carguen. Se usan en
+  // tres sitios (cabecera, menú móvil y pie) y por eso se construyen una vez.
+  const enlacesIdioma = IDIOMAS.map((i) => (
+    <a key={i} href={rutaDeIdioma(i)} hrefLang={i} lang={i} aria-current={i === idioma ? "true" : undefined}>
+      {NOMBRE_IDIOMA[i]}
+    </a>
+  ));
+
   return (
     <div className="landing" lang={idioma}>
       <Reveal />
@@ -44,6 +53,16 @@ export function Landing({ idioma = "es" }: { idioma?: Idioma }) {
               <a href="#faq">{t.nav.faq}</a>
             </div>
             <a className="btn btn-primario btn-sm" href={CTA}>{t.nav.cta}</a>
+            {/* Arriba y también en el pie. Solo en el pie no basta: la landing es
+                larga, y quien cae en un idioma que no lee tendría que bajarla
+                entera —leyéndola— para encontrar la salida. */}
+            <details className="menu-idioma">
+              <summary aria-label={t.pie.idioma}>
+                <span lang={idioma}>{NOMBRE_IDIOMA[idioma]}</span>
+                <span className="flecha" />
+              </summary>
+              <div className="panel">{enlacesIdioma}</div>
+            </details>
             <details className="menu-movil">
               <summary aria-label={t.nav.abrirMenu}><span className="barras" /></summary>
               <div className="panel">
@@ -53,6 +72,10 @@ export function Landing({ idioma = "es" }: { idioma?: Idioma }) {
                 <a href="#equipo">{t.nav.equipos}</a>
                 <a href="#faq">{t.nav.faq}</a>
                 <a className="btn btn-primario btn-sm" href={CTA}>{t.nav.cta}</a>
+                <div className="idiomas-movil">
+                  <span className="tit">{t.pie.idioma}</span>
+                  {enlacesIdioma}
+                </div>
               </div>
             </details>
           </nav>
@@ -383,26 +406,11 @@ export function Landing({ idioma = "es" }: { idioma?: Idioma }) {
                 <a href="/legal/cookies">{t.pie.cookies}</a>
                 <a href="/legal/terminos">{t.pie.terminos}</a>
               </div>
-              {/* El selector va aquí y no en la cabecera a propósito: quien llega
-                  desde Google ya viene en su idioma (cada uno tiene su dirección),
-                  así que esto es la salida de emergencia del que cayó en la que no
-                  era — no una decisión que haya que tomar nada más entrar.
-                  Enlaces de verdad, no un desplegable con JavaScript: así Google
-                  encuentra las cinco versiones y funcionan sin scripts. */}
+              {/* También en el pie, y no solo por comodidad: es la única parte del
+                  selector que Google ve sin abrir ningún desplegable. */}
               <div className="pie-col">
                 <h4>{t.pie.idioma}</h4>
-                {IDIOMAS.map((i) => (
-                  <a
-                    key={i}
-                    href={rutaDeIdioma(i)}
-                    hrefLang={i}
-                    lang={i}
-                    aria-current={i === idioma ? "true" : undefined}
-                    style={i === idioma ? { color: "var(--acento)" } : undefined}
-                  >
-                    {NOMBRE_IDIOMA[i]}
-                  </a>
-                ))}
+                {enlacesIdioma}
               </div>
             </div>
           </div>

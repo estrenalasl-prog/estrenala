@@ -65,6 +65,22 @@ html:has(.landing){scroll-behavior:smooth}
 .landing .top nav .enlaces a{color:var(--texto-2)}
 .landing .top nav .enlaces a:hover{color:var(--texto)}
 .landing .menu-movil{display:none}
+/* Selector de idioma. Nombres, NUNCA banderas: una bandera es un pais y no un
+   idioma — «Portugues» no es Portugal ni Brasil, y una bandera de Espana en
+   «Espanol» aparta a media America Latina. Es un <details>, o sea que abre y
+   cierra sin una linea de JavaScript, y dentro van enlaces de verdad para que
+   Google encuentre las cinco versiones. */
+.landing .menu-idioma{position:relative}
+.landing .menu-idioma>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:7px;height:36px;padding:0 13px;border-radius:var(--radio-full);border:1px solid var(--borde);background:var(--superficie);color:var(--texto-2);font-size:14px}
+.landing .menu-idioma>summary::-webkit-details-marker{display:none}
+.landing .menu-idioma>summary:hover{color:var(--texto);border-color:var(--borde-fuerte)}
+.landing .menu-idioma>summary .flecha{width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid currentColor;opacity:.55}
+.landing .menu-idioma[open]>summary .flecha{transform:rotate(180deg)}
+.landing .menu-idioma .panel{position:absolute;right:0;top:46px;width:172px;background:var(--superficie);border:1px solid var(--borde);border-radius:var(--radio-t);box-shadow:var(--sombra-3);padding:8px;display:flex;flex-direction:column;gap:2px;z-index:60}
+.landing .menu-idioma .panel a{padding:9px 11px;border-radius:var(--radio-c);color:var(--texto-2);font-size:14px}
+.landing .menu-idioma .panel a:hover{background:var(--superficie-2);color:var(--texto)}
+.landing .menu-idioma .panel a[aria-current]{background:var(--acento-suave);color:var(--acento-texto)}
+.landing .idiomas-movil{display:none}
 .landing .hero{background:var(--texto);color:var(--tinta-txt);position:relative;overflow:hidden;padding:72px 0 84px;text-align:center}
 .landing .hero .eyebrow{color:var(--acento)}
 .landing #dolor{font:700 clamp(34px,7vw,64px)/1.0 var(--sans);letter-spacing:-.035em;color:#fff;margin:16px auto 0;max-width:14ch}
@@ -209,6 +225,12 @@ html:has(.landing){scroll-behavior:smooth}
 .landing .menu-movil .panel a{padding:11px 12px;border-radius:var(--radio-c);color:var(--texto-2);font-size:15px}
 .landing .menu-movil .panel a:hover{background:var(--superficie-2);color:var(--texto)}
 .landing .menu-movil .panel .btn{margin-top:6px}
+/* En movil el selector propio se retira y los idiomas se meten dentro del menu
+   de la hamburguesa: dos desplegables juntos en una cabecera de 44px de alto es
+   una pelea por el dedo que siempre pierde el usuario. */
+.landing .menu-idioma{display:none}
+.landing .idiomas-movil{display:block;margin-top:8px;padding-top:8px;border-top:1px solid var(--borde)}
+.landing .idiomas-movil .tit{display:block;padding:0 12px 4px;font-size:12px;color:var(--texto-3)}
 }
 @media (max-width:400px){
 .landing .seccion{padding:60px 0}
