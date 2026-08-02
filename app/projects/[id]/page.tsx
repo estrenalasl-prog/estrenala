@@ -16,8 +16,30 @@ import { DangerZone } from "./DangerZone";
 import { esOwner } from "@/src/auth/roles";
 import { accountStore } from "@/src/repositories/accounts";
 import { puede } from "@/src/planes/planes";
+import { dominiosAjenosDelSitemap } from "@/src/publish/seo";
 
 export const dynamic = "force-dynamic";
+
+/**
+ * ¿Su sitemap anuncia las páginas en un dominio que no es suyo aquí? Se avisa,
+ * no se corrige (el porqué, en seo.ts).
+ *
+ * En un try: es un aviso, y un aviso jamás debe poder tumbar el panel entero de
+ * alguien que solo quería publicar.
+ */
+async function dominiosDelSitemap(
+  orgId: string, projectId: string, sitesBaseDomain: string, dominio: string | null
+): Promise<string[]> {
+  try {
+    const snap = await projectStore.getCurrentSnapshot(orgId, projectId);
+    if (!snap) return [];
+    const file = await getStorage().get(`${snap.storagePrefix}sitemap.xml`);
+    if (!file) return []; // sin sitemap propio se le genera uno al servir, y ese ya sale bien
+    return dominiosAjenosDelSitemap({ xml: file.body.toString("utf-8"), sitesBaseDomain, dominio });
+  } catch {
+    return [];
+  }
+}
 
 function estadoProyecto(p: ProjectRow): { clase: string; texto: string } {
   if (!p.publishedSnapshotId) return { clase: "badge-neutro", texto: "Sin publicar" };
@@ -36,6 +58,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
   const sitesBaseDomain = process.env.SITES_BASE_DOMAIN ?? platformHost;
   const dnsTargetIp = process.env.DNS_TARGET_IP ?? "127.0.0.1";
   const estado = estadoProyecto(project);
+  const sitemapAjeno = await dominiosDelSitemap(orgId, id, sitesBaseDomain, project.dominio);
 
   return (
     <>
@@ -56,6 +79,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
           sitesBaseDomain={sitesBaseDomain}
           dnsTargetIp={dnsTargetIp}
           noIndexar={project.noIndexar}
+          sitemapAjeno={sitemapAjeno}
         />
         <AssistantPanel projectId={id} pages={pages} entryPath={project.entryPath} />
         <ActualizarPanel projectId={id} />

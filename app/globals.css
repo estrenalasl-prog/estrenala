@@ -158,6 +158,18 @@ a:hover { color: var(--color-texto); }
     background: var(--color-aviso-suave); border: 1px solid var(--color-aviso-borde); color: var(--color-aviso-texto);
     padding: 6px 10px; font-size: 12px;
   }
+  /* Como .aviso-coste pero de varias lineas: para lo que hay que explicar, no solo senalar. */
+  .aviso-bloque {
+    display: flex; align-items: flex-start; gap: 9px; border-radius: var(--radius-c);
+    background: var(--color-aviso-suave); border: 1px solid var(--color-aviso-borde); color: var(--color-aviso-texto);
+    padding: 10px 13px; margin-top: 10px; font-size: 13px; line-height: 1.5;
+  }
+  .aviso-bloque .icono { flex: none; }
+  .aviso-bloque b { font-weight: 600; }
+  .aviso-bloque code {
+    background: rgba(138, 91, 0, .09); border-radius: 4px; padding: 1px 5px;
+    font-family: var(--font-mono, ui-monospace, monospace); font-size: 12px;
+  }
 
   /* ---------- Logo de marca (imagen real, 2 variantes segun el fondo) ---------- */
   .logo { position: relative; display: inline-flex; align-items: center; overflow: hidden;

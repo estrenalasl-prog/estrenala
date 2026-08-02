@@ -1,7 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { resolvePublicSite } from "@/src/publish/resolve-site";
 import { conMarca, ID_MARCA, TEXTO_MARCA } from "@/src/publish/marca";
-import { ROBOTS_NOINDEX, reapuntarCanonicos, reapuntarMetadatosImportados, reapuntarSitemap } from "@/src/publish/seo";
+import {
+  ROBOTS_NOINDEX, reapuntarCanonicos, reapuntarMetadatosImportados, reapuntarSitemap,
+  dominiosAjenosDelSitemap,
+} from "@/src/publish/seo";
 import type { StorageAdapter } from "@/src/storage/types";
 import type {
   ProjectStore, ProjectRow, SnapshotRow, SnapshotInfo,
@@ -697,5 +700,57 @@ describe("reapuntarSitemap · duplicados", () => {
   it("un sitemap ya limpio se queda exactamente igual", () => {
     const xml = `<urlset><url><loc>https://micafe.com/</loc></url></urlset>`;
     expect(reapuntarSitemap(xml, "https://micafe.com", BD)).toBe(xml);
+  });
+});
+
+// La otra mitad de lo mismo: lo que reapuntarSitemap deja a propósito sin tocar
+// —el dominio de otro— no puede quedarse callado. Subes una web hecha para
+// `suempresa.com` con su sitemap dentro, no conectas el dominio, y ese sitemap
+// manda a Google a un sitio que quizá no existe. Se avisa; no se corrige.
+describe("dominiosAjenosDelSitemap", () => {
+  const BD = "estrenala.com";
+  const llamar = (xml: string, dominio: string | null = null) =>
+    dominiosAjenosDelSitemap({ xml, sitesBaseDomain: BD, dominio });
+
+  it("caza el dominio para el que se escribió la web, sin dominio conectado", () => {
+    const xml = `<url><loc>https://suempresa.com/</loc></url><url><loc>https://suempresa.com/precios</loc></url>`;
+    expect(llamar(xml)).toEqual(["suempresa.com"]);
+  });
+
+  it("se calla cuando ese dominio YA está conectado", () => {
+    const xml = `<loc>https://suempresa.com/</loc>`;
+    expect(llamar(xml, "suempresa.com")).toEqual([]);
+  });
+
+  // Quien conecta el dominio pelado tiene las dos direcciones (ver connectDomain).
+  // Avisar del www teniendo el pelado conectado es un aviso falso, y los avisos
+  // falsos enseñan a ignorar los de verdad.
+  it("el www del dominio conectado no es ajeno, ni al derecho ni al revés", () => {
+    expect(llamar(`<loc>https://www.suempresa.com/x</loc>`, "suempresa.com")).toEqual([]);
+    expect(llamar(`<loc>https://suempresa.com/x</loc>`, "www.suempresa.com")).toEqual([]);
+  });
+
+  it("nuestros subdominios nunca son ajenos, ni el actual ni el de ayer", () => {
+    const xml = `<loc>https://micafe.estrenala.com/</loc><loc>https://viejo.estrenala.com/</loc>`;
+    expect(llamar(xml)).toEqual([]);
+  });
+
+  it("un dominio que solo CONTIENE el nuestro sí es ajeno", () => {
+    expect(llamar(`<loc>https://x.estrenala.com.evil.net/y</loc>`)).toEqual(["x.estrenala.com.evil.net"]);
+  });
+
+  it("no repite, ordena, y no le molesta el puerto ni las mayúsculas", () => {
+    const xml =
+      `<loc>https://Zeta.com/a</loc><loc>https://alfa.com/b</loc>` +
+      `<loc>https://zeta.com:8443/c</loc>`;
+    expect(llamar(xml)).toEqual(["alfa.com", "zeta.com"]);
+  });
+
+  it("una <loc> relativa o vacía no es un dominio del que avisar", () => {
+    expect(llamar(`<loc>/precios</loc><loc></loc><loc>   </loc>`)).toEqual([]);
+  });
+
+  it("sin sitemap, sin aviso", () => {
+    expect(llamar("")).toEqual([]);
   });
 });

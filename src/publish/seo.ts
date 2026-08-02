@@ -108,6 +108,46 @@ export function reapuntarSitemap(xml: string, base: string, sitesBaseDomain: str
 }
 
 /**
+ * Los dominios AJENOS que anuncia el sitemap del cliente.
+ *
+ * `reapuntarSitemap` solo toca lo que cuelga de nuestro dominio de subdominios,
+ * y a propósito: reescribir el dominio de otro es peor que dejarlo mal, porque
+ * puede ser un sitio suyo que sí existe. Pero entonces queda el caso que nadie
+ * ve: subes una web hecha con IA para `suempresa.com`, con su sitemap dentro, la
+ * publicas en `suempresa.estrenala.com` y NO conectas el dominio. El sitemap le
+ * está diciendo a Google «mis páginas están en suempresa.com» — un sitio que
+ * quizá no existe, o que es otro. Se indexa lo que no toca, o no se indexa nada.
+ *
+ * Callado no puede quedarse, porque es justo lo que la plataforma promete
+ * resolver. Así que se avisa y decide el dueño: o conecta el dominio, o rehace
+ * el sitemap. Aquí no se corrige nada.
+ *
+ * Se ignora el `www.` para comparar: quien conecta el dominio pelado tiene las
+ * dos direcciones, y avisar de `www.sudominio.com` teniendo `sudominio.com`
+ * conectado sería un aviso falso —de los que enseñan a ignorar los avisos—.
+ */
+export function dominiosAjenosDelSitemap(input: {
+  xml: string;
+  sitesBaseDomain: string;
+  dominio: string | null;
+}): string[] {
+  const bd = (input.sitesBaseDomain ?? "").trim().toLowerCase().replace(/:\d+$/, "");
+  const propio = (input.dominio ?? "").trim().toLowerCase().replace(/^www\./, "");
+  const ajenos = new Set<string>();
+
+  for (const m of (input.xml ?? "").matchAll(/<loc>([^<]*)<\/loc>/gi)) {
+    const host = m[1].trim().match(/^https?:\/\/([^/?#]+)/i)?.[1]?.toLowerCase().replace(/:\d+$/, "");
+    if (!host) continue; // relativa o basura: no es un dominio del que avisar
+    if (bd && (host === bd || host.endsWith(`.${bd}`))) continue;
+    if (propio && (host === propio || host === `www.${propio}`)) continue;
+    ajenos.add(host);
+  }
+  // Ordenados para que el aviso no cambie de orden entre recargas por el capricho
+  // del orden de aparición.
+  return [...ajenos].sort();
+}
+
+/**
  * Reapunta a esta casa los metadatos de una web escrita para OTRO dominio.
  *
  * Nuestro caso de uso es literalmente ese: alguien hace una web con IA para

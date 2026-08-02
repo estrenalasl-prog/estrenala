@@ -7,6 +7,7 @@ type RegistroTxt = { nombre: string; valor: string };
 
 export function PublishBar({
   projectId, subdominio, dominio, publishedSnapshotId, currentSnapshotId, sitesBaseDomain, dnsTargetIp, noIndexar,
+  sitemapAjeno,
 }: {
   projectId: string;
   subdominio: string | null;
@@ -16,6 +17,8 @@ export function PublishBar({
   sitesBaseDomain: string;
   dnsTargetIp: string;
   noIndexar: boolean;
+  /** Dominios que anuncia su sitemap y que no son suyos aquí (ver seo.ts). */
+  sitemapAjeno: string[];
 }) {
   const router = useRouter();
   const [sub, setSub] = useState(subdominio ?? "");
@@ -160,6 +163,25 @@ export function PublishBar({
           </button>
         </div>
       </div>
+
+      {/* Su sitemap manda a Google a otro sitio. Solo una vez publicada: antes de
+          publicar nadie lo está leyendo, y el orden natural es publicar primero y
+          conectar el dominio después — avisar antes sería enseñarle a ignorar
+          los avisos. NO se corrige solo, a propósito: el porqué, en seo.ts. */}
+      {publicado && sitemapAjeno.length > 0 && (
+        <div className="aviso-bloque">
+          <span className="icono" aria-hidden="true">⚠</span>
+          <span>
+            Tu <code>sitemap.xml</code> le dice a Google que tus páginas están en{" "}
+            {sitemapAjeno.map((d, i) => (
+              <span key={d}>{i > 0 && (i === sitemapAjeno.length - 1 ? " y " : ", ")}<b>{d}</b></span>
+            ))}
+            , que no {sitemapAjeno.length > 1 ? "son direcciones tuyas" : "es una dirección tuya"} aquí.
+            Google irá a buscarlas allí. Conecta {sitemapAjeno.length > 1 ? "el dominio" : "ese dominio"} abajo
+            si es tuyo, o borra el <code>sitemap.xml</code> de tu web y te generamos uno correcto.
+          </span>
+        </div>
+      )}
 
       {/* Dirección y dominio: plegado y ordenado */}
       <details className="direccion">
