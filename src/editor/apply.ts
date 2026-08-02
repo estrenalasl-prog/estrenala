@@ -11,6 +11,7 @@ export type EditOp =
   | { page: string; nodeId: number; kind: "href"; value: string }
   | { page: string; nodeId: number; kind: "src"; value: string; assetId: string }
   | { page: string; nodeId: number; kind: "insertImage"; value: string; assetId: string; alt: string; posicion: PosicionImagen }
+  | { page: string; nodeId: number; kind: "align"; value: Alineacion }
   | { page: string; nodeId: number; kind: "style"; property: "color"; value: string }
   | { page: string; nodeId: number; kind: "textNode"; index: number; value: string };
 
@@ -21,8 +22,27 @@ export type PageOp =
   | { nodeId: number; kind: "href"; value: string }
   | { nodeId: number; kind: "src"; value: string }
   | { nodeId: number; kind: "insertImage"; value: string; alt: string; posicion: PosicionImagen }
+  | { nodeId: number; kind: "align"; value: Alineacion }
   | { nodeId: number; kind: "style"; property: "color"; value: string }
   | { nodeId: number; kind: "textNode"; index: number; value: string };
+
+/**
+ * Alinear una imagen. El cliente manda la INTENCIÓN, no el CSS: así el navegador
+ * no puede colar declaraciones raras en el atributo `style` de la página de nadie,
+ * y el día que haya que cambiar cómo se centra una imagen se cambia en un sitio.
+ *
+ * Se traduce a márgenes automáticos, que es lo que centra un bloque. `display:
+ * block` va incluido porque sin él los márgenes automáticos no hacen nada: una
+ * imagen es en línea por defecto, y ese es el motivo por el que «centrar» parece
+ * no funcionar en medio internet.
+ */
+export type Alineacion = "izquierda" | "centro" | "derecha";
+
+const MARGENES: Record<Alineacion, [string, string]> = {
+  izquierda: ["0", "auto"],
+  centro: ["auto", "auto"],
+  derecha: ["auto", "0"],
+};
 
 export function escapeHtmlText(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -108,11 +128,32 @@ export function applyEdits(html: string, ops: PageOp[]): string {
       const s = replacedAttrsPerNode.get(op.nodeId) ?? new Set();
       s.add("src");
       replacedAttrsPerNode.set(op.nodeId, s);
-    } else if (op.kind === "style" && el.attrLocations["style"]) {
+    } else if ((op.kind === "style" || op.kind === "align") && el.attrLocations["style"]) {
       const s = replacedAttrsPerNode.get(op.nodeId) ?? new Set();
       s.add("style");
       replacedAttrsPerNode.set(op.nodeId, s);
     }
+  }
+
+  // El color y la alineación escriben el MISMO atributo `style`. Si cada op
+  // empujara su propio tramo, serían dos ediciones sobre el mismo rango de bytes y
+  // el HTML saldría corrupto. Se funden todas en una cadena por nodo y se escribe
+  // una sola vez, más abajo.
+  const estiloPorNodo = new Map<number, string>();
+  for (const op of dedup.values()) {
+    if (op.kind !== "style" && op.kind !== "align") continue;
+    const el = byId.get(op.nodeId);
+    if (!el) continue;
+    let s = estiloPorNodo.get(op.nodeId) ?? el.attrs.style ?? "";
+    if (op.kind === "style") {
+      s = mergeStyleProperty(s, op.property, op.value);
+    } else {
+      const [ml, mr] = MARGENES[op.value];
+      s = mergeStyleProperty(s, "display", "block");
+      s = mergeStyleProperty(s, "margin-left", ml);
+      s = mergeStyleProperty(s, "margin-right", mr);
+    }
+    estiloPorNodo.set(op.nodeId, s);
   }
   const edits: Edit[] = [];
   for (const op of dedup.values()) {
@@ -158,10 +199,15 @@ export function applyEdits(html: string, ops: PageOp[]): string {
       const t = el.textNodes.find((x) => x.index === op.index);
       if (!t) continue;
       edits.push({ start: t.start, end: t.end, text: escapeHtmlText(op.value) });
-    } else {
-      const nuevo = mergeStyleProperty(el.attrs.style ?? "", op.property, op.value);
-      pushAttrEdit(edits, el, "style", nuevo, replacedAttrs);
     }
+    // `style` y `align` no se tratan aquí: ya se fundieron arriba en una sola
+    // cadena por nodo, y se escriben en el bucle siguiente.
+  }
+
+  for (const [nodeId, valor] of estiloPorNodo) {
+    const el = byId.get(nodeId);
+    if (!el) continue;
+    pushAttrEdit(edits, el, "style", valor, replacedAttrsPerNode.get(nodeId) ?? new Set());
   }
   // Orden descendente por offset. Los tramos de atributos viven dentro del
   // start-tag y el de contenido tras él → no se solapan; dos inserciones en el

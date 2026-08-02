@@ -250,3 +250,67 @@ describe("applyEdits · insertar imagen", () => {
     expect(applyEdits(html, [ins(99, "despues")])).toBe(html);
   });
 });
+
+// Alinear una imagen: izquierda, centro o derecha. El cliente manda la INTENCION
+// y el servidor decide el CSS, para que nadie pueda colar declaraciones raras en
+// el atributo style de una pagina publicada.
+describe("applyEdits · alinear", () => {
+  const al = (nodeId: number, value: "izquierda" | "centro" | "derecha") =>
+    ({ nodeId, kind: "align" as const, value });
+
+  it("centrar pone margenes automaticos a los dos lados", () => {
+    const r = applyEdits(`<img src="/a.png">`, [al(0, "centro")]);
+    expect(r).toContain("margin-left: auto");
+    expect(r).toContain("margin-right: auto");
+  });
+
+  it("izquierda y derecha sueltan el margen del lado que toca", () => {
+    expect(applyEdits(`<img src="/a.png">`, [al(0, "izquierda")]))
+      .toContain("margin-left: 0; margin-right: auto");
+    expect(applyEdits(`<img src="/a.png">`, [al(0, "derecha")]))
+      .toContain("margin-left: auto; margin-right: 0");
+  });
+
+  // Una imagen es en linea por defecto, y con eso los margenes automaticos no
+  // hacen NADA. Es el motivo por el que «centrar» parece no funcionar en medio
+  // internet.
+  it("incluye display:block, sin el cual centrar no hace nada", () => {
+    expect(applyEdits(`<img src="/a.png">`, [al(0, "centro")])).toContain("display: block");
+  });
+
+  it("respeta el estilo que ya tuviera la imagen", () => {
+    const r = applyEdits(`<img src="/a.png" style="border-radius: 8px">`, [al(0, "centro")]);
+    expect(r).toContain("border-radius: 8px");
+    expect(r).toContain("margin-left: auto");
+  });
+
+  it("realinear no acumula: gana la ultima", () => {
+    const r = applyEdits(`<img src="/a.png">`, [al(0, "centro"), al(0, "derecha")]);
+    expect(r).toContain("margin-left: auto; margin-right: 0");
+    expect([...r.matchAll(/margin-left/g)]).toHaveLength(1);
+  });
+
+  // EL CASO PELIGROSO: color y alineacion escriben el MISMO atributo. Si cada uno
+  // empujara su propio tramo serian dos ediciones sobre el mismo rango de bytes y
+  // el HTML saldria roto.
+  it("color y alineacion a la vez producen UN solo atributo style, bien formado", () => {
+    const r = applyEdits(`<img src="/a.png" style="border: 1px solid red">`, [
+      { nodeId: 0, kind: "style", property: "color", value: "#333" },
+      al(0, "centro"),
+    ]);
+    expect([...r.matchAll(/style=/g)]).toHaveLength(1);
+    expect(r).toContain("border: 1px solid red");
+    expect(r).toContain("color: #333");
+    expect(r).toContain("margin-left: auto");
+  });
+
+  it("y tambien cuando la imagen NO tenia atributo style de antes", () => {
+    const r = applyEdits(`<img src="/a.png">`, [
+      { nodeId: 0, kind: "style", property: "color", value: "red" },
+      al(0, "derecha"),
+    ]);
+    expect([...r.matchAll(/style=/g)]).toHaveLength(1);
+    expect(r).toContain("color: red");
+    expect(r).toContain("margin-right: 0");
+  });
+});

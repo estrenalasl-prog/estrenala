@@ -181,6 +181,27 @@
     return b;
   }
 
+  // Alinear la imagen. Se manda la INTENCIÓN («centro»), no el CSS: el servidor
+  // decide los márgenes (ver `MARGENES` en src/editor/apply.ts). Aquí se aplica
+  // además en vivo, con lo mismo que escribirá el servidor, para que lo que se ve
+  // y lo que se guarda no puedan discrepar.
+  var MARGENES_UI = { izquierda: ["0", "auto"], centro: ["auto", "auto"], derecha: ["auto", "0"] };
+  function botonAlinear(txt, valor, el) {
+    var b = document.createElement("button");
+    b.type = "button"; b.textContent = txt;
+    b.style.cssText = "flex:1;height:30px;border-radius:9px;border:1px solid #DEDFD6;background:#fff;color:#141509;font-size:12px;font-weight:500;cursor:pointer";
+    b.addEventListener("click", function () {
+      var m = MARGENES_UI[valor];
+      // display:block es imprescindible: una imagen es en línea por defecto y sin
+      // esto los márgenes automáticos no hacen absolutamente nada.
+      el.style.display = "block";
+      el.style.marginLeft = m[0];
+      el.style.marginRight = m[1];
+      emitir({ page: PAGE, nodeId: idDe(el), kind: "align", value: valor });
+    });
+    return b;
+  }
+
   function construir(el) {
     pop.innerHTML = "";
     objetivo = el;
@@ -247,6 +268,16 @@
         window.parent.postMessage({ type: "wc-image-request", nodeId: idDe(el), page: PAGE }, "*");
       });
       pop.appendChild(btn);
+
+      // Alineación. Solo para imágenes: alinear un párrafo es otra cosa (ahí se
+      // alinea el TEXTO, no el bloque) y mezclarlas confundiría.
+      pop.appendChild(etiqueta("Alineación"));
+      var fa = document.createElement("div");
+      fa.style.cssText = "display:flex;gap:6px";
+      fa.appendChild(botonAlinear("Izq.", "izquierda", el));
+      fa.appendChild(botonAlinear("Centro", "centro", el));
+      fa.appendChild(botonAlinear("Der.", "derecha", el));
+      pop.appendChild(fa);
     }
 
     // Meter una imagen NUEVA junto a lo que se ha pinchado. Hasta ahora solo se

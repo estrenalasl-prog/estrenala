@@ -8,6 +8,7 @@ type EditOp =
   | { page: string; nodeId: number; kind: "href"; value: string }
   | { page: string; nodeId: number; kind: "src"; value: string; assetId: string }
   | { page: string; nodeId: number; kind: "insertImage"; value: string; assetId: string; alt: string; posicion: "antes" | "despues" }
+  | { page: string; nodeId: number; kind: "align"; value: "izquierda" | "centro" | "derecha" }
   | { page: string; nodeId: number; kind: "style"; property: "color"; value: string }
   | { page: string; nodeId: number; kind: "textNode"; index: number; value: string };
 type SnapshotInfo = { id: string; tipo: string; parentId: string | null; createdAt: string; esActual: boolean };
@@ -281,7 +282,15 @@ export function PreviewPane({
               <>
                 <span style={{ fontSize: 13, color: "var(--color-texto-2)" }}>{ops.size} {ops.size === 1 ? "cambio" : "cambios"}</span>
                 <button className="btn btn-fantasma btn-sm" onClick={cancelarEdicion} disabled={guardando}>Descartar</button>
-                <button className="btn btn-primario btn-sm" onClick={() => void guardarEdicion()} disabled={ops.size === 0 || guardando}>Guardar cambios</button>
+                {/* Guardar copia el sitio entero a una versión nueva, así que en
+                    una web con muchos archivos tarda entre cinco y diez segundos.
+                    Sin reloj, el botón solo se apaga —que se lee como «no ha
+                    pasado nada»— y uno vuelve a pulsarlo pensando que se ha
+                    colgado. Le pasó a Sebas el 2026-08-02. El botón de al lado ya
+                    lo hacía bien; este se quedó sin él. */}
+                <button className="btn btn-primario btn-sm" onClick={() => void guardarEdicion()} disabled={ops.size === 0 || guardando}>
+                  {guardando ? <><span className="cargador" /> Guardando…</> : "Guardar cambios"}
+                </button>
               </>
             ) : (
               guardando && <span style={{ fontSize: 13, color: "var(--color-texto-3)" }}>guardando…</span>
