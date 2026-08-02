@@ -1,5 +1,6 @@
 "use client";
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import type { TextosPanel } from "@/src/i18n/panel";
 
 /**
  * Los avisos de la plataforma, con la cara de la plataforma.
@@ -35,11 +36,14 @@ type Peticion = {
   etiqueta?: string;
 };
 
-const ETIQUETA: Record<Tono, string | null> = {
-  normal: null,
-  coste: "Gasta crédito de tu clave",
-  peligro: "No se puede deshacer",
-};
+type Textos = TextosPanel["dialogo"];
+
+// La etiqueta que trae cada tono, salvo que quien llama ponga la suya.
+function etiquetaDelTono(tono: Tono, t: Textos): string | null {
+  if (tono === "coste") return t.etiquetaCoste;
+  if (tono === "peligro") return t.etiquetaPeligro;
+  return null;
+}
 
 type Api = {
   confirmar: (p: Peticion) => Promise<boolean>;
@@ -54,7 +58,7 @@ export function useDialogo(): Api {
   return api;
 }
 
-export function ProveedorDialogo({ children }: { children: React.ReactNode }) {
+export function ProveedorDialogo({ children, textos }: { children: React.ReactNode; textos: Textos }) {
   const [peticion, setPeticion] = useState<Peticion | null>(null);
   const ref = useRef<HTMLDialogElement>(null);
   // La promesa que espera la respuesta. Se guarda en una ref y NO en estado: es
@@ -108,7 +112,7 @@ export function ProveedorDialogo({ children }: { children: React.ReactNode }) {
   }
 
   const tono = peticion?.tono ?? "normal";
-  const etiqueta = peticion?.etiqueta ?? ETIQUETA[tono];
+  const etiqueta = peticion?.etiqueta ?? etiquetaDelTono(tono, textos);
   const soloAviso = peticion?.cancelar === null;
 
   return (
@@ -132,7 +136,7 @@ export function ProveedorDialogo({ children }: { children: React.ReactNode }) {
                   // de más no borra nada.
                   {...(tono === "peligro" ? { "data-foco": true } : {})}
                 >
-                  {peticion.cancelar ?? "Cancelar"}
+                  {peticion.cancelar ?? textos.cancelar}
                 </button>
               )}
               <button
@@ -141,7 +145,7 @@ export function ProveedorDialogo({ children }: { children: React.ReactNode }) {
                 onClick={() => responder(true)}
                 {...(tono !== "peligro" ? { "data-foco": true } : {})}
               >
-                {peticion.aceptar ?? (soloAviso ? "Entendido" : "Continuar")}
+                {peticion.aceptar ?? (soloAviso ? textos.entendido : textos.continuar)}
               </button>
             </div>
           </>

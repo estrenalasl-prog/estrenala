@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { cookies, headers } from "next/headers";
 import { verificarSesion, SESSION_COOKIE } from "@/src/auth/session-cookie";
 import { CABECERA_IDIOMA, COOKIE_IDIOMA, esIdioma, idiomaDeLaPeticion, type Idioma } from "./idiomas";
@@ -34,8 +35,14 @@ export async function idiomaActual(): Promise<Idioma> {
  *
  * El store se importa de forma perezosa, como en getContexto: así los tests que
  * inyectan un store falso no arrastran la conexión de verdad a la base de datos.
+ *
+ * Envuelto en `cache` porque una misma página lo pide TRES veces —la envoltura
+ * de la raíz, la cabecera y la pantalla— y cada una acabaría preguntando a la
+ * base de datos por el mismo usuario. React lo recuerda dentro de una petición y
+ * lo olvida al terminarla, así que no hay riesgo de servirle a alguien el idioma
+ * de otro.
  */
-export async function idiomaDeSesion(): Promise<Idioma> {
+export const idiomaDeSesion = cache(async function idiomaDeSesion(): Promise<Idioma> {
   const porLaPeticion = await idiomaActual();
   const secret = process.env.SESSION_SECRET;
   const cookie = secret ? (await cookies()).get(SESSION_COOKIE)?.value : undefined;
@@ -50,4 +57,4 @@ export async function idiomaDeSesion(): Promise<Idioma> {
     // toque y con su mensaje; aquí se sigue con lo que diga la petición.
     return porLaPeticion;
   }
-}
+});

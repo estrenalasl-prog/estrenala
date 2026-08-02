@@ -2,6 +2,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useDialogo } from "@/app/_components/Dialogo";
+import type { TextosPanel } from "@/src/i18n/panel";
+import { rellenar } from "@/src/i18n/rellenar";
+
+type Textos = TextosPanel["proyecto"];
 
 type EditOp =
   | { page: string; nodeId: number; kind: "text"; value: string }
@@ -36,19 +40,21 @@ function altDeNombre(nombre: string): string {
   return nombre.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").trim().slice(0, 300);
 }
 
-const NOMBRE_TIPO: Record<string, string> = {
-  import: "Importación inicial",
-  edit: "Edición a mano",
-  "edit-ia": "Edición con el asistente",
-  blog: "Cambio en el blog",
-  restore: "Restauración",
-  publish: "Publicación",
-  actualizacion: "Actualización desde ZIP",
-};
 // `Object.hasOwn` y no `??`: con la búsqueda directa, un tipo llamado
 // "constructor" devolvería la función Object en vez del nombre. Mismo fallo que
 // ya mordió en contentTypeFor.
-function etiquetaTipo(t: string): string { return Object.hasOwn(NOMBRE_TIPO, t) ? NOMBRE_TIPO[t] : t; }
+function etiquetaTipo(tipo: string, t: Textos["historial"]): string {
+  const nombres: Record<string, string> = {
+    import: t.tipoImport,
+    edit: t.tipoEdit,
+    "edit-ia": t.tipoEditIa,
+    blog: t.tipoBlog,
+    restore: t.tipoRestore,
+    publish: t.tipoPublish,
+    actualizacion: t.tipoActualizacion,
+  };
+  return Object.hasOwn(nombres, tipo) ? nombres[tipo] : tipo;
+}
 // La hora que se enseña tiene que ser LA DEL USUARIO. Antes se cortaba el ISO en
 // crudo (`iso.slice(0, 16)`), que viene en UTC: en España en verano el Historial
 // iba DOS HORAS atrasado, así que nada parecía reciente y un cambio recién hecho
@@ -63,8 +69,8 @@ function cuando(iso: string): string {
 }
 
 export function PreviewPane({
-  projectId, entryPath, pages,
-}: { projectId: string; entryPath: string; pages: string[] }) {
+  projectId, entryPath, pages, t,
+}: { projectId: string; entryPath: string; pages: string[]; t: Textos }) {
   const { avisar } = useDialogo();
   const [actual, setActual] = useState(entryPath);
   const [guardando, setGuardando] = useState(false);
@@ -146,7 +152,7 @@ export function PreviewPane({
       const res = await fetch(`/api/projects/${projectId}/assets`, { method: "POST", body: fd });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
-        await avisar({ titulo: "No se pudo subir la imagen", cuerpo: d.error });
+        await avisar({ titulo: t.previo.errorImagen, cuerpo: d.error });
         return;
       }
       const { assetId, ext, url } = (await res.json()) as { assetId: string; ext: string; url: string };
@@ -198,7 +204,7 @@ export function PreviewPane({
         body: JSON.stringify({ entryPath: actual }),
       });
       if (res.ok) router.refresh();
-      else { const d = await res.json().catch(() => ({})); await avisar({ titulo: "No se pudo cambiar la portada", cuerpo: d.error }); }
+      else { const d = await res.json().catch(() => ({})); await avisar({ titulo: t.previo.errorPortada, cuerpo: d.error }); }
     } finally {
       setGuardando(false);
     }
@@ -216,7 +222,7 @@ export function PreviewPane({
         body: JSON.stringify({ ops: [...ops.values()] }),
       });
       if (res.ok) { setOps(new Map()); setEditMode(false); setRecarga((n) => n + 1); await cargarHistorial(); router.refresh(); }
-      else { const d = await res.json().catch(() => ({})); await avisar({ titulo: "No se pudieron guardar los cambios", cuerpo: d.error }); }
+      else { const d = await res.json().catch(() => ({})); await avisar({ titulo: t.previo.errorGuardar, cuerpo: d.error }); }
     } finally {
       setGuardando(false);
     }
@@ -253,9 +259,12 @@ export function PreviewPane({
             value={actual}
             onChange={(e) => verPagina(e.target.value)}
             disabled={editMode}
-            title={editMode ? "Guarda o descarta los cambios para cambiar de página" : "Página que se muestra"}
+            title={editMode ? t.previo.selectBloqueado : t.previo.selectTitulo}
           >
-            {pages.map((p) => <option key={p} value={p}>{p === entryPath ? `${p} (portada)` : p}</option>)}
+            {/* Dentro de un <option> solo cabe texto: se rellena en crudo. */}
+            {pages.map((p) => (
+              <option key={p} value={p}>{p === entryPath ? rellenar(t.previo.portada, { pagina: p }) : p}</option>
+            ))}
           </select>
 
           {actual !== entryPath && (
@@ -263,9 +272,9 @@ export function PreviewPane({
               className="btn btn-sec btn-sm"
               onClick={() => void marcarComoInicio()}
               disabled={editMode || guardando}
-              title="La portada es la página que se ve al entrar en tu dirección, sin nada detrás"
+              title={t.previo.hacerPortadaTitulo}
             >
-              {guardando ? <><span className="cargador" /> Guardando…</> : "Hacer que sea la portada"}
+              {guardando ? <><span className="cargador" /> {t.previo.guardando}</> : t.previo.hacerPortada}
             </button>
           )}
 
@@ -275,15 +284,17 @@ export function PreviewPane({
             aria-checked={editMode}
             className="interruptor"
             onClick={alternarEdicion}
-            aria-label="Modo edición"
+            aria-label={t.previo.modoEdicion}
           />
-          <span className="conmutador" onClick={alternarEdicion} style={{ userSelect: "none" }}>Modo edición</span>
+          <span className="conmutador" onClick={alternarEdicion} style={{ userSelect: "none" }}>{t.previo.modoEdicion}</span>
 
           <div className="derecha">
             {editMode ? (
               <>
-                <span style={{ fontSize: 13, color: "var(--color-texto-2)" }}>{ops.size} {ops.size === 1 ? "cambio" : "cambios"}</span>
-                <button className="btn btn-fantasma btn-sm" onClick={cancelarEdicion} disabled={guardando}>Descartar</button>
+                <span style={{ fontSize: 13, color: "var(--color-texto-2)" }}>
+                  {rellenar(ops.size === 1 ? t.previo.unCambio : t.previo.variosCambios, { n: String(ops.size) })}
+                </span>
+                <button className="btn btn-fantasma btn-sm" onClick={cancelarEdicion} disabled={guardando}>{t.previo.descartar}</button>
                 {/* Guardar copia el sitio entero a una versión nueva, así que en
                     una web con muchos archivos tarda entre cinco y diez segundos.
                     Sin reloj, el botón solo se apaga —que se lee como «no ha
@@ -291,18 +302,18 @@ export function PreviewPane({
                     colgado. Le pasó a Sebas el 2026-08-02. El botón de al lado ya
                     lo hacía bien; este se quedó sin él. */}
                 <button className="btn btn-primario btn-sm" onClick={() => void guardarEdicion()} disabled={ops.size === 0 || guardando}>
-                  {guardando ? <><span className="cargador" /> Guardando…</> : "Guardar cambios"}
+                  {guardando ? <><span className="cargador" /> {t.previo.guardando}</> : t.previo.guardarCambios}
                 </button>
               </>
             ) : (
-              guardando && <span style={{ fontSize: 13, color: "var(--color-texto-3)" }}>guardando…</span>
+              guardando && <span style={{ fontSize: 13, color: "var(--color-texto-3)" }}>{t.previo.guardandoSuelto}</span>
             )}
             <button
               className="btn btn-sec btn-sm"
               onClick={() => setExpandido(!expandido)}
-              title={expandido ? "Salir de pantalla completa (Esc)" : "Ver la web a tamaño real"}
+              title={expandido ? t.previo.salirTitulo : t.previo.expandirTitulo}
             >
-              {expandido ? "⤡ Salir" : "⤢ Expandir"}
+              {expandido ? t.previo.salir : t.previo.expandir}
             </button>
           </div>
         </div>
@@ -321,27 +332,27 @@ export function PreviewPane({
       </div>
 
       <aside className="historial">
-        <header>Historial</header>
+        <header>{t.historial.titulo}</header>
         {snapshots === null ? (
-          <p className="vacio-hist">Cargando…</p>
+          <p className="vacio-hist">{t.historial.cargando}</p>
         ) : snapshots.length === 0 ? (
-          <p className="vacio-hist">Aún no hay cambios guardados.</p>
+          <p className="vacio-hist">{t.historial.vacio}</p>
         ) : (
           <ul>
             {snapshots.map((s) => (
               <li key={s.id}>
                 <span className={s.esActual ? "tipo actual" : "tipo"} />
                 <span className="detalle">
-                  {etiquetaTipo(s.tipo)}
+                  {etiquetaTipo(s.tipo, t.historial)}
                   <br />
                   {/* El servidor va en UTC y el navegador en la zona del usuario,
                       así que este texto es distinto en cada lado a propósito. */}
-                  <span className="cuando" suppressHydrationWarning>{s.esActual ? "actual · " : ""}{cuando(s.createdAt)}</span>
+                  <span className="cuando" suppressHydrationWarning>{s.esActual ? t.historial.actual : ""}{cuando(s.createdAt)}</span>
                   {confirmando === s.id && (
                     <>
                       <br />
                       <span style={{ fontSize: 12, color: "var(--color-texto-3)", lineHeight: 1.45 }}>
-                        ¿Volver a esta versión? Tu web publicada no cambia hasta que le des a «Publicar cambios».
+                        {t.historial.confirmar}
                       </span>
                     </>
                   )}
@@ -349,16 +360,16 @@ export function PreviewPane({
                 {!s.esActual && (
                   confirmando === s.id ? (
                     <span style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                      <button className="btn btn-peligro-sutil btn-sm" onClick={() => void restaurar(s.id)}>Sí, volver</button>
-                      <button className="btn btn-fantasma btn-sm" onClick={() => setConfirmando(null)}>No</button>
+                      <button className="btn btn-peligro-sutil btn-sm" onClick={() => void restaurar(s.id)}>{t.historial.si}</button>
+                      <button className="btn btn-fantasma btn-sm" onClick={() => setConfirmando(null)}>{t.historial.no}</button>
                     </span>
                   ) : (
                     <button
                       className="btn btn-sec btn-sm"
                       onClick={() => setConfirmando(s.id)}
-                      title="Deja la web como estaba en ese momento. No se pierde nada: puedes volver a cualquier otra versión de la lista, y tu web publicada no cambia hasta que le des a «Publicar cambios»."
+                      title={t.historial.restaurarTitulo}
                     >
-                      Restaurar
+                      {t.historial.restaurar}
                     </button>
                   )
                 )}

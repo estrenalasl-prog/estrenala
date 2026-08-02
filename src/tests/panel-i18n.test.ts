@@ -69,4 +69,37 @@ describe("todos los catálogos, de una vez", () => {
       expect(hojas(cat[idioma]).map((h) => h.clave), idioma).toEqual(ref);
     }
   });
+
+  /**
+   * `conValores` parte la frase por los huecos y pasa cada trozo por `conFormato`,
+   * así que una marca no puede quedar a caballo de un hueco: `**{nombre}**` se
+   * rompería en «**» + el nombre + «**», y los asteriscos saldrían a la vista.
+   *
+   * Se comprueba en TODOS los catálogos y no solo donde se usa hoy, porque la
+   * tentación de escribir `**{algo}**` aparece cada vez que hay que resaltar un
+   * dato — y en el idioma en el que se cuele, nadie lo va a mirar.
+   */
+  const DELIMITADORES: Array<[string, RegExp]> = [
+    ["**", /\*\*/g], ["`", /`/g], ["_", /_/g], ["~~", /~~/g], ["[[", /\[\[/g], ["]]", /\]\]/g],
+  ];
+
+  it.each(Object.entries(catalogos))("%s: ninguna marca a caballo de un hueco", (_nombre, cat) => {
+    const malas: string[] = [];
+    for (const idioma of IDIOMAS) {
+      for (const { clave, valor } of hojas(cat[idioma])) {
+        for (const trozo of valor.split(/\{[a-zA-Z]+\}/)) {
+          for (const [marca, re] of DELIMITADORES) {
+            const n = trozo.match(re)?.length ?? 0;
+            // `[[` y `]]` van de dos en dos entre ellos, no consigo mismos.
+            const impar = marca === "[[" || marca === "]]" ? false : n % 2 === 1;
+            if (impar) malas.push(`${idioma} · ${clave} · «${marca}» suelto en «${trozo}»`);
+          }
+        }
+        const abre = valor.match(/\[\[/g)?.length ?? 0;
+        const cierra = valor.match(/\]\]/g)?.length ?? 0;
+        if (abre !== cierra) malas.push(`${idioma} · ${clave} · [[ ]] descuadrados`);
+      }
+    }
+    expect(malas, malas.join("\n")).toEqual([]);
+  });
 });

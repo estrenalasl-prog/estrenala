@@ -83,13 +83,14 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
           dnsTargetIp={dnsTargetIp}
           noIndexar={project.noIndexar}
           sitemapAjeno={sitemapAjeno}
+          t={textos.proyecto}
         />
-        <AssistantPanel projectId={id} pages={pages} entryPath={project.entryPath} />
-        <ActualizarPanel projectId={id} />
-        <ToolsPanel projectId={id} />
+        <AssistantPanel projectId={id} pages={pages} entryPath={project.entryPath} textos={textos.proyecto} />
+        <ActualizarPanel projectId={id} textos={textos.proyecto} />
+        <ToolsPanel projectId={id} textos={textos.proyecto} />
         {puede(plan, "blog") ? <BlogPanel projectId={id} /> : <BlogDePago />}
-        <PreviewPane projectId={id} entryPath={project.entryPath} pages={pages} />
-        {esOwner(rol) && <DangerZone projectId={id} nombre={project.nombre} />}
+        <PreviewPane projectId={id} entryPath={project.entryPath} pages={pages} t={textos.proyecto} />
+        {esOwner(rol) && <DangerZone projectId={id} nombre={project.nombre} textos={textos.proyecto} />}
       </main>
     </>
   );

@@ -1,6 +1,10 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import type { TextosPanel } from "@/src/i18n/panel";
+import { rellenar } from "@/src/i18n/rellenar";
+
+type Textos = TextosPanel["proyecto"];
 
 type Estado = {
   googleVerification: string | null;
@@ -27,13 +31,14 @@ export function BotonSubir({ texto, ocupado, onFile }: { texto: string; ocupado:
   );
 }
 
-function Estado_({ activo, textoActivo }: { activo: boolean; textoActivo: string }) {
+function Estado_({ activo, textoActivo, textoInactivo }: { activo: boolean; textoActivo: string; textoInactivo: string }) {
   return activo
     ? <span className="badge badge-exito"><span className="punto" />{textoActivo}</span>
-    : <span className="badge badge-neutro"><span className="punto" />Sin configurar</span>;
+    : <span className="badge badge-neutro"><span className="punto" />{textoInactivo}</span>;
 }
 
-export function ToolsPanel({ projectId }: { projectId: string }) {
+export function ToolsPanel({ projectId, textos }: { projectId: string; textos: Textos }) {
+  const t = textos.herramientas;
   const router = useRouter();
   const [estado, setEstado] = useState<Estado | null>(null);
   const [verificacion, setVerificacion] = useState("");
@@ -58,11 +63,11 @@ export function ToolsPanel({ projectId }: { projectId: string }) {
         body: JSON.stringify({ herramienta }),
       });
       const d = (await res.json().catch(() => ({}))) as { error?: string };
-      if (!res.ok) { setError(d.error ?? "Error"); return; }
+      if (!res.ok) { setError(d.error ?? textos.errores.generico); return; }
       await cargar(); router.refresh();
       setVerificacion(""); setMedicion("");
     } catch {
-      setError("Error de conexión");
+      setError(textos.errores.conexion);
     } finally { setOcupado(false); }
   }
 
@@ -74,10 +79,10 @@ export function ToolsPanel({ projectId }: { projectId: string }) {
         body: JSON.stringify({ tipo }),
       });
       const d = (await res.json().catch(() => ({}))) as { error?: string };
-      if (!res.ok) { setError(d.error ?? "Error"); return; }
+      if (!res.ok) { setError(d.error ?? textos.errores.generico); return; }
       await cargar(); router.refresh();
     } catch {
-      setError("Error de conexión");
+      setError(textos.errores.conexion);
     } finally { setOcupado(false); }
   }
 
@@ -88,10 +93,10 @@ export function ToolsPanel({ projectId }: { projectId: string }) {
       fd.append("file", file);
       const res = await fetch(`/api/projects/${projectId}/assets`, { method: "POST", body: fd });
       const d = (await res.json().catch(() => ({}))) as { error?: string; assetId?: string; ext?: string };
-      if (!res.ok || !d.assetId || !d.ext) { setError(d.error ?? "Error al subir la imagen"); return; }
+      if (!res.ok || !d.assetId || !d.ext) { setError(d.error ?? textos.errores.subirImagen); return; }
       await aplicar({ tipo, ruta: `/wc-uploads/${d.assetId}.${d.ext}` } as Herramienta);
     } catch {
-      setError("Error de conexión");
+      setError(textos.errores.conexion);
     } finally { setOcupado(false); }
   }
 
@@ -102,64 +107,64 @@ export function ToolsPanel({ projectId }: { projectId: string }) {
   return (
     <details className="direccion" onToggle={(e) => { if (e.currentTarget.open && !estado) void cargar(); }}>
       <summary>
-        <span className="flecha">▸</span> Herramientas del sitio
-        <span className="estado-dom">{nConfig === null ? "Search Console · Analítica · Favicon · Compartir" : `${nConfig} de 4 configuradas`}</span>
+        <span className="flecha">▸</span> {t.titulo}
+        <span className="estado-dom">{nConfig === null ? t.resumen : rellenar(t.configuradas, { n: String(nConfig) })}</span>
       </summary>
       <div className="direccion-cuerpo" style={{ display: "block" }}>
 
         <div className="fila-conf">
-          <div className="info"><b>Google Search Console</b><small>Demuestra a Google que la web es tuya. Pega la etiqueta o el código que te da Google.</small></div>
+          <div className="info"><b>{t.searchConsole}</b><small>{t.searchConsoleTexto}</small></div>
           <div className="control">
             {estado?.googleVerification ? (
               <>
-                <span className="badge badge-exito"><span className="punto" />Activa</span>
-                <button className="btn btn-fantasma btn-sm" onClick={() => void quitar("google-verification")} disabled={ocupado}>Quitar</button>
+                <span className="badge badge-exito"><span className="punto" />{t.activa}</span>
+                <button className="btn btn-fantasma btn-sm" onClick={() => void quitar("google-verification")} disabled={ocupado}>{t.quitar}</button>
               </>
             ) : (
               <>
                 <input className="campo" style={{ width: 220, maxWidth: "100%" }} value={verificacion}
                   onChange={(e) => setVerificacion(e.target.value)} placeholder='<meta name="google-site-verification" …' />
-                <button className="btn btn-sec btn-sm" onClick={() => void aplicar({ tipo: "google-verification", codigo: verificacion })} disabled={ocupado || !verificacion.trim()}>Aplicar</button>
+                <button className="btn btn-sec btn-sm" onClick={() => void aplicar({ tipo: "google-verification", codigo: verificacion })} disabled={ocupado || !verificacion.trim()}>{t.aplicar}</button>
               </>
             )}
           </div>
         </div>
 
         <div className="fila-conf">
-          <div className="info"><b>Analítica de visitas</b><small>Mide las visitas con Google Analytics. Pega tu ID de medición de GA4 (empieza por G-).</small></div>
+          <div className="info"><b>{t.analitica}</b><small>{t.analiticaTexto}</small></div>
           <div className="control">
             {estado?.analytics ? (
               <>
                 <span className="badge badge-exito"><span className="punto" />{estado.analytics}</span>
-                <button className="btn btn-fantasma btn-sm" onClick={() => void quitar("analytics")} disabled={ocupado}>Quitar</button>
+                <button className="btn btn-fantasma btn-sm" onClick={() => void quitar("analytics")} disabled={ocupado}>{t.quitar}</button>
               </>
             ) : (
               <>
                 <input className="campo" style={{ width: 160, maxWidth: "100%" }} value={medicion}
                   onChange={(e) => setMedicion(e.target.value)} placeholder="G-ABC1DE23FG" />
-                <button className="btn btn-sec btn-sm" onClick={() => void aplicar({ tipo: "analytics", medicion })} disabled={ocupado || !medicion.trim()}>Aplicar</button>
+                <button className="btn btn-sec btn-sm" onClick={() => void aplicar({ tipo: "analytics", medicion })} disabled={ocupado || !medicion.trim()}>{t.aplicar}</button>
               </>
             )}
           </div>
         </div>
 
         <div className="fila-conf">
-          <div className="info"><b>Favicon</b><small>El iconito de la pestaña del navegador. Sube una imagen cuadrada (png recomendado).</small></div>
+          <div className="info"><b>{t.favicon}</b><small>{t.faviconTexto}</small></div>
           <div className="control">
             {estado?.favicon && <img src={`/api/projects/${projectId}/preview${estado.favicon}`} alt="" style={{ height: 20, width: 20, borderRadius: 5 }} />}
-            <Estado_ activo={!!estado?.favicon} textoActivo="Listo" />
-            <BotonSubir texto={estado?.favicon ? "Cambiar" : "Subir imagen"} ocupado={ocupado} onFile={(f) => void subirYAplicar("favicon", f)} />
-            {estado?.favicon && <button className="btn btn-fantasma btn-sm" onClick={() => void quitar("favicon")} disabled={ocupado}>Quitar</button>}
+            <Estado_ activo={!!estado?.favicon} textoActivo={t.listo} textoInactivo={t.sinConfigurar} />
+            <BotonSubir texto={estado?.favicon ? t.cambiar : t.subirImagen} ocupado={ocupado} onFile={(f) => void subirYAplicar("favicon", f)} />
+            {estado?.favicon && <button className="btn btn-fantasma btn-sm" onClick={() => void quitar("favicon")} disabled={ocupado}>{t.quitar}</button>}
           </div>
         </div>
 
         <div className="fila-conf">
-          <div className="info"><b>Imagen al compartir <span className="quees" title="La foto que aparece al pegar tu enlace en WhatsApp o redes (og:image).">?</span></b><small>Aparece al enviar tu web por WhatsApp o redes sociales.</small></div>
+          <div className="info"><b>{t.compartir} <span className="quees" title={t.compartirQueEs}>?</span></b><small>{t.compartirTexto}</small></div>
           <div className="control">
             {estado?.ogImage && <img src={`/api/projects/${projectId}/preview${estado.ogImage}`} alt="" style={{ height: 28, width: 48, borderRadius: 5, objectFit: "cover" }} />}
-            <Estado_ activo={!!estado?.ogImage} textoActivo="Listo" />
-            <BotonSubir texto={estado?.ogImage ? "Cambiar" : "Subir imagen"} ocupado={ocupado} onFile={(f) => void subirYAplicar("og-image", f)} />
-            {estado?.ogImage && <button className="btn btn-fantasma btn-sm" onClick={() => void quitar("og-image")} disabled={ocupado}>Quitar</button>}
+            <Estado_ activo={!!estado?.ogImage} textoActivo={t.listo} textoInactivo={t.sinConfigurar} />
+            <BotonSubir texto={estado?.ogImage ? t.cambiar : t.subirImagen} ocupado={ocupado} onFile={(f) => void subirYAplicar("og-image", f)} />
+            {estado?.ogImage && <button className="btn btn-fantasma btn-sm" onClick={() => void quitar("og-image")} disabled={ocupado}>{t.quitar}</button>}
           </div>
         </div>
 

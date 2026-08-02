@@ -9,6 +9,8 @@ import {
 } from "@/src/legal/consentimiento";
 import { cookies, headers } from "next/headers";
 import { CABECERA_IDIOMA, idiomaDeCabecera } from "@/src/i18n/idiomas";
+import { idiomaDeSesion } from "@/src/i18n/servidor";
+import { textosPanel } from "@/src/i18n/panel";
 import { ProveedorDialogo } from "./_components/Dialogo";
 import { Cookies } from "./_components/Cookies";
 
@@ -81,6 +83,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   // traducido, así que anunciar otro idioma sería mentir.
   const idioma = idiomaDeCabecera((await headers()).get(CABECERA_IDIOMA));
 
+  // Los botones de la ventanita de avisos. Salen en toda la plataforma, así que
+  // el idioma se resuelve aquí una sola vez; `idiomaDeSesion` está memorizado por
+  // petición, o sea que esto NO añade una consulta más (ver i18n/servidor.ts).
+  const dialogo = textosPanel(await idiomaDeSesion()).dialogo;
+
   return (
     <html lang={idioma} className={spaceGrotesk.variable}>
       <head>
@@ -117,7 +124,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           diálogo sin montar el suyo. Es un componente de cliente dentro de un
           layout de servidor: `children` se sigue renderizando en el servidor. */}
       <body>
-        <ProveedorDialogo>{children}</ProveedorDialogo>
+        <ProveedorDialogo textos={dialogo}>{children}</ProveedorDialogo>
         {banner && <Cookies seguro={seguro} />}
       </body>
     </html>

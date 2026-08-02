@@ -2,10 +2,15 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useDialogo } from "@/app/_components/Dialogo";
+import type { TextosPanel } from "@/src/i18n/panel";
+import { conFormato } from "@/src/i18n/formato";
+
+type Textos = TextosPanel["proyecto"];
 
 // Actualizar la web desde un ZIP: para quien prefiere editar en su propia herramienta
 // (Claude Code, ChatGPT, v0…) y subir la versión nueva. Crea un snapshot (revertible).
-export function ActualizarPanel({ projectId }: { projectId: string }) {
+export function ActualizarPanel({ projectId, textos }: { projectId: string; textos: Textos }) {
+  const t = textos.actualizar;
   const router = useRouter();
   const { confirmar } = useDialogo();
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -18,10 +23,10 @@ export function ActualizarPanel({ projectId }: { projectId: string }) {
     // lo contrario asustaría de balde justo en el camino que queremos que usen
     // los que editan su web en su propia herramienta.
     if (!(await confirmar({
-      titulo: "Vas a reemplazar el contenido de esta web",
-      cuerpo: "Se sustituye por el del ZIP nuevo. Tu versión actual queda en el Historial, así que puedes volver a ella cuando quieras.",
-      etiqueta: "Se puede deshacer desde el Historial",
-      aceptar: "Reemplazar",
+      titulo: t.confirmarTitulo,
+      cuerpo: t.confirmarCuerpo,
+      etiqueta: t.confirmarEtiqueta,
+      aceptar: t.confirmarAceptar,
     }))) return;
     setOcupado(true); setError(null); setOk(false);
     try {
@@ -29,30 +34,25 @@ export function ActualizarPanel({ projectId }: { projectId: string }) {
       fd.append("file", file);
       const res = await fetch(`/api/projects/${projectId}/actualizar`, { method: "POST", body: fd });
       const d = (await res.json().catch(() => ({}))) as { error?: string };
-      if (!res.ok) { setError(d.error ?? "No se pudo actualizar"); return; }
+      if (!res.ok) { setError(d.error ?? textos.errores.actualizar); return; }
       setOk(true);
       router.refresh();
     } catch {
-      setError("Error de conexión");
+      setError(textos.errores.conexion);
     } finally { setOcupado(false); }
   }
 
   return (
     <details className="direccion">
       <summary>
-        <span className="flecha">▸</span> Actualizar desde ZIP
-        <span className="estado-dom">¿La editaste en tu herramienta? Sube la versión nueva</span>
+        <span className="flecha">▸</span> {t.titulo}
+        <span className="estado-dom">{t.resumen}</span>
       </summary>
       <div className="direccion-cuerpo" style={{ display: "block" }}>
         <p style={{ fontSize: 13, color: "var(--color-texto-2)", marginBottom: 12 }}>
-          Si prefieres seguir editando tu web en tu propia herramienta (Claude Code, ChatGPT, v0…),
-          sube aquí el <b>.zip</b> con la versión nueva y tu web online se actualizará. La versión
-          anterior queda en el <b>Historial</b>, así que siempre puedes revertir.
+          {conFormato(t.texto)}
           <br />
-          <span style={{ color: "var(--color-texto-3)" }}>
-            Ojo: el ZIP reemplaza el contenido; lo que hayas editado <i>dentro</i> de Estrénala no se
-            mezcla con él (tu proyecto en tu herramienta manda).
-          </span>
+          <span style={{ color: "var(--color-texto-3)" }}>{conFormato(t.ojo)}</span>
         </p>
         <input
           ref={inputRef}
@@ -62,9 +62,9 @@ export function ActualizarPanel({ projectId }: { projectId: string }) {
           onChange={(e) => { const f = e.target.files?.[0]; if (f) void subir(f); e.target.value = ""; }}
         />
         <button className="btn btn-sec btn-sm" disabled={ocupado} onClick={() => inputRef.current?.click()}>
-          {ocupado ? "Actualizando…" : "↻ Subir ZIP y actualizar"}
+          {ocupado ? t.actualizando : t.boton}
         </button>
-        {ok && <p style={{ marginTop: 10, fontSize: 14 }}>✓ Web actualizada. Revísala en la vista previa de abajo.</p>}
+        {ok && <p style={{ marginTop: 10, fontSize: 14 }}>{t.hecho}</p>}
         {error && <p className="error-campo" style={{ marginTop: 10 }}>{error}</p>}
       </div>
     </details>

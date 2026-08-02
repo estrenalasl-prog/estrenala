@@ -2,6 +2,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useDialogo } from "@/app/_components/Dialogo";
+import type { TextosPanel } from "@/src/i18n/panel";
+import { conFormato } from "@/src/i18n/formato";
+import { rellenar } from "@/src/i18n/rellenar";
+
+type Textos = TextosPanel["proyecto"];
 
 type EditOp =
   | { page: string; nodeId: number; kind: "text"; value: string }
@@ -11,21 +16,23 @@ type EditOp =
 
 type ResumenCambio = { nodeId: number; tag: string; kind: string; antes: string; despues: string };
 
-// El «¿Continuar?» se fue al botón, que es donde se decide. Lo demás se conserva
-// palabra por palabra: un aviso de gasto no se suaviza al cambiarle la piel.
-const AVISO =
-  "El asistente lee tu página y usa la IA con tu clave de OpenRouter (consume crédito). Revisarás los cambios antes de aplicarlos.";
-
-const NOMBRE_KIND: Record<string, string> = {
-  text: "Texto",
-  richText: "Texto con formato",
-  href: "Enlace",
-  style: "Color",
-};
+// Qué se toca en cada cambio propuesto. `Object.hasOwn` y no `??` por lo mismo
+// que en el Historial: con la búsqueda directa, un tipo llamado "constructor"
+// devolvería la función Object en vez de un nombre.
+function nombreKind(kind: string, t: Textos["asistente"]): string {
+  const nombres: Record<string, string> = {
+    text: t.tipoTexto,
+    richText: t.tipoTextoFormato,
+    href: t.tipoEnlace,
+    style: t.tipoColor,
+  };
+  return Object.hasOwn(nombres, kind) ? nombres[kind] : kind;
+}
 
 export function AssistantPanel({
-  projectId, pages, entryPath,
-}: { projectId: string; pages: string[]; entryPath: string }) {
+  projectId, pages, entryPath, textos,
+}: { projectId: string; pages: string[]; entryPath: string; textos: Textos }) {
+  const t = textos.asistente;
   const router = useRouter();
   const { confirmar } = useDialogo();
   const [page, setPage] = useState(entryPath);
@@ -43,10 +50,10 @@ export function AssistantPanel({
   async function proponer() {
     if (!instruccion.trim() || ocupado) return;
     if (!(await confirmar({
-      titulo: "Vas a usar el asistente de IA",
-      cuerpo: AVISO,
+      titulo: t.avisoTitulo,
+      cuerpo: t.aviso,
       tono: "coste",
-      aceptar: "Continuar",
+      aceptar: t.avisoAceptar,
     }))) return;
     setOcupado(true); setError(null); setPropuesta(null); setAplicado(false); setVistaPrevia(null);
     try {
@@ -55,10 +62,10 @@ export function AssistantPanel({
         body: JSON.stringify({ page, instruccion }),
       });
       const d = (await res.json().catch(() => ({}))) as { error?: string; ops?: EditOp[]; resumen?: ResumenCambio[] };
-      if (!res.ok) { setError(d.error ?? "Error"); return; }
+      if (!res.ok) { setError(d.error ?? textos.errores.generico); return; }
       setPropuesta({ ops: d.ops ?? [], resumen: d.resumen ?? [] });
     } catch {
-      setError("Error de conexión");
+      setError(textos.errores.conexion);
     } finally { setOcupado(false); }
   }
 
@@ -74,11 +81,11 @@ export function AssistantPanel({
         body: JSON.stringify({ ops: propuesta.ops, origen: "ia" }),
       });
       const d = (await res.json().catch(() => ({}))) as { error?: string };
-      if (!res.ok) { setError(d.error ?? "Error al aplicar"); return; }
+      if (!res.ok) { setError(d.error ?? textos.errores.generico); return; }
       setPropuesta(null); setInstruccion(""); setAplicado(true); setVistaPrevia(null);
       router.refresh();
     } catch {
-      setError("Error de conexión");
+      setError(textos.errores.conexion);
     } finally { setOcupado(false); }
   }
 
@@ -97,29 +104,30 @@ export function AssistantPanel({
         body: JSON.stringify({ page, ops: propuesta.ops }),
       });
       const d = (await res.json().catch(() => ({}))) as { error?: string; html?: string };
-      if (!res.ok) { setError(d.error ?? "No se pudo preparar la vista previa"); return; }
+      if (!res.ok) { setError(d.error ?? textos.errores.generico); return; }
       setVistaPrevia(d.html ?? "");
     } catch {
-      setError("Error de conexión");
+      setError(textos.errores.conexion);
     } finally { setOcupado(false); }
   }
 
   return (
     <details className="direccion">
       <summary>
-        <span className="flecha">▸</span> Asistente de IA
-        <span className="estado-dom">Dile en tus palabras qué cambiar y lo hace por ti</span>
+        <span className="flecha">▸</span> {t.titulo}
+        <span className="estado-dom">{t.resumen}</span>
       </summary>
       <div className="direccion-cuerpo" style={{ display: "block" }}>
-        <p style={{ fontSize: 13, color: "var(--color-texto-2)", marginBottom: 12 }}>
-          Escribe qué quieres cambiar de esta página. El asistente <b>propone</b> los cambios y tú decides si
-          aplicarlos. Todo queda en el Historial, así que siempre puedes revertir.
-        </p>
+        <p style={{ fontSize: 13, color: "var(--color-texto-2)", marginBottom: 12 }}>{conFormato(t.intro)}</p>
 
         <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8, flexWrap: "wrap" }}>
-          <label style={{ fontSize: 13, color: "var(--color-texto-2)" }}>Página:</label>
+          <label style={{ fontSize: 13, color: "var(--color-texto-2)" }}>{t.pagina}</label>
           <select className="previo-select" value={page} onChange={(e) => setPage(e.target.value)} disabled={ocupado}>
-            {pages.map((p) => <option key={p} value={p}>{p === entryPath ? `${p} (inicio)` : p}</option>)}
+            {/* Dentro de un <option> solo cabe texto, así que aquí se rellena en
+                crudo: nada de marcas de formato. */}
+            {pages.map((p) => (
+              <option key={p} value={p}>{p === entryPath ? rellenar(t.paginaInicio, { pagina: p }) : p}</option>
+            ))}
           </select>
         </div>
 
@@ -130,23 +138,23 @@ export function AssistantPanel({
           maxLength={2000}
           disabled={ocupado}
           onChange={(e) => setInstruccion(e.target.value)}
-          placeholder={'Ej.: "Haz el titular más directo y corrige las faltas de ortografía"'}
+          placeholder={t.ejemplo}
         />
 
         <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8 }}>
           <button className="btn btn-primario btn-sm" onClick={() => void proponer()} disabled={ocupado || !instruccion.trim()}>
-            {ocupado && !propuesta ? <><span className="cargador" /> Pensando…</> : "Proponer cambios"}
+            {ocupado && !propuesta ? <><span className="cargador" /> {t.pensando}</> : t.proponer}
           </button>
-          <small style={{ color: "var(--color-texto-3)" }}>Consume crédito de OpenRouter (tu clave).</small>
+          <small style={{ color: "var(--color-texto-3)" }}>{t.consumeCredito}</small>
         </div>
 
         {propuesta && (
           propuesta.ops.length === 0 ? (
-            <p style={{ marginTop: 12, fontSize: 14 }}>El asistente no propuso ningún cambio.</p>
+            <p style={{ marginTop: 12, fontSize: 14 }}>{t.sinCambios}</p>
           ) : (
             <div style={{ marginTop: 14 }}>
               <p style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
-                {propuesta.ops.length} {propuesta.ops.length === 1 ? "cambio propuesto" : "cambios propuestos"}:
+                {rellenar(propuesta.ops.length === 1 ? t.unCambio : t.variosCambios, { n: String(propuesta.ops.length) })}
               </p>
 
               {/* Un titular suele venir partido en varios trozos porque cada uno
@@ -156,12 +164,7 @@ export function AssistantPanel({
                   forma de verlo hasta después de aplicar. */}
               {vaciados >= 2 && (
                 <div className="aviso-error" role="alert" style={{ marginBottom: 10, fontSize: 13 }}>
-                  <span>
-                    <b>Ojo:</b> {vaciados} de estos cambios dejan un trozo de texto vacío. Suele pasar
-                    cuando una frase está repartida en varios trozos con estilos distintos y se juntan
-                    en uno: el texto queda bien, pero puedes perder colores o degradados. Míralo en la
-                    vista previa después de aplicar; si no te convence, deshazlo desde el Historial.
-                  </span>
+                  <span>{conFormato(rellenar(t.avisoVaciados, { n: String(vaciados) }))}</span>
                 </div>
               )}
 
@@ -169,14 +172,14 @@ export function AssistantPanel({
                 {propuesta.resumen.map((c, i) => (
                   <li key={i} className="rounded-c border border-borde bg-superficie" style={{ padding: "8px 10px" }}>
                     <div style={{ fontSize: 12, color: "var(--color-texto-3)", marginBottom: 2 }}>
-                      {NOMBRE_KIND[c.kind] ?? c.kind}
+                      {nombreKind(c.kind, t)}
                     </div>
                     {c.antes && <div style={{ fontSize: 13, color: "var(--color-texto-3)", textDecoration: "line-through" }}>{c.antes}</div>}
                     {/* Sin esto, vaciar un trozo se veía como una palabra tachada
                         y un hueco: imposible saber qué iba a pasar. */}
                     {c.despues
                       ? <div style={{ fontSize: 13, color: "var(--color-texto)" }}>{c.despues}</div>
-                      : <div style={{ fontSize: 13, fontStyle: "italic", color: "var(--color-texto-2)" }}>Se queda vacío</div>}
+                      : <div style={{ fontSize: 13, fontStyle: "italic", color: "var(--color-texto-2)" }}>{t.seQuedaVacio}</div>}
                   </li>
                 ))}
               </ul>
@@ -185,25 +188,23 @@ export function AssistantPanel({
                   {/* Con una propuesta en pantalla, `ocupado` solo puede ser esto:
                       proponer() vacía la propuesta antes de empezar. */}
                   {ocupado
-                    ? <><span className="cargador" /> Aplicando…</>
-                    : <>Aplicar {propuesta.ops.length} {propuesta.ops.length === 1 ? "cambio" : "cambios"}</>}
+                    ? <><span className="cargador" /> {t.aplicando}</>
+                    : rellenar(propuesta.ops.length === 1 ? t.aplicarUno : t.aplicarVarios, { n: String(propuesta.ops.length) })}
                 </button>
                 <button className="btn btn-sec btn-sm" onClick={() => void verComoQueda()} disabled={ocupado}>
-                  {vistaPrevia !== null ? "Ocultar la vista previa" : "Ver cómo queda"}
+                  {vistaPrevia !== null ? t.ocultarVistaPrevia : t.verComoQueda}
                 </button>
-                <button className="btn btn-fantasma btn-sm" onClick={() => { setPropuesta(null); setVistaPrevia(null); }} disabled={ocupado}>Descartar</button>
+                <button className="btn btn-fantasma btn-sm" onClick={() => { setPropuesta(null); setVistaPrevia(null); }} disabled={ocupado}>{t.descartar}</button>
               </div>
               {vistaPrevia !== null && (
                 <>
-                  <p style={{ fontSize: 12, color: "var(--color-texto-3)", margin: "10px 0 6px" }}>
-                    Así quedaría. Todavía no se ha guardado nada.
-                  </p>
+                  <p style={{ fontSize: 12, color: "var(--color-texto-3)", margin: "10px 0 6px" }}>{t.asiQuedaria}</p>
                   {/* sandbox="" : la página del cliente puede traer scripts y aquí
                       solo se está mirando cómo queda. */}
                   <iframe
                     srcDoc={vistaPrevia}
                     sandbox=""
-                    title="Así quedaría"
+                    title={t.asiQuedaria}
                     style={{ width: "100%", height: 380, border: "1px solid var(--color-borde)", borderRadius: "var(--radius-c)", background: "var(--color-superficie)" }}
                   />
                 </>
@@ -212,7 +213,7 @@ export function AssistantPanel({
           )
         )}
 
-        {aplicado && <p style={{ marginTop: 12, fontSize: 14, color: "var(--color-exito, inherit)" }}>✓ Cambios aplicados. Revísalos en la vista previa de abajo.</p>}
+        {aplicado && <p style={{ marginTop: 12, fontSize: 14, color: "var(--color-exito, inherit)" }}>{t.aplicado}</p>}
         {error && <p className="error-campo" style={{ marginTop: 12 }}>{error}</p>}
       </div>
     </details>
