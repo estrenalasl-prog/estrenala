@@ -217,7 +217,12 @@ html:has(.landing){scroll-behavior:smooth}
 .landing .pasos,.landing .vias,.landing .publico,.landing .blog-grid,.landing .equipo-grid{grid-template-columns:1fr}
 .landing .blog-grid,.landing .equipo-grid{gap:34px}
 .landing .top nav .enlaces{display:none}
-.landing .top nav .btn{display:none}
+/* OJO CON EL «>»: es el boton de la cabecera el que se esconde en movil, no
+   TODOS los botones que haya dentro de <nav>. Sin el, esta regla alcanzaba
+   tambien al boton de registro que va DENTRO del menu de la hamburguesa, y ese
+   —el principal de la pagina— no se ha visto nunca en movil. La regla de abajo
+   le pone margen, pero un margen no resucita un display:none. */
+.landing .top nav > .btn{display:none}
 .landing .menu-movil{display:block;margin-left:auto;position:relative}
 .landing .menu-movil summary{list-style:none;cursor:pointer;width:44px;height:44px;border-radius:var(--radio-c);border:1px solid var(--borde);background:var(--superficie);display:grid;place-items:center}
 .landing .menu-movil summary::-webkit-details-marker{display:none}
@@ -232,7 +237,9 @@ html:has(.landing){scroll-behavior:smooth}
    de la hamburguesa: dos desplegables juntos en una cabecera de 44px de alto es
    una pelea por el dedo que siempre pierde el usuario. */
 .landing .menu-idioma{display:none}
-.landing .idiomas-movil{display:block;margin-top:8px;padding-top:8px;border-top:1px solid var(--borde)}
+/* En columna, como el resto del menu. Un <a> es horizontal por defecto: en un
+   `display:block` los cinco idiomas se ponian en fila y se salian del panel. */
+.landing .idiomas-movil{display:flex;flex-direction:column;gap:2px;margin-top:10px;padding-top:10px;border-top:1px solid var(--borde)}
 .landing .idiomas-movil .tit{display:block;padding:0 12px 4px;font-size:12px;color:var(--texto-3)}
 .landing .idiomas-movil a[aria-current]{background:var(--acento-suave);color:var(--acento-texto)}
 }

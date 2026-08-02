@@ -29,6 +29,40 @@ it("el idioma actual se marca en los tres sitios donde está el selector", () =>
   for (const s of sitios) expect(css, `sin marcar: ${s}`).toContain(s);
 });
 
+/**
+ * Un `<a>` es horizontal por defecto. Metidos en un contenedor `display:block`,
+ * los cinco idiomas se ponían en fila dentro de un panel de 210px y se salían
+ * por la derecha. Lo vio Sebas en el móvil, en el paso 5.
+ */
+it("los idiomas del menú móvil van en columna, no en fila", () => {
+  const css = readFileSync(resolve(process.cwd(), "app/_landing/landing.css"), "utf-8");
+  // Hay DOS reglas `.idiomas-movil`: la de escritorio, que lo esconde, y la de
+  // dentro del media query. Vale con que alguna lo ponga en columna — buscar solo
+  // la primera cogía la de escritorio, y este test no habría pasado nunca.
+  const reglas = [...css.matchAll(/\.landing \.idiomas-movil\{([^}]*)\}/g)].map((m) => m[1]);
+  expect(reglas.length, "ya no existe la regla de .idiomas-movil").toBeGreaterThan(0);
+  expect(reglas.some((r) => r.includes("flex-direction:column")), "los <a> se pondrían en fila").toBe(true);
+});
+
+/**
+ * En móvil se esconde el botón de la cabecera, PERO no todos los botones que hay
+ * dentro de <nav>: dentro del menú de la hamburguesa va el de registro, que es
+ * el principal de la página. Sin el `>`, la misma regla alcanzaba a los dos y
+ * ese botón no se ha visto nunca en un móvil.
+ *
+ * Es de los peores fallos posibles —el botón que convierte, invisible en la
+ * mitad del tráfico— y no lo nota nadie: la página se ve perfecta, simplemente
+ * le falta algo que no sabes que debería estar.
+ */
+it("el botón de registro del menú móvil no se esconde con el de la cabecera", () => {
+  const css = readFileSync(resolve(process.cwd(), "app/_landing/landing.css"), "utf-8");
+  expect(css).toContain(".landing .top nav > .btn{display:none}");
+  // La versión sin `>` es justo la que se llevaba el botón por delante.
+  expect(css, "vuelve a esconder TODOS los botones del nav").not.toMatch(
+    /\.landing \.top nav \.btn\s*\{[^}]*display:\s*none/
+  );
+});
+
 describe("formato dentro de las frases", () => {
   it("**así** es negrita", () => {
     expect(pinta(conFormato("Cambies como cambies, **vuelves atrás**."))).toBe(
