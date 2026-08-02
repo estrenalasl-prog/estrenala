@@ -3,7 +3,7 @@ import { generarToken, hashToken, DURACION_MS, type TipoToken } from "./tokens";
 import { enviarCorreo, envioActivo } from "@/src/email/enviar";
 import { textosCuenta } from "@/src/i18n/cuenta";
 import { rellenar } from "@/src/i18n/rellenar";
-import { IDIOMA_POR_DEFECTO, type Idioma } from "@/src/i18n/idiomas";
+import { IDIOMA_POR_DEFECTO, conIdioma, type Idioma } from "@/src/i18n/idiomas";
 import type { AccountStore, TokenRow } from "@/src/repositories/accounts";
 
 // Mensaje único para cualquier token inválido/caducado/usado: no distingue el
@@ -40,10 +40,11 @@ export async function enviarVerificacion(
     email: input.email, userId: input.userId, tipo: "verificacion",
     tokenHash: hash, expiraAt: new Date(Date.now() + DURACION_MS.verificacion),
   });
-  const enlace = `${input.base}/verificar?token=${token}`;
   // `idioma` es opcional para no obligar a cada sitio que ya llamaba a esto a
   // saber de idiomas; sin él sale en español, que es lo que hacía antes.
-  const c = textosCuenta(input.idioma ?? IDIOMA_POR_DEFECTO).correos;
+  const idioma = input.idioma ?? IDIOMA_POR_DEFECTO;
+  const enlace = conIdioma(`${input.base}/verificar?token=${token}`, idioma);
+  const c = textosCuenta(idioma).correos;
   await enviarCorreo({
     para: input.email,
     asunto: c.verificacion.asunto,
@@ -104,7 +105,7 @@ export async function solicitarReset(
     email, userId: user.id, tipo: "reset",
     tokenHash: hash, expiraAt: new Date(Date.now() + DURACION_MS.reset),
   });
-  const enlace = `${base}/restablecer?token=${token}`;
+  const enlace = conIdioma(`${base}/restablecer?token=${token}`, idioma ?? IDIOMA_POR_DEFECTO);
   const c = textosCuenta(idioma ?? IDIOMA_POR_DEFECTO).correos;
   await enviarCorreo({
     para: email,

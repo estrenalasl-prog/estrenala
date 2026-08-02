@@ -4,7 +4,7 @@ import { MSG_ENLACE_INVALIDO, plantilla } from "./verificacion";
 import { enviarCorreo } from "@/src/email/enviar";
 import { textosCuenta } from "@/src/i18n/cuenta";
 import { rellenar } from "@/src/i18n/rellenar";
-import { IDIOMA_POR_DEFECTO, type Idioma } from "@/src/i18n/idiomas";
+import { IDIOMA_POR_DEFECTO, conIdioma, type Idioma } from "@/src/i18n/idiomas";
 import type { UserRow, MembershipInfo, TokenRow } from "@/src/repositories/accounts";
 
 export const MSG_ROL_INVALIDO = "Rol no válido";
@@ -82,7 +82,7 @@ export async function invitar(
     email, userId: null, tipo: "invitacion", tokenHash: hash,
     payloadJson: { orgId: input.orgId, rol }, expiraAt: new Date(Date.now() + DURACION_MS.invitacion),
   });
-  const enlace = `${input.base}/invitacion?token=${token}`;
+  const enlace = conIdioma(`${input.base}/invitacion?token=${token}`, input.idioma ?? IDIOMA_POR_DEFECTO);
   // El idioma es el de QUIEN INVITA: a quien recibe el correo no lo conocemos
   // todavía —puede que ni tenga cuenta—, así que no hay nada mejor que suponer.
   const c = textosCuenta(input.idioma ?? IDIOMA_POR_DEFECTO).correos;

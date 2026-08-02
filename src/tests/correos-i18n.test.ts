@@ -64,6 +64,41 @@ describe.each(IDIOMAS)("los correos que salen de verdad · %s", (idioma: Idioma)
   });
 });
 
+/**
+ * El idioma tiene que viajar DENTRO del enlace.
+ *
+ * Lo vio Sebas: se registró en francés, le llegó el correo en francés, pulsó el
+ * botón y la pantalla de «correo confirmado» salió en español. El idioma iba en
+ * una cookie del navegador, y un correo no se abre donde se pidió — se abre en el
+ * móvil, en otro navegador, dentro de Gmail, días después. Allí no hay cookie.
+ *
+ * En la invitación es imposible de otra forma: quien la recibe no ha estado aquí
+ * nunca.
+ */
+describe("el idioma viaja en el enlace, no en el navegador", () => {
+  it.each(IDIOMAS)("verificación · %s", async (idioma: Idioma) => {
+    await enviarVerificacion(store, { userId: "u1", email: "h@x.com", nombre: "S", base: BASE, idioma });
+    expect(enviados[0].texto).toContain(`&lang=${idioma}`);
+    expect(enviados[0].html).toContain(`&amp;lang=${idioma}`); // en el HTML el & va escapado
+  });
+
+  it.each(IDIOMAS)("contraseña · %s", async (idioma: Idioma) => {
+    await solicitarReset(store, "h@x.com", BASE, idioma);
+    expect(enviados[0].texto).toContain(`&lang=${idioma}`);
+  });
+
+  it.each(IDIOMAS)("invitación · %s", async (idioma: Idioma) => {
+    await invitar(store, { orgId: "o1", orgNombre: "X", email: "o@x.com", rol: "editor", base: BASE, idioma });
+    expect(enviados[0].texto).toContain(`&lang=${idioma}`);
+  });
+
+  // Sin idioma explícito sigue saliendo español, como antes de todo esto.
+  it("sin idioma, español", async () => {
+    await enviarVerificacion(store, { userId: "u1", email: "h@x.com", nombre: "S", base: BASE });
+    expect(enviados[0].texto).toContain("&lang=es");
+  });
+});
+
 describe("los correos no se dejan colar HTML por el nombre", () => {
   it("un nombre con etiquetas sale escapado, no interpretado", async () => {
     await enviarVerificacion(store, {

@@ -5,7 +5,7 @@ import { MSG_ENLACE_INVALIDO, plantilla } from "./verificacion";
 import { enviarCorreo } from "@/src/email/enviar";
 import { textosCuenta } from "@/src/i18n/cuenta";
 import { rellenar } from "@/src/i18n/rellenar";
-import { IDIOMA_POR_DEFECTO, type Idioma } from "@/src/i18n/idiomas";
+import { IDIOMA_POR_DEFECTO, conIdioma, type Idioma } from "@/src/i18n/idiomas";
 import type { UserRow, TokenRow } from "@/src/repositories/accounts";
 
 // Cambios sobre la propia cuenta: nombre, contraseña (pide la actual) y correo
@@ -72,7 +72,7 @@ export async function solicitarCambioEmail(
     payloadJson: { userId: input.userId, nuevoEmail: email },
     expiraAt: new Date(Date.now() + DURACION_MS.reset),
   });
-  const enlace = `${input.base}/cambiar-email?token=${token}`;
+  const enlace = conIdioma(`${input.base}/cambiar-email?token=${token}`, input.idioma ?? IDIOMA_POR_DEFECTO);
   // Se pasa a usar la MISMA plantilla que los demás correos: este iba con su
   // propio HTML copiado, sin el logotipo de la cabecera, así que era el único que
   // llegaba sin marca. Al traducirlo se notaba todavía más.

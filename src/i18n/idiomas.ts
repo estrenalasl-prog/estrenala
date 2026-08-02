@@ -54,6 +54,28 @@ export function rutaDeIdioma(idioma: Idioma): string {
 export const COOKIE_IDIOMA = "estrenala_idioma";
 export const DIAS_IDIOMA = 365;
 
+/**
+ * El idioma DENTRO del enlace de los correos: `/verificar?token=…&lang=fr`.
+ *
+ * La cookie no sirve aquí, y esto costó verlo. Un correo no se abre donde se
+ * pidió: se abre en el móvil, en otro navegador, dentro de Gmail, días después.
+ * En ese sitio no hay ninguna cookie nuestra, así que la página se caía al
+ * idioma del sistema — te registrabas en francés, el correo llegaba en francés,
+ * y al pulsar el botón la confirmación salía en español.
+ *
+ * Y en la invitación es peor todavía: quien la recibe NUNCA ha estado aquí, así
+ * que no puede tener cookie de ninguna manera.
+ *
+ * Por eso el idioma viaja con el enlace. Es el único sitio donde sobrevive al
+ * salto del correo.
+ */
+export const PARAM_IDIOMA = "lang";
+
+/** Le pega el idioma a un enlace que ya puede llevar `?token=…`. */
+export function conIdioma(url: string, idioma: Idioma): string {
+  return `${url}${url.includes("?") ? "&" : "?"}${PARAM_IDIOMA}=${idioma}`;
+}
+
 export function cookieIdioma(idioma: Idioma, seguro: boolean): string {
   const partes = [
     `${COOKIE_IDIOMA}=${idioma}`,

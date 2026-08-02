@@ -3,7 +3,8 @@ import { parseHost, esAliasDePlataforma } from "@/src/publish/host";
 import { verificarSesion, SESSION_COOKIE } from "@/src/auth/session-cookie";
 import { plataformaOculta, ROBOTS_NOINDEX, CABECERAS_SEGURIDAD, CABECERAS_SEGURIDAD_INCRUSTABLE } from "@/src/config/robots-plataforma";
 import {
-  PREFIJOS_PUBLICOS, CABECERA_IDIOMA, IDIOMA_POR_DEFECTO, cookieIdioma, type Idioma,
+  PREFIJOS_PUBLICOS, CABECERA_IDIOMA, IDIOMA_POR_DEFECTO, PARAM_IDIOMA,
+  cookieIdioma, esIdioma, type Idioma,
 } from "@/src/i18n/idiomas";
 
 // Rutas del panel accesibles sin sesión. Los cron son para disparadores
@@ -133,7 +134,17 @@ export async function middleware(req: NextRequest) {
   }
   if (ARCHIVOS_PUBLICOS.has(pathname)) return sellar(NextResponse.next());
   if (RUTAS_PUBLICAS.some((r) => pathname === r || pathname.startsWith(r + "/"))) {
-    return sellar(NextResponse.next());
+    // Aquí caen los enlaces de los correos (/verificar, /restablecer,
+    // /invitacion, /cambiar-email), que traen su idioma en la URL porque un
+    // correo se abre donde le da la gana y allí no hay ninguna cookie nuestra.
+    const deUrl = req.nextUrl.searchParams.get(PARAM_IDIOMA);
+    if (!esIdioma(deUrl)) return sellar(NextResponse.next());
+    const cabeceras = new Headers(req.headers);
+    cabeceras.set(CABECERA_IDIOMA, deUrl);
+    const res = sellar(NextResponse.next({ request: { headers: cabeceras } }));
+    // Y se recuerda, para que lo que venga después del enlace siga igual.
+    res.headers.append("set-cookie", cookieIdioma(deUrl, seguro));
+    return res;
   }
   // El preview del panel vive en un iframe con sandbox (origen opaco): el navegador
   // NO adjunta la cookie a sus subrecursos (CSS, imágenes, wc-editor.js). Se permite
