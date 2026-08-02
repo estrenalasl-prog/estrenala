@@ -5,6 +5,44 @@ import { useRouter } from "next/navigation";
 /** El TXT alternativo que devuelve la API cuando no ve el dominio apuntando aquí. */
 type RegistroTxt = { nombre: string; valor: string };
 
+/**
+ * El sitemap del cliente manda a Google a otro dominio.
+ *
+ * Se avisa y NO se corrige solo, a propósito: reescribir el dominio de otro es
+ * peor que dejarlo mal, porque puede ser un sitio suyo que sí existe (el porqué
+ * largo, en src/publish/seo.ts).
+ *
+ * Dice dónde SÍ se sirve la web, no solo dónde no. Los dos dominios suelen
+ * parecerse muchísimo —normalmente uno es subdominio del otro, como
+ * `prueba.suempresa.com` frente a `suempresa.com`— y sin la dirección buena
+ * delante hay que adivinar cuál es cuál. Lo pidió Sebas al verlo en su web.
+ *
+ * Va en su propio componente para poder comprobar el TEXTO que sale: los
+ * espacios en JSX se cuelan con una facilidad pasmosa y esto solo aparece en una
+ * situación rara, así que nadie lo volvería a mirar.
+ */
+export function AvisoSitemapAjeno({ host, dominios }: { host: string | null; dominios: string[] }) {
+  if (dominios.length === 0) return null;
+  const varios = dominios.length > 1;
+  return (
+    <div className="aviso-bloque">
+      <span className="icono" aria-hidden="true">⚠</span>
+      <span>
+        {host ? <>Tu web se sirve en <b>{host}</b>, pero tu </> : <>Tu </>}
+        <code>sitemap.xml</code> le dice a Google que tus páginas están en{" "}
+        {dominios.map((d, i) => (
+          <span key={d}>{i > 0 && (i === dominios.length - 1 ? " y " : ", ")}<b>{d}</b></span>
+        ))}
+        . Google irá a buscarlas allí en vez de aquí.
+        <br />
+        Si {varios ? "esos dominios son tuyos, conéctalos" : "ese dominio es tuyo, conéctalo"} en
+        «Dirección y dominio». Si no, borra el <code>sitemap.xml</code> de tu web y te generamos uno
+        correcto.
+      </span>
+    </div>
+  );
+}
+
 export function PublishBar({
   projectId, subdominio, dominio, publishedSnapshotId, currentSnapshotId, sitesBaseDomain, dnsTargetIp, noIndexar,
   sitemapAjeno,
@@ -168,20 +206,7 @@ export function PublishBar({
           publicar nadie lo está leyendo, y el orden natural es publicar primero y
           conectar el dominio después — avisar antes sería enseñarle a ignorar
           los avisos. NO se corrige solo, a propósito: el porqué, en seo.ts. */}
-      {publicado && sitemapAjeno.length > 0 && (
-        <div className="aviso-bloque">
-          <span className="icono" aria-hidden="true">⚠</span>
-          <span>
-            Tu <code>sitemap.xml</code> le dice a Google que tus páginas están en{" "}
-            {sitemapAjeno.map((d, i) => (
-              <span key={d}>{i > 0 && (i === sitemapAjeno.length - 1 ? " y " : ", ")}<b>{d}</b></span>
-            ))}
-            , que no {sitemapAjeno.length > 1 ? "son direcciones tuyas" : "es una dirección tuya"} aquí.
-            Google irá a buscarlas allí. Conecta {sitemapAjeno.length > 1 ? "el dominio" : "ese dominio"} abajo
-            si es tuyo, o borra el <code>sitemap.xml</code> de tu web y te generamos uno correcto.
-          </span>
-        </div>
-      )}
+      {publicado && <AvisoSitemapAjeno host={host} dominios={sitemapAjeno} />}
 
       {/* Dirección y dominio: plegado y ordenado */}
       <details className="direccion">
