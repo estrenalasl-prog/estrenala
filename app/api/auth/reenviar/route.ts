@@ -3,6 +3,7 @@ import { getContexto } from "@/src/auth/contexto";
 import { accountStore } from "@/src/repositories/accounts";
 import { enviarVerificacion } from "@/src/auth/verificacion";
 import { baseApp } from "@/src/auth/url";
+import { idiomaActual } from "@/src/i18n/servidor";
 
 export const runtime = "nodejs";
 
@@ -16,6 +17,7 @@ export async function POST(req: Request) {
     if (!user.emailVerificadoAt) {
       await enviarVerificacion(accountStore, {
         userId, email: user.email, nombre: user.nombre, base: baseApp(req),
+        idioma: await idiomaActual(),
       });
     }
     return NextResponse.json({ ok: true });

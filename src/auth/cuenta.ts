@@ -1,8 +1,11 @@
 import { EditorError } from "@/src/editor/errors";
 import { hashPassword, verificarPassword } from "./password";
 import { generarToken, hashToken, DURACION_MS } from "./tokens";
-import { MSG_ENLACE_INVALIDO } from "./verificacion";
+import { MSG_ENLACE_INVALIDO, plantilla } from "./verificacion";
 import { enviarCorreo } from "@/src/email/enviar";
+import { textosCuenta } from "@/src/i18n/cuenta";
+import { rellenar } from "@/src/i18n/rellenar";
+import { IDIOMA_POR_DEFECTO, type Idioma } from "@/src/i18n/idiomas";
 import type { UserRow, TokenRow } from "@/src/repositories/accounts";
 
 // Cambios sobre la propia cuenta: nombre, contraseña (pide la actual) y correo
@@ -56,7 +59,7 @@ export async function cambiarPassword(
 }
 
 export async function solicitarCambioEmail(
-  store: CuentaStore, input: { userId: string; nuevoEmail: unknown; base: string }
+  store: CuentaStore, input: { userId: string; nuevoEmail: unknown; base: string; idioma?: Idioma }
 ): Promise<void> {
   const email = (typeof input.nuevoEmail === "string" ? input.nuevoEmail : "").trim().toLowerCase();
   if (!EMAIL_RE.test(email)) throw new EditorError(MSG_EMAIL_INVALIDO, 400);
@@ -70,15 +73,15 @@ export async function solicitarCambioEmail(
     expiraAt: new Date(Date.now() + DURACION_MS.reset),
   });
   const enlace = `${input.base}/cambiar-email?token=${token}`;
+  // Se pasa a usar la MISMA plantilla que los demás correos: este iba con su
+  // propio HTML copiado, sin el logotipo de la cabecera, así que era el único que
+  // llegaba sin marca. Al traducirlo se notaba todavía más.
+  const c = textosCuenta(input.idioma ?? IDIOMA_POR_DEFECTO).correos;
   await enviarCorreo({
     para: email,
-    asunto: "Confirma tu nuevo correo en Estrénala",
-    html: `<div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#141509">
-<h1 style="font-size:22px;margin:0 0 12px">Confirma tu nuevo correo</h1>
-<p style="color:#55584C;font-size:15px;line-height:1.6;margin:0 0 24px">Toca el botón para usar esta dirección como tu correo en Estrénala. Hasta que lo confirmes, seguirá el anterior.</p>
-<a href="${esc(enlace)}" style="display:inline-block;background:#C4F000;color:#141509;font-weight:600;font-size:15px;text-decoration:none;padding:12px 22px;border-radius:9px">Confirmar este correo</a>
-<p style="color:#9A9C8F;font-size:12.5px;margin:24px 0 0">Si no fuiste tú, ignora este correo. El enlace caduca en una hora.</p></div>`,
-    texto: `Confirma tu nuevo correo en Estrénala abriendo este enlace (caduca en 1 hora):\n${enlace}`,
+    asunto: c.cambioEmail.asunto,
+    html: plantilla(c.cambioEmail.titulo, c.cambioEmail.cuerpo, { texto: c.cambioEmail.boton, enlace }, c.cambioEmail.pie),
+    texto: rellenar(c.cambioEmail.texto, { enlace }),
   });
 }
 

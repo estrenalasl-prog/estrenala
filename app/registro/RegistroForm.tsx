@@ -5,12 +5,15 @@ import Link from "next/link";
 import { Logo } from "../_components/Logo";
 import { FirmaQuantiva } from "../_components/FirmaQuantiva";
 import { BotonGoogle } from "../_components/BotonGoogle";
+import type { TextosCuenta } from "@/src/i18n/cuenta";
 
 function destinoSeguro(next: string | null): string {
   return next && next.startsWith("/") && !next.startsWith("//") ? next : "/";
 }
 
-function Formulario({ google }: { google: boolean }) {
+type Textos = TextosCuenta["registro"];
+
+function Formulario({ google, t }: { google: boolean; t: Textos }) {
   const router = useRouter();
   const destino = destinoSeguro(useSearchParams().get("next"));
   const [nombre, setNombre] = useState("");
@@ -42,14 +45,14 @@ function Formulario({ google }: { google: boolean }) {
         <aside className="marca-panel">
           <div className="grano" />
           <Logo tono="oscuro" alto={34} />
-          <p className="claim">Empieza a estrenar tus webs hoy.</p>
-          <p className="sub">Crea tu cuenta gratis: sube tu web, edítala con un clic y déjale el blog a la IA.</p>
+          <p className="claim">{t.claim}</p>
+          <p className="sub">{t.sub}</p>
           <FirmaQuantiva tono="oscuro" />
         </aside>
 
         <form className="form-panel" onSubmit={crear}>
-          <h2>Crea tu cuenta</h2>
-          <p className="lead">En un minuto tienes tu espacio listo.</p>
+          <h2>{t.titulo}</h2>
+          <p className="lead">{t.lead}</p>
 
           {error && (
             <div className="aviso-error" role="alert">
@@ -58,42 +61,42 @@ function Formulario({ google }: { google: boolean }) {
             </div>
           )}
 
-          {google && <BotonGoogle texto="Regístrate con Google" />}
+          {google && <BotonGoogle texto={t.google} />}
 
           <div>
-            <label className="etiqueta-campo" htmlFor="nombre">Tu nombre</label>
+            <label className="etiqueta-campo" htmlFor="nombre">{t.nombre}</label>
             <input
               id="nombre" type="text" value={nombre} onChange={(e) => setNombre(e.target.value)}
-              placeholder="Como quieres que te llamemos" autoComplete="name" autoFocus
+              placeholder={t.nombrePh} autoComplete="name" autoFocus
               className={error ? "campo campo-error" : "campo"}
             />
           </div>
 
           <div style={{ marginTop: 14 }}>
-            <label className="etiqueta-campo" htmlFor="email">Correo</label>
+            <label className="etiqueta-campo" htmlFor="email">{t.correo}</label>
             <input
               id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-              placeholder="tu@correo.com" autoComplete="email"
+              placeholder={t.correoPh} autoComplete="email"
               className={error ? "campo campo-error" : "campo"}
             />
           </div>
 
           <div style={{ marginTop: 14 }}>
-            <label className="etiqueta-campo" htmlFor="password">Contraseña</label>
+            <label className="etiqueta-campo" htmlFor="password">{t.password}</label>
             <input
               id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-              placeholder="Mínimo 8 caracteres" autoComplete="new-password"
+              placeholder={t.passwordPh} autoComplete="new-password"
               className={error ? "campo campo-error" : "campo"}
             />
-            <p className="ayuda-campo">Usa al menos 8 caracteres. Cuanto más larga, mejor.</p>
+            <p className="ayuda-campo">{t.passwordAyuda}</p>
           </div>
 
           <button type="submit" disabled={ocupado} className="btn btn-primario btn-lg" style={{ width: "100%", marginTop: 20 }}>
-            {ocupado ? <><span className="cargador" /> Creando…</> : "Crear cuenta"}
+            {ocupado ? <><span className="cargador" /> {t.creando}</> : t.crear}
           </button>
 
           <p className="lead" style={{ marginTop: 22 }}>
-            ¿Ya tienes cuenta? <Link href="/login">Entra</Link>
+            {t.yaTienes} <Link href="/login">{t.entra}</Link>
           </p>
         </form>
       </div>
@@ -101,10 +104,10 @@ function Formulario({ google }: { google: boolean }) {
   );
 }
 
-export function RegistroForm({ google }: { google: boolean }) {
+export function RegistroForm({ google, t }: { google: boolean; t: Textos }) {
   return (
     <Suspense fallback={null}>
-      <Formulario google={google} />
+      <Formulario google={google} t={t} />
     </Suspense>
   );
 }

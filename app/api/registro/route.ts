@@ -6,6 +6,7 @@ import { iniciarSesion } from "@/src/auth/cookie-http";
 import { enviarVerificacion } from "@/src/auth/verificacion";
 import { baseApp } from "@/src/auth/url";
 import { EditorError } from "@/src/editor/errors";
+import { idiomaActual } from "@/src/i18n/servidor";
 
 export const runtime = "nodejs";
 
@@ -26,6 +27,7 @@ export async function POST(req: Request) {
       await enviarVerificacion(accountStore, {
         userId, email: normalizarEmail(body.email),
         nombre: String(body.nombre ?? "").trim(), base: baseApp(req),
+        idioma: await idiomaActual(),
       });
     } catch (e) {
       console.error("registro: fallo al enviar la verificación", e instanceof Error ? e.message : e);

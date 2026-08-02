@@ -1,7 +1,10 @@
 import { EditorError } from "@/src/editor/errors";
 import { generarToken, hashToken, DURACION_MS } from "./tokens";
-import { MSG_ENLACE_INVALIDO } from "./verificacion";
+import { MSG_ENLACE_INVALIDO, plantilla } from "./verificacion";
 import { enviarCorreo } from "@/src/email/enviar";
+import { textosCuenta } from "@/src/i18n/cuenta";
+import { rellenar } from "@/src/i18n/rellenar";
+import { IDIOMA_POR_DEFECTO, type Idioma } from "@/src/i18n/idiomas";
 import type { UserRow, MembershipInfo, TokenRow } from "@/src/repositories/accounts";
 
 export const MSG_ROL_INVALIDO = "Rol no válido";
@@ -63,7 +66,7 @@ function esc(s: string): string {
 // miembro, no reinvita.
 export async function invitar(
   store: EquipoStore,
-  input: { orgId: string; orgNombre: string; email: string; rol: unknown; base: string }
+  input: { orgId: string; orgNombre: string; email: string; rol: unknown; base: string; idioma?: Idioma }
 ): Promise<void> {
   const email = input.email.trim().toLowerCase();
   if (!EMAIL_RE.test(email)) throw new EditorError(MSG_EMAIL_INVALIDO, 400);
@@ -80,15 +83,23 @@ export async function invitar(
     payloadJson: { orgId: input.orgId, rol }, expiraAt: new Date(Date.now() + DURACION_MS.invitacion),
   });
   const enlace = `${input.base}/invitacion?token=${token}`;
+  // El idioma es el de QUIEN INVITA: a quien recibe el correo no lo conocemos
+  // todavía —puede que ni tenga cuenta—, así que no hay nada mejor que suponer.
+  const c = textosCuenta(input.idioma ?? IDIOMA_POR_DEFECTO).correos;
+  const nombreRol = rol === "owner" ? c.invitacion.propietario : c.invitacion.editor;
   await enviarCorreo({
     para: email,
-    asunto: `Te han invitado a «${input.orgNombre}» en Estrénala`,
-    html: `<div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#141509">
-<h1 style="font-size:22px;margin:0 0 12px">Únete a «${esc(input.orgNombre)}»</h1>
-<p style="color:#55584C;font-size:15px;line-height:1.6;margin:0 0 24px">Te han invitado a colaborar en un espacio de Estrénala como <b>${rol === "owner" ? "propietario" : "editor"}</b>.</p>
-<a href="${esc(enlace)}" style="display:inline-block;background:#C4F000;color:#141509;font-weight:600;font-size:15px;text-decoration:none;padding:12px 22px;border-radius:9px">Unirme al espacio</a>
-<p style="color:#9A9C8F;font-size:12.5px;margin:24px 0 0">Si no esperabas esto, ignora el correo. El enlace caduca en 7 días.</p></div>`,
-    texto: `Te han invitado a «${input.orgNombre}» en Estrénala como ${rol === "owner" ? "propietario" : "editor"}. Únete abriendo este enlace (caduca en 7 días):\n${enlace}`,
+    asunto: rellenar(c.invitacion.asunto, { org: input.orgNombre }),
+    html: plantilla(
+      rellenar(c.invitacion.titulo, { org: input.orgNombre }),
+      // El cuerpo entra SIN escapar en la plantilla (para poder llevar <b>), así
+      // que aquí se escapa lo que venga de fuera. El rol es nuestro; el nombre
+      // de la organización lo escribe un cliente.
+      rellenar(c.invitacion.cuerpo, { rol: `<b>${esc(nombreRol)}</b>`, org: esc(input.orgNombre) }),
+      { texto: c.invitacion.boton, enlace },
+      c.invitacion.pie
+    ),
+    texto: rellenar(c.invitacion.texto, { org: input.orgNombre, rol: nombreRol, enlace }),
   });
 }
 

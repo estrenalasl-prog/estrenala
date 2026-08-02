@@ -1,6 +1,9 @@
 import { EditorError } from "@/src/editor/errors";
 import { generarToken, hashToken, DURACION_MS, type TipoToken } from "./tokens";
 import { enviarCorreo, envioActivo } from "@/src/email/enviar";
+import { textosCuenta } from "@/src/i18n/cuenta";
+import { rellenar } from "@/src/i18n/rellenar";
+import { IDIOMA_POR_DEFECTO, type Idioma } from "@/src/i18n/idiomas";
 import type { AccountStore, TokenRow } from "@/src/repositories/accounts";
 
 // Mensaje único para cualquier token inválido/caducado/usado: no distingue el
@@ -13,20 +16,24 @@ function esc(s: string): string {
 }
 
 // Correo de marca, autocontenido (los clientes de email no cargan CSS externo).
-function plantilla(titulo: string, cuerpo: string, boton: { texto: string; enlace: string }): string {
+// El aviso del pie viaja como parámetro: es texto traducible, y dejarlo escrito
+// aquí dentro sería el único trozo del correo que se quedaría en español.
+export function plantilla(
+  titulo: string, cuerpo: string, boton: { texto: string; enlace: string }, pie: string
+): string {
   return `<div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#141509">
 <div style="font-weight:700;font-size:18px;letter-spacing:-.02em;margin-bottom:20px">Estrénal<span style="background:#C4F000;padding:0 4px;border-radius:4px">a</span></div>
 <h1 style="font-size:22px;margin:0 0 12px">${esc(titulo)}</h1>
 <p style="color:#55584C;font-size:15px;line-height:1.6;margin:0 0 24px">${cuerpo}</p>
 <a href="${esc(boton.enlace)}" style="display:inline-block;background:#C4F000;color:#141509;font-weight:600;font-size:15px;text-decoration:none;padding:12px 22px;border-radius:9px">${esc(boton.texto)}</a>
-<p style="color:#9A9C8F;font-size:12.5px;line-height:1.6;margin:24px 0 0">Si no fuiste tú, ignora este correo. El enlace deja de funcionar solo.</p>
+<p style="color:#9A9C8F;font-size:12.5px;line-height:1.6;margin:24px 0 0">${esc(pie)}</p>
 </div>`;
 }
 
 // Crea un token de verificación y envía el correo de confirmación.
 export async function enviarVerificacion(
   store: AccountStore,
-  input: { userId: string; email: string; nombre: string; base: string }
+  input: { userId: string; email: string; nombre: string; base: string; idioma?: Idioma }
 ): Promise<void> {
   const { token, hash } = generarToken();
   await store.crearToken({
@@ -34,15 +41,22 @@ export async function enviarVerificacion(
     tokenHash: hash, expiraAt: new Date(Date.now() + DURACION_MS.verificacion),
   });
   const enlace = `${input.base}/verificar?token=${token}`;
+  // `idioma` es opcional para no obligar a cada sitio que ya llamaba a esto a
+  // saber de idiomas; sin él sale en español, que es lo que hacía antes.
+  const c = textosCuenta(input.idioma ?? IDIOMA_POR_DEFECTO).correos;
   await enviarCorreo({
     para: input.email,
-    asunto: "Confirma tu correo en Estrénala",
+    asunto: c.verificacion.asunto,
     html: plantilla(
-      `Hola ${esc(input.nombre)}, confirma tu correo`,
-      "Toca el botón para activar tu cuenta de Estrénala y empezar a publicar tus webs.",
-      { texto: "Confirmar mi correo", enlace }
+      // El nombre lo escribe el usuario: al HTML entra escapado, al texto plano
+      // tal cual. Se rellena la plantilla YA escapada para que el `esc` del
+      // título no vuelva a escapar las entidades y salga «Jos&amp;eacute;».
+      rellenar(c.verificacion.titulo, { nombre: input.nombre }),
+      c.verificacion.cuerpo,
+      { texto: c.verificacion.boton, enlace },
+      c.verificacion.pie
     ),
-    texto: `Hola ${input.nombre}, confirma tu correo en Estrénala abriendo este enlace:\n${enlace}\n\nSi no fuiste tú, ignora este correo.`,
+    texto: rellenar(c.verificacion.texto, { nombre: input.nombre, enlace }),
   });
 }
 
@@ -80,7 +94,7 @@ export async function verificarEmail(store: AccountStore, tokenPlano: string): P
 // Solicita el reset: SIEMPRE termina sin revelar si el correo existe. Solo si la
 // cuenta existe se crea el token y se envía el correo.
 export async function solicitarReset(
-  store: AccountStore, email: string, base: string
+  store: AccountStore, email: string, base: string, idioma?: Idioma
 ): Promise<void> {
   const user = email ? await store.getUserByEmail(email) : null;
   if (!user) return;
@@ -91,15 +105,12 @@ export async function solicitarReset(
     tokenHash: hash, expiraAt: new Date(Date.now() + DURACION_MS.reset),
   });
   const enlace = `${base}/restablecer?token=${token}`;
+  const c = textosCuenta(idioma ?? IDIOMA_POR_DEFECTO).correos;
   await enviarCorreo({
     para: email,
-    asunto: "Restablece tu contraseña en Estrénala",
-    html: plantilla(
-      "¿Olvidaste tu contraseña?",
-      "Toca el botón para elegir una nueva. El enlace caduca en una hora.",
-      { texto: "Cambiar mi contraseña", enlace }
-    ),
-    texto: `Para cambiar tu contraseña en Estrénala, abre este enlace (caduca en 1 hora):\n${enlace}\n\nSi no fuiste tú, ignora este correo.`,
+    asunto: c.reset.asunto,
+    html: plantilla(c.reset.titulo, c.reset.cuerpo, { texto: c.reset.boton, enlace }, c.reset.pie),
+    texto: rellenar(c.reset.texto, { enlace }),
   });
 }
 
