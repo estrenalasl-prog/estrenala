@@ -18,6 +18,23 @@ export const NOMBRE_IDIOMA: Record<Idioma, string> = {
   it: "Italiano",
 };
 
+/**
+ * Para `Intl`: fechas, números y monedas.
+ *
+ * Se dice el PAÍS y no solo la lengua porque cambia lo que sale en pantalla:
+ * `pt` a secas le da a `Intl` el portugués de Brasil, y el catálogo está escrito
+ * en el de Portugal («ficheiros», «ecrã»); y en inglés, `en` solo sería el de
+ * Estados Unidos, con la fecha al revés (8/3/2026 en vez de 3/8/2026) — que en
+ * una fecha de renovación de pago no es un detalle.
+ */
+export const LOCALE_INTL: Record<Idioma, string> = {
+  es: "es-ES",
+  en: "en-GB",
+  pt: "pt-PT",
+  fr: "fr-FR",
+  it: "it-IT",
+};
+
 export function esIdioma(v: unknown): v is Idioma {
   return typeof v === "string" && (IDIOMAS as readonly string[]).includes(v);
 }
