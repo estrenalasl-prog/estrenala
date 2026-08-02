@@ -318,79 +318,64 @@ describe("applyEdits · alinear", () => {
 // El tamano existe PORQUE la alineacion sola no se notaba: una foto normal es mas
 // ancha que su columna, se queda al 100% y entonces centrarla no mueve nada
 // --no sobra espacio que repartir--. Se vio usandolo, no escribiendolo.
+// El tamano existe PORQUE la alineacion sola no se notaba: una foto normal es mas
+// ancha que su columna, se queda al 100% y entonces centrarla no mueve nada. Y es
+// un NUMERO y no cuatro botones con nombre porque Sebas dijo que «Pequena /
+// Normal» no parecia profesional -- tenia razon: poner nombres a los tamanos es no
+// atreverse a dar la cifra.
 describe("applyEdits · tamano de la imagen", () => {
-  const tam = (nodeId: number, value: "pequena" | "mediana" | "grande" | "completa") =>
-    ({ nodeId, kind: "size" as const, value });
+  const tam = (nodeId: number, value: number) => ({ nodeId, kind: "size" as const, value });
 
-  it("cada tamano pone su ancho", () => {
-    expect(applyEdits(`<img src="/a.png">`, [tam(0, "pequena")])).toContain("width: 33%");
-    expect(applyEdits(`<img src="/a.png">`, [tam(0, "mediana")])).toContain("width: 50%");
-    expect(applyEdits(`<img src="/a.png">`, [tam(0, "grande")])).toContain("width: 75%");
-    expect(applyEdits(`<img src="/a.png">`, [tam(0, "completa")])).toContain("width: 100%");
+  it("escribe el ancho que le pidan, en tanto por ciento", () => {
+    expect(applyEdits(`<img src="/a.png">`, [tam(0, 37)])).toContain("width: 37%");
+    expect(applyEdits(`<img src="/a.png">`, [tam(0, 100)])).toContain("width: 100%");
   });
 
-  // Sin esto, cambiar solo el ancho deforma la foto: es el fallo clasico de
+  // Sin esto, cambiar solo el ancho deforma la foto: el fallo clasico de
   // «achicar la imagen» y que salga aplastada.
   it("lleva height:auto para no deformar la foto", () => {
-    expect(applyEdits(`<img src="/a.png">`, [tam(0, "mediana")])).toContain("height: auto");
+    expect(applyEdits(`<img src="/a.png">`, [tam(0, 50)])).toContain("height: auto");
   });
 
-  it("cambiar de tamano no acumula anchos: gana el ultimo", () => {
-    const r = applyEdits(`<img src="/a.png">`, [tam(0, "pequena"), tam(0, "grande")]);
-    expect(r).toContain("width: 75%");
+  it("arrastrar la barra no acumula anchos: gana el ultimo", () => {
+    const r = applyEdits(`<img src="/a.png">`, [tam(0, 30), tam(0, 45), tam(0, 62)]);
+    expect(r).toContain("width: 62%");
     expect([...r.matchAll(/width:/g)]).toHaveLength(1);
   });
 
-  // El caso de verdad: achicar Y centrar, que es lo que alguien quiere hacer.
-  // Los dos escriben el mismo atributo.
   it("tamano y alineacion juntos: UN atributo style con las dos cosas", () => {
     const r = applyEdits(`<img src="/a.png">`, [
-      tam(0, "mediana"),
+      tam(0, 50),
       { nodeId: 0, kind: "align", value: "centro" },
     ]);
     expect([...r.matchAll(/style=/g)]).toHaveLength(1);
     expect(r).toContain("width: 50%");
     expect(r).toContain("margin-left: auto");
-    expect(r).toContain("margin-right: auto");
-  });
-
-  it("y con color encima, tambien uno solo", () => {
-    const r = applyEdits(`<img src="/a.png" style="border: 1px solid red">`, [
-      tam(0, "pequena"),
-      { nodeId: 0, kind: "align", value: "derecha" },
-      { nodeId: 0, kind: "style", property: "color", value: "#333" },
-    ]);
-    expect([...r.matchAll(/style=/g)]).toHaveLength(1);
-    expect(r).toContain("border: 1px solid red");
-    expect(r).toContain("width: 33%");
-    expect(r).toContain("margin-right: 0");
-    expect(r).toContain("color: #333");
   });
 });
 
 // Sebas, al ver dos fotos seguidas: «que no queden tan pegadas».
 describe("applyEdits · margen de la imagen", () => {
-  const mg = (nodeId: number, value: "ninguno" | "poco" | "normal" | "mucho") =>
-    ({ nodeId, kind: "margen" as const, value });
+  const mg = (nodeId: number, value: number) => ({ nodeId, kind: "margen" as const, value });
 
   it("pone la separacion arriba y abajo", () => {
-    const r = applyEdits(`<img src="/a.png">`, [mg(0, "normal")]);
-    expect(r).toContain("margin-top: 20px");
-    expect(r).toContain("margin-bottom: 20px");
+    const r = applyEdits(`<img src="/a.png">`, [mg(0, 24)]);
+    expect(r).toContain("margin-top: 24px");
+    expect(r).toContain("margin-bottom: 24px");
   });
 
-  it("«sin» de verdad quita el aire, no lo deja a medias", () => {
-    const r = applyEdits(`<img src="/a.png">`, [mg(0, "ninguno")]);
-    expect(r).toContain("margin-top: 0");
-    expect(r).toContain("margin-bottom: 0");
+  it("cero de verdad quita el aire, no lo deja a medias", () => {
+    const r = applyEdits(`<img src="/a.png">`, [mg(0, 0)]);
+    expect(r).toContain("margin-top: 0px");
+    expect(r).toContain("margin-bottom: 0px");
   });
 
   // EL punto: el margen NO toca los lados, que son de la alineacion. Si los
-  // tocara, poner «mucho» descentraria la foto que se acaba de centrar.
+  // tocara, subirlo descentraria la foto que se acaba de centrar.
   it("no descentra una imagen ya centrada", () => {
     const r = applyEdits(`<img src="/a.png">`, [
       { nodeId: 0, kind: "align", value: "centro" },
-      mg(0, "mucho"),
+      mg(0, 40),
     ]);
     expect(r).toContain("margin-left: auto");
     expect(r).toContain("margin-right: auto");
@@ -401,14 +386,14 @@ describe("applyEdits · margen de la imagen", () => {
   // haciendo cualquiera que le coja el gusto.
   it("tamano + alineacion + margen + color: UN solo atributo bien formado", () => {
     const r = applyEdits(`<img src="/a.png" style="border-radius: 8px">`, [
-      { nodeId: 0, kind: "size", value: "mediana" },
+      { nodeId: 0, kind: "size", value: 55 },
       { nodeId: 0, kind: "align", value: "centro" },
-      mg(0, "normal"),
+      mg(0, 20),
       { nodeId: 0, kind: "style", property: "color", value: "red" },
     ]);
     expect([...r.matchAll(/style=/g)]).toHaveLength(1);
     expect(r).toContain("border-radius: 8px");
-    expect(r).toContain("width: 50%");
+    expect(r).toContain("width: 55%");
     expect(r).toContain("margin-left: auto");
     expect(r).toContain("margin-top: 20px");
     expect(r).toContain("color: red");

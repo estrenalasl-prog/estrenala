@@ -76,7 +76,10 @@ export function resumenCambios(html: string, ops: EditOp[]): ResumenCambio[] {
       op.kind === "href" ? el?.attrs.href ?? "" :
       op.kind === "style" ? el?.attrs.style ?? "" :
       (el?.text ?? "").replace(/\s+/g, " ").trim();
-    return { nodeId: op.nodeId, tag: el?.tagName ?? "?", kind: op.kind, antes, despues: op.value };
+    // `value` ya no es siempre texto: el tamaño y el margen de una imagen son
+    // números. Esto es un resumen para leer, así que se pasa a texto aquí y no se
+    // ensancha el tipo de `ResumenCambio`, que lo pinta una pantalla.
+    return { nodeId: op.nodeId, tag: el?.tagName ?? "?", kind: op.kind, antes, despues: String(op.value) };
   });
 }
 

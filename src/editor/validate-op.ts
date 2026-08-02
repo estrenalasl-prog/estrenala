@@ -1,4 +1,5 @@
 import type { EditOp } from "./apply";
+import { enteroEnRango, ANCHO_MIN, ANCHO_MAX, MARGEN_MIN, MARGEN_MAX } from "./apply";
 
 export const ALLOWED_IMAGE_EXTS = ["png", "jpg", "jpeg", "gif", "webp", "avif", "svg"] as const;
 
@@ -54,10 +55,14 @@ export function isValidOp(op: EditOp): boolean {
       const m = op.value.match(SRC_RE);
       return !!m && m[1].toLowerCase() === op.assetId.toLowerCase();
     }
+    // Números, no palabras. Enteros y dentro de rango: el ancho acaba en un
+    // `width: N%` del atributo `style` de la página publicada, así que no vale
+    // «lo que venga». Un decimal o un valor fuera de rango se rechaza entero en
+    // vez de recortarse, para que el resultado no sea nunca una sorpresa.
     case "margen":
-      return op.value === "ninguno" || op.value === "poco" || op.value === "normal" || op.value === "mucho";
+      return enteroEnRango(op.value, MARGEN_MIN, MARGEN_MAX);
     case "size":
-      return op.value === "pequena" || op.value === "mediana" || op.value === "grande" || op.value === "completa";
+      return enteroEnRango(op.value, ANCHO_MIN, ANCHO_MAX);
     case "align":
       // Se admite la INTENCIÓN, no CSS: el servidor decide los márgenes. Así no
       // hay forma de colar una declaración de estilo en la página de nadie.

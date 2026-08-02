@@ -12,8 +12,8 @@ export type EditOp =
   | { page: string; nodeId: number; kind: "src"; value: string; assetId: string }
   | { page: string; nodeId: number; kind: "insertImage"; value: string; assetId: string; alt: string; posicion: PosicionImagen }
   | { page: string; nodeId: number; kind: "align"; value: Alineacion }
-  | { page: string; nodeId: number; kind: "size"; value: Tamano }
-  | { page: string; nodeId: number; kind: "margen"; value: Margen }
+  | { page: string; nodeId: number; kind: "size"; value: number }
+  | { page: string; nodeId: number; kind: "margen"; value: number }
   | { page: string; nodeId: number; kind: "style"; property: "color"; value: string }
   | { page: string; nodeId: number; kind: "textNode"; index: number; value: string };
 
@@ -25,8 +25,8 @@ export type PageOp =
   | { nodeId: number; kind: "src"; value: string }
   | { nodeId: number; kind: "insertImage"; value: string; alt: string; posicion: PosicionImagen }
   | { nodeId: number; kind: "align"; value: Alineacion }
-  | { nodeId: number; kind: "size"; value: Tamano }
-  | { nodeId: number; kind: "margen"; value: Margen }
+  | { nodeId: number; kind: "size"; value: number }
+  | { nodeId: number; kind: "margen"; value: number }
   | { nodeId: number; kind: "style"; property: "color"; value: string }
   | { nodeId: number; kind: "textNode"; index: number; value: string };
 
@@ -56,33 +56,29 @@ const MARGENES: Record<Alineacion, [string, string]> = {
  * nada** —no sobra espacio que repartir—. El botón parece roto cuando en realidad
  * está haciendo su trabajo. Le pasó a Sebas el 2026-08-02, y por eso el tamaño
  * llegó después: se ve al usarlo, no al escribirlo.
+ *
+ * Es un NÚMERO y no cuatro botones con nombre. Empezó siendo
+ * «Pequeña/Mediana/Grande», y Sebas: «no parece profesional». Tenía razón: poner
+ * nombres a los tamaños es no atreverse a dar la cifra, y obliga a que uno de los
+ * cuatro sea el que quiere. Con una barra y su número al lado, el que quiere es
+ * siempre el suyo.
  */
-export type Tamano = "pequena" | "mediana" | "grande" | "completa";
+export const ANCHO_MIN = 10;
+export const ANCHO_MAX = 100;
 
-const ANCHOS: Record<Tamano, string> = {
-  pequena: "33%",
-  mediana: "50%",
-  grande: "75%",
-  completa: "100%",
-};
+/** Aire por ARRIBA y por ABAJO, en píxeles. Sebas: «que no queden tan pegadas». */
+export const MARGEN_MIN = 0;
+export const MARGEN_MAX = 120;
 
 /**
- * Aire por ARRIBA y por ABAJO de la imagen. Sebas, al ver dos fotos seguidas:
- * «que no queden tan pegadas».
- *
  * Solo vertical, a propósito: los márgenes de los lados los usa la alineación
- * (`MARGENES`), y si el margen también los tocara, poner «mucho» descentraría la
- * foto que el usuario acaba de centrar. Dos controles no pueden pelearse por la
- * misma propiedad.
+ * (`MARGENES`), y si el margen también los tocara, subirlo descentraría la foto
+ * que el usuario acaba de centrar. Dos controles no pueden pelearse por la misma
+ * propiedad.
  */
-export type Margen = "ninguno" | "poco" | "normal" | "mucho";
-
-const SEPARACIONES: Record<Margen, string> = {
-  ninguno: "0",
-  poco: "8px",
-  normal: "20px",
-  mucho: "40px",
-};
+export function enteroEnRango(v: unknown, min: number, max: number): boolean {
+  return typeof v === "number" && Number.isInteger(v) && v >= min && v <= max;
+}
 
 export function escapeHtmlText(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -205,11 +201,11 @@ export function applyEdits(html: string, ops: PageOp[]): string {
     } else if (op.kind === "size") {
       // `height: auto` va siempre: sin él, cambiar solo el ancho deforma la foto.
       s = mergeStyleProperty(s, "display", "block");
-      s = mergeStyleProperty(s, "width", ANCHOS[op.value]);
+      s = mergeStyleProperty(s, "width", op.value + "%");
       s = mergeStyleProperty(s, "height", "auto");
     } else {
       // Solo arriba y abajo: los lados son de la alineación (ver `Margen`).
-      const sep = SEPARACIONES[op.value];
+      const sep = `${op.value}px`;
       s = mergeStyleProperty(s, "margin-top", sep);
       s = mergeStyleProperty(s, "margin-bottom", sep);
     }

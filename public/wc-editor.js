@@ -202,37 +202,72 @@
     return b;
   }
 
-  // Ancho de la imagen, en tanto por ciento de su hueco. Los mismos valores que
-  // usa el servidor (ver `ANCHOS` en src/editor/apply.ts): lo que se ve aquí y lo
-  // que se guarda tienen que ser lo mismo.
-  var ANCHOS_UI = { pequena: "33%", mediana: "50%", grande: "75%", completa: "100%" };
-  function botonTamano(txt, valor, el) {
-    var b = document.createElement("button");
-    b.type = "button"; b.textContent = txt;
-    b.style.cssText = "flex:1;height:30px;border-radius:9px;border:1px solid #DEDFD6;background:#fff;color:#141509;font-size:12px;font-weight:500;cursor:pointer";
-    b.addEventListener("click", function () {
-      el.style.display = "block";
-      el.style.width = ANCHOS_UI[valor];
-      el.style.height = "auto"; // sin esto, cambiar solo el ancho deforma la foto
-      emitir({ page: PAGE, nodeId: idDe(el), kind: "size", value: valor });
-    });
-    return b;
+  function acotar(n, min, max) { return Math.max(min, Math.min(max, Math.round(n))); }
+
+  // Dónde está la imagen AHORA, para que la barra arranque en su sitio. Se mide
+  // contra el contenedor: es lo que el usuario ve, y no depende de si el ancho
+  // está escrito en el HTML, en una hoja de estilos o en ningún sitio.
+  function anchoActual(el) {
+    var padre = el.parentElement;
+    var w = el.getBoundingClientRect().width;
+    var p = padre ? padre.getBoundingClientRect().width : 0;
+    if (!p) return 100;
+    return acotar((w / p) * 100, 10, 100);
+  }
+  function margenActual(el) {
+    var v = parseFloat(window.getComputedStyle(el).marginTop);
+    return acotar(isNaN(v) ? 0 : v, 0, 120);
   }
 
-  // Las mismas separaciones que usa el servidor (ver `SEPARACIONES` en
-  // src/editor/apply.ts). Lo que se ve aquí y lo que se guarda tienen que ser lo
-  // mismo, o el usuario aprueba una cosa y se guarda otra.
-  var MARGENES_V_UI = { ninguno: "0", poco: "8px", normal: "20px", mucho: "40px" };
-  function botonMargen(txt, valor, el) {
-    var b = document.createElement("button");
-    b.type = "button"; b.textContent = txt;
-    b.style.cssText = "flex:1;height:30px;border-radius:9px;border:1px solid #DEDFD6;background:#fff;color:#141509;font-size:12px;font-weight:500;cursor:pointer";
-    b.addEventListener("click", function () {
-      el.style.marginTop = MARGENES_V_UI[valor];
-      el.style.marginBottom = MARGENES_V_UI[valor];
-      emitir({ page: PAGE, nodeId: idDe(el), kind: "margen", value: valor });
+  /**
+   * Barra deslizante + cajita con el número. Sebas: «queda más profesional», y
+   * tenía razón — poner nombres a los tamaños («Pequeña», «Normal») es no
+   * atreverse a dar la cifra, y obliga a que uno de los cuatro sea el que quiere.
+   *
+   * `onCambio(n, final)`: se llama en CADA movimiento para que se vea al vuelo,
+   * pero solo con `final=true` al soltar. Si se emitiera en cada píxel del
+   * arrastre, un solo gesto mandaría cientos de mensajes al panel.
+   */
+  function barra(titulo, unidad, min, max, valorInicial, onCambio) {
+    var caja = document.createElement("div");
+    var cab = document.createElement("div");
+    cab.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:8px;margin:2px 0 4px";
+    var t = document.createElement("span");
+    t.textContent = titulo;
+    t.style.cssText = "font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#9A9C8F";
+    var num = document.createElement("input");
+    num.type = "number"; num.min = String(min); num.max = String(max); num.value = String(valorInicial);
+    num.style.cssText = "width:62px;height:26px;border:1px solid #DEDFD6;border-radius:8px;padding:0 6px;font-size:12px;color:#141509;background:#fff;text-align:right";
+    var uni = document.createElement("span");
+    uni.textContent = unidad;
+    uni.style.cssText = "font-size:11px;color:#9A9C8F;margin-left:-4px";
+    var envNum = document.createElement("span");
+    envNum.style.cssText = "display:flex;align-items:center;gap:4px";
+    envNum.appendChild(num); envNum.appendChild(uni);
+    cab.appendChild(t); cab.appendChild(envNum);
+
+    var rango = document.createElement("input");
+    rango.type = "range"; rango.min = String(min); rango.max = String(max);
+    rango.value = String(valorInicial);
+    rango.style.cssText = "width:100%;accent-color:#C4F000;cursor:pointer";
+
+    function aplicar(n, final) {
+      var v = acotar(n, min, max);
+      rango.value = String(v);
+      num.value = String(v);
+      onCambio(v, final);
+    }
+    // `input` mientras se arrastra (se ve al vuelo), `change` al soltar (se
+    // guarda). En la cajita, `change` basta: se confirma al salir o con Enter.
+    rango.addEventListener("input", function () { aplicar(Number(rango.value), false); });
+    rango.addEventListener("change", function () { aplicar(Number(rango.value), true); });
+    num.addEventListener("change", function () {
+      var n = Number(num.value);
+      aplicar(isNaN(n) ? valorInicial : n, true); // texto que no es número → se deja como estaba
     });
-    return b;
+
+    caja.appendChild(cab); caja.appendChild(rango);
+    return caja;
   }
 
   function construir(el) {
@@ -302,21 +337,12 @@
       });
       pop.appendChild(btn);
 
-      // El tamaño va ANTES que la alineación a propósito: una foto normal es más
-      // ancha que su columna, se queda al 100% y entonces alinearla no mueve nada
-      // porque no sobra espacio. Quien entra a centrar una imagen tiene que
-      // tropezarse primero con lo que hace falta para que centrar se note.
-      pop.appendChild(etiqueta("Tamaño"));
-      var ft = document.createElement("div");
-      ft.style.cssText = "display:flex;gap:6px";
-      ft.appendChild(botonTamano("33%", "pequena", el));
-      ft.appendChild(botonTamano("50%", "mediana", el));
-      ft.appendChild(botonTamano("75%", "grande", el));
-      ft.appendChild(botonTamano("Todo", "completa", el));
-      pop.appendChild(ft);
-
-      // Alineación. Solo para imágenes: alinear un párrafo es otra cosa (ahí se
-      // alinea el TEXTO, no el bloque) y mezclarlas confundiría.
+      // Alineación arriba, y debajo las dos barras juntas. Son controles de la
+      // misma familia (dos números con su barra) y separarlos con los botones de
+      // alineación en medio rompía la simetría del recuadro.
+      //
+      // Solo para imágenes: alinear un párrafo es otra cosa (ahí se alinea el
+      // TEXTO, no el bloque) y mezclarlas confundiría.
       pop.appendChild(etiqueta("Alineación"));
       var fa = document.createElement("div");
       fa.style.cssText = "display:flex;gap:6px";
@@ -325,17 +351,24 @@
       fa.appendChild(botonAlinear("Der.", "derecha", el));
       pop.appendChild(fa);
 
+      // Ancho, en % de su hueco. La barra arranca donde está la imagen AHORA
+      // —medida contra su contenedor—, no en un valor de fábrica: si empezara en
+      // otro sitio, el primer arrastre daría un salto que nadie ha pedido.
+      pop.appendChild(barra("Tamaño", "%", 10, 100, anchoActual(el), function (n, final) {
+        el.style.display = "block";
+        el.style.width = n + "%";
+        el.style.height = "auto"; // sin esto, cambiar solo el ancho deforma la foto
+        if (final) emitir({ page: PAGE, nodeId: idDe(el), kind: "size", value: n });
+      }));
+
       // Aire por arriba y por abajo. Solo vertical: los lados son de la
-      // alineación, y si esto también los tocara, poner «mucho» descentraría la
-      // foto que se acaba de centrar.
-      pop.appendChild(etiqueta("Margen arriba y abajo"));
-      var fm = document.createElement("div");
-      fm.style.cssText = "display:flex;gap:6px";
-      fm.appendChild(botonMargen("Sin", "ninguno", el));
-      fm.appendChild(botonMargen("Poco", "poco", el));
-      fm.appendChild(botonMargen("Normal", "normal", el));
-      fm.appendChild(botonMargen("Mucho", "mucho", el));
-      pop.appendChild(fm);
+      // alineación, y si esto también los tocara, subirlo descentraría la foto
+      // que se acaba de centrar.
+      pop.appendChild(barra("Margen arriba y abajo", "px", 0, 120, margenActual(el), function (n, final) {
+        el.style.marginTop = n + "px";
+        el.style.marginBottom = n + "px";
+        if (final) emitir({ page: PAGE, nodeId: idDe(el), kind: "margen", value: n });
+      }));
     }
 
     // Meter una imagen NUEVA junto a lo que se ha pinchado. Hasta ahora solo se

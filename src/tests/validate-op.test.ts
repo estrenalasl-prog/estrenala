@@ -115,3 +115,36 @@ describe("isValidOp · insertImage", () => {
     expect(ok({ alt: "x".repeat(301) })).toBe(false);
   });
 });
+
+// El ancho acaba en un `width: N%` del atributo style de la pagina publicada, asi
+// que no vale «lo que venga». Fuera de rango o con decimales se rechaza ENTERO en
+// vez de recortarse: recortar en silencio deja al usuario con un resultado que no
+// pidio y sin saber por que.
+describe("isValidOp · tamano y margen (numeros)", () => {
+  const size = (v: unknown) => isValidOp({ page: "i", nodeId: 0, kind: "size", value: v } as never);
+  const margen = (v: unknown) => isValidOp({ page: "i", nodeId: 0, kind: "margen", value: v } as never);
+
+  it("acepta enteros dentro de rango", () => {
+    expect(size(10)).toBe(true);
+    expect(size(37)).toBe(true);
+    expect(size(100)).toBe(true);
+    expect(margen(0)).toBe(true);
+    expect(margen(120)).toBe(true);
+  });
+
+  it("rechaza fuera de rango", () => {
+    expect(size(9)).toBe(false);
+    expect(size(101)).toBe(false);
+    expect(size(0)).toBe(false);
+    expect(size(-20)).toBe(false);
+    expect(margen(-1)).toBe(false);
+    expect(margen(121)).toBe(false);
+  });
+
+  it("rechaza decimales, texto y basura", () => {
+    for (const v of [12.5, "50", "50%", "", null, undefined, NaN, Infinity, {}, []]) {
+      expect(size(v), String(v)).toBe(false);
+      expect(margen(v), String(v)).toBe(false);
+    }
+  });
+});
