@@ -76,29 +76,11 @@ export function insertarImagen(
   return { md: nuevo, cursor: (antes + faltanAntes + bloque).length };
 }
 
-/**
- * Para la VISTA PREVIA: apunta las imágenes del cuerpo al asset del proyecto en vez
- * de a `/wc-uploads/`.
- *
- * Hace falta porque en la vista previa el archivo todavía no está dentro del
- * snapshot —se copia al guardar—, así que `/wc-uploads/...` daría 404 y el usuario
- * vería huecos rotos justo cuando está comprobando que quedan bien.
- *
- * Se aplica DESPUÉS de `rewriteHtml`, y por eso se come cualquier prefijo que este
- * le haya puesto delante: si se aplicara antes, el propio `rewriteHtml` reescribiría
- * la ruta del panel y la dejaría apuntando a la nada.
- */
-export function apuntarAssetsAlPanel(html: string, projectId: string): string {
-  const re = new RegExp(
-    `[^\\s"'()]*/wc-uploads/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\\.(${ALLOWED_IMAGE_EXTS.join("|")})`,
-    "gi"
-  );
-  return (html ?? "").replace(
-    re,
-    (_m, id: string, ext: string) =>
-      `/api/projects/${projectId}/assets/${id.toLowerCase()}.${ext.toLowerCase()}`
-  );
-}
+// Vivía aquí, pero le hace la misma falta al editor de páginas: una imagen recién
+// subida tampoco está en el snapshot cuando el editor enseña cómo quedaría. Se
+// mudó a `src/preview/rewrite.ts`, que es su sitio, y se reexporta para no
+// obligar a quien ya la usaba a cambiar de puerta.
+export { apuntarAssetsAlPanel } from "@/src/preview/rewrite";
 
 function saltosFinales(s: string): number {
   const m = s.match(/\n{1,2}$/);

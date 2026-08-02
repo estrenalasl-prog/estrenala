@@ -11,6 +11,7 @@ export function toPageOp(op: EditOp): PageOp {
     case "richText": return { nodeId: op.nodeId, kind: "richText", value: op.value };
     case "href": return { nodeId: op.nodeId, kind: "href", value: op.value };
     case "src": return { nodeId: op.nodeId, kind: "src", value: op.value };
+    case "insertImage": return { nodeId: op.nodeId, kind: "insertImage", value: op.value, alt: op.alt, posicion: op.posicion };
     case "style": return { nodeId: op.nodeId, kind: "style", property: op.property, value: op.value };
     case "textNode": return { nodeId: op.nodeId, kind: "textNode", index: op.index, value: op.value };
   }
@@ -50,7 +51,10 @@ export async function saveEdits(
   for (const op of input.ops) {
     if (typeof op?.nodeId !== "number" || !op.page) continue;
     if (!isValidOp(op)) continue;
-    if (op.kind === "src") {
+    // Las dos ops que traen imagen: cambiar la de un <img> que ya está, y meter
+    // una nueva. Las dos necesitan que el archivo viaje DENTRO del snapshot, o la
+    // página publicada apuntaría a una ruta que ahí no existe.
+    if (op.kind === "src" || op.kind === "insertImage") {
       const row = await deps.store.getAsset(input.orgId, input.projectId, op.assetId);
       if (!row) continue; // asset ajeno/inexistente → ignora la op
       const file = await deps.storage.get(row.storageKey);

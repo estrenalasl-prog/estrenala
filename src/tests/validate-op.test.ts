@@ -78,3 +78,40 @@ describe("isValidOp: textNode", () => {
     expect(isValidOp({ page: "i.html", nodeId: 1, kind: "textNode", index: 0, value: 3 } as never)).toBe(false);
   });
 });
+
+// Insertar una imagen ANADE HTML al documento, a diferencia de "src" que solo
+// cambia el atributo de una que ya estaba. Las guardas son las mismas mas dos.
+describe("isValidOp · insertImage", () => {
+  const ok = (extra: Record<string, unknown> = {}) =>
+    isValidOp({
+      page: "i", nodeId: 0, kind: "insertImage",
+      value: `/wc-uploads/${UUID}.webp`, assetId: UUID, alt: "Un gato", posicion: "despues",
+      ...extra,
+    } as never);
+
+  it("acepta una op bien formada", () => {
+    expect(ok()).toBe(true);
+    expect(ok({ posicion: "antes" })).toBe(true);
+  });
+
+  it("la ruta tiene que ser un asset NUESTRO y coincidir con el assetId", () => {
+    expect(ok({ value: `/otro/${UUID}.webp` })).toBe(false);
+    expect(ok({ value: `/wc-uploads/${UUID}.exe` })).toBe(false);
+    expect(ok({ value: "/wc-uploads/11111111-2222-4333-8444-999999999999.webp" })).toBe(false);
+  });
+
+  it("solo hay dos sitios posibles: ni inventados ni vacios", () => {
+    for (const p of ["dentro", "arriba", "", null, undefined, 1]) {
+      expect(ok({ posicion: p }), String(p)).toBe(false);
+    }
+  });
+
+  // Sin `alt` la imagen es invisible para Google y para un lector de pantalla,
+  // pero vacio es legitimo (imagen decorativa). Lo que no vale es que falte.
+  it("el texto alternativo tiene que ser texto, y vacio vale", () => {
+    expect(ok({ alt: "" })).toBe(true);
+    expect(ok({ alt: undefined })).toBe(false);
+    expect(ok({ alt: 42 })).toBe(false);
+    expect(ok({ alt: "x".repeat(301) })).toBe(false);
+  });
+});

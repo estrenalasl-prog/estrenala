@@ -221,3 +221,62 @@ describe("saveEdits · origen del cambio", () => {
     expect(await guardarCon("ia")).toBe("edit-ia");
   });
 });
+
+// Insertar una imagen nueva necesita lo mismo que cambiar una existente: que los
+// BYTES viajen dentro del snapshot. La carpeta de subidas no es compartida entre
+// webs; si el archivo no se copia, la pagina publicada apunta a una ruta que alli
+// no existe y el visitante ve un hueco roto.
+describe("saveEdits · insertar imagen", () => {
+  const A = "11111111-2222-4333-8444-555555555555";
+
+  function conAsset() {
+    const storage = new FakeStorage();
+    storage.files.set(CUR + "index.html", Buffer.from(`<div><p>Hola</p></div>`));
+    storage.files.set("projects/p1/assets/aa.png", Buffer.from("PNGDATA"));
+    const store = new FakeStore();
+    store.assets.set(A, {
+      id: A, projectId: "p1", storageKey: "projects/p1/assets/aa.png",
+      contentType: "image/png", bytes: 7, createdAt: "",
+    });
+    return { storage, store };
+  }
+
+  it("mete el <img> en la pagina Y copia el archivo al snapshot", async () => {
+    const { storage, store } = conAsset();
+    const { snapshotId } = await saveEdits({ store, storage }, {
+      orgId: "org1", projectId: "p1",
+      ops: [{
+        page: "index.html", nodeId: 1, kind: "insertImage",
+        value: `/wc-uploads/${A}.png`, assetId: A, alt: "Un gato", posicion: "despues",
+      }],
+    });
+    const np = `projects/p1/snapshots/${snapshotId}/`;
+    const html = storage.files.get(np + "index.html")!.toString();
+    expect(html).toContain(`<img src="/wc-uploads/${A}.png"`);
+    expect(html).toContain('alt="Un gato"');
+    // Lo que de verdad importa: el archivo, dentro de la web.
+    expect(storage.files.get(np + `wc-uploads/${A}.png`)!.toString()).toBe("PNGDATA");
+  });
+
+  // Con un assetId de otro proyecto, `getAsset` no lo encuentra: ni se copia el
+  // archivo ni se mete la imagen. Es la guarda que impide colar la foto de un
+  // cliente en la web de otro.
+  it("un asset que no es del proyecto se ignora entero", async () => {
+    const storage = new FakeStorage();
+    storage.files.set(CUR + "index.html", Buffer.from(`<div><p>Hola</p></div>`));
+    const { snapshotId } = await saveEdits({ store: new FakeStore(), storage }, {
+      orgId: "org1", projectId: "p1",
+      ops: [
+        { page: "index.html", nodeId: 1, kind: "text", value: "Adios" },
+        {
+          page: "index.html", nodeId: 1, kind: "insertImage",
+          value: `/wc-uploads/${A}.png`, assetId: A, alt: "x", posicion: "despues",
+        },
+      ],
+    });
+    const np = `projects/p1/snapshots/${snapshotId}/`;
+    const html = storage.files.get(np + "index.html")!.toString();
+    expect(html).toBe(`<div><p>Adios</p></div>`); // el texto si, la imagen no
+    expect(storage.files.get(np + `wc-uploads/${A}.png`)).toBeUndefined();
+  });
+});

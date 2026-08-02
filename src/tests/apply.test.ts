@@ -160,3 +160,93 @@ describe("op textNode (texto mixto)", () => {
     expect(applyEdits(conSvg, [{ nodeId: idT, kind: "text", value: "y" }])).toBe(conSvg);
   });
 });
+
+// Meter una imagen NUEVA donde no habia ninguna. Hasta ahora solo se podia
+// cambiar la de un <img> que ya estuviera, asi que quien no tenia hueco para foto
+// no podia ponerla.
+describe("applyEdits · insertar imagen", () => {
+  const SRC = "/wc-uploads/11111111-2222-3333-4444-555555555555.webp";
+  const IMG = `<img src="${SRC}" alt="Un gato" loading="lazy" style="max-width:100%;height:auto;display:block">`;
+  const ins = (nodeId: number, posicion: "antes" | "despues") =>
+    ({ nodeId, kind: "insertImage" as const, value: SRC, alt: "Un gato", posicion });
+
+  it("la pone despues del elemento elegido", () => {
+    const html = `<div><p>Hola</p></div>`;
+    expect(applyEdits(html, [ins(1, "despues")])).toBe(`<div><p>Hola</p>${IMG}</div>`);
+  });
+
+  it("y antes, si se pide antes", () => {
+    const html = `<div><p>Hola</p></div>`;
+    expect(applyEdits(html, [ins(1, "antes")])).toBe(`<div>${IMG}<p>Hola</p></div>`);
+  });
+
+  // Un <img> o un <br> no tienen etiqueta de cierre: su final es el final de la
+  // etiqueta de apertura. Sin esto la insercion caeria en la nada.
+  it("junto a un elemento sin cierre (<img>) cae en el sitio bueno", () => {
+    const html = `<div><img src="/a.png"></div>`;
+    expect(applyEdits(html, [ins(1, "despues")])).toBe(`<div><img src="/a.png">${IMG}</div>`);
+  });
+
+  it("escapa las comillas del texto alternativo", () => {
+    const html = `<div><p>x</p></div>`;
+    const r = applyEdits(html, [{ nodeId: 1, kind: "insertImage", value: SRC, alt: 'Foto "buena"', posicion: "despues" }]);
+    expect(r).toContain('alt="Foto &quot;buena&quot;"');
+    expect(r).not.toContain('alt="Foto "buena""');
+  });
+
+  // «Antes de <html>» la dejaria FUERA del documento y «antes de <body>» dentro
+  // del <head>, donde no se ve. Se ignora en vez de romper la pagina.
+  //
+  // Los nodos se buscan por nombre de etiqueta y no a ojo: con ids adivinados,
+  // este test pasaria igual si diera la casualidad de que apuntan a un <title>
+  // --que tambien esta excluido-- y no probaria lo que dice probar.
+  it("no se cuelga de <html>, <head> ni <body>", () => {
+    const html = `<html><head><title>t</title></head><body><p>x</p></body></html>`;
+    const porTag = new Map(walkElementsInOrder(html).map((e) => [e.tagName, e.id]));
+    for (const tag of ["html", "head", "body"]) {
+      const id = porTag.get(tag);
+      expect(id, `falta el nodo <${tag}> en el recorrido`).toBeTypeOf("number");
+      for (const donde of ["antes", "despues"] as const) {
+        expect(applyEdits(html, [ins(id!, donde)]), `<${tag}> ${donde}`).toBe(html);
+      }
+    }
+    // Y el <p>, que SI admite imagen, demuestra que no se esta ignorando todo.
+    expect(applyEdits(html, [ins(porTag.get("p")!, "despues")])).toContain("<img ");
+  });
+
+  it("tampoco dentro de <script>, <style> o <svg>", () => {
+    const html = `<body><script>var a=1</script><svg><circle/></svg></body>`;
+    expect(applyEdits(html, [ins(1, "despues"), ins(2, "despues"), ins(3, "antes")])).toBe(html);
+  });
+
+  // Sin distinguirlas por cual es y donde va, dos fotos distintas debajo del mismo
+  // parrafo dejarian solo la ultima.
+  it("dos imagenes DISTINTAS en el mismo sitio entran las dos", () => {
+    const SRC2 = "/wc-uploads/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee.png";
+    const r = applyEdits(`<div><p>x</p></div>`, [
+      { nodeId: 1, kind: "insertImage", value: SRC, alt: "a", posicion: "despues" },
+      { nodeId: 1, kind: "insertImage", value: SRC2, alt: "b", posicion: "despues" },
+    ]);
+    expect(r).toContain(SRC);
+    expect(r).toContain(SRC2);
+    expect([...r.matchAll(/<img /g)]).toHaveLength(2);
+  });
+
+  it("pero la MISMA imagen mandada dos veces al mismo sitio entra una", () => {
+    const r = applyEdits(`<div><p>x</p></div>`, [ins(1, "despues"), ins(1, "despues")]);
+    expect([...r.matchAll(/<img /g)]).toHaveLength(1);
+  });
+
+  it("insertar no estorba a una edicion de texto en el mismo nodo", () => {
+    const r = applyEdits(`<div><p>Hola</p></div>`, [
+      { nodeId: 1, kind: "text", value: "Adios" },
+      ins(1, "despues"),
+    ]);
+    expect(r).toBe(`<div><p>Adios</p>${IMG}</div>`);
+  });
+
+  it("un nodo que no existe se ignora sin tocar nada", () => {
+    const html = `<div><p>x</p></div>`;
+    expect(applyEdits(html, [ins(99, "despues")])).toBe(html);
+  });
+});

@@ -2,11 +2,15 @@ import { walkElementsInOrder, type WalkedElement } from "./walk";
 import { mergeStyleProperty } from "./style";
 import { sanitizeInline } from "./sanitize-inline";
 
+/** Dónde va una imagen nueva respecto al elemento elegido. */
+export type PosicionImagen = "antes" | "despues";
+
 export type EditOp =
   | { page: string; nodeId: number; kind: "text"; value: string }
   | { page: string; nodeId: number; kind: "richText"; value: string }
   | { page: string; nodeId: number; kind: "href"; value: string }
   | { page: string; nodeId: number; kind: "src"; value: string; assetId: string }
+  | { page: string; nodeId: number; kind: "insertImage"; value: string; assetId: string; alt: string; posicion: PosicionImagen }
   | { page: string; nodeId: number; kind: "style"; property: "color"; value: string }
   | { page: string; nodeId: number; kind: "textNode"; index: number; value: string };
 
@@ -16,6 +20,7 @@ export type PageOp =
   | { nodeId: number; kind: "richText"; value: string }
   | { nodeId: number; kind: "href"; value: string }
   | { nodeId: number; kind: "src"; value: string }
+  | { nodeId: number; kind: "insertImage"; value: string; alt: string; posicion: PosicionImagen }
   | { nodeId: number; kind: "style"; property: "color"; value: string }
   | { nodeId: number; kind: "textNode"; index: number; value: string };
 
@@ -26,6 +31,22 @@ export function escapeHtmlText(s: string): string {
 // Valor entre comillas dobles: basta con &, " y <.
 export function escapeAttr(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+}
+
+/**
+ * El `<img>` que se inserta en la página del cliente.
+ *
+ * Lleva estilo en línea a propósito: se está metiendo una imagen dentro del diseño
+ * de otro, del que no sabemos nada. Sin `max-width:100%` una foto de 4000px de
+ * ancho revienta la maqueta en el móvil, y eso lo vería el visitante, no el
+ * dueño. `display:block` quita el hueco que deja la línea base debajo de una
+ * imagen en línea, que es la rareza que hace pensar «esto ha quedado torcido».
+ *
+ * `loading="lazy"` porque estas imágenes van dentro de la página, no de cabecera:
+ * no hay motivo para que retrasen la primera pintada.
+ */
+function imgHtml(src: string, alt: string): string {
+  return `<img src="${escapeAttr(src)}" alt="${escapeAttr(alt)}" loading="lazy" style="max-width:100%;height:auto;display:block">`;
 }
 
 type Edit = { start: number; end: number; text: string };
@@ -51,7 +72,14 @@ export function applyEdits(html: string, ops: PageOp[]): string {
   // dedup: la última op por (nodeId, kind, property) gana
   const dedup = new Map<string, PageOp>();
   for (const op of ops) {
-    const extra = op.kind === "style" ? op.property : op.kind === "textNode" ? String(op.index) : "";
+    // Las imágenes NUEVAS se distinguen por cuál es y dónde va: si no, meter dos
+    // fotos distintas debajo del mismo párrafo dejaría solo la última. Mandar la
+    // misma otra vez al mismo sitio sí se colapsa, que es lo que se quiere.
+    const extra =
+      op.kind === "style" ? op.property
+        : op.kind === "textNode" ? String(op.index)
+        : op.kind === "insertImage" ? `${op.posicion}#${op.value}`
+        : "";
     dedup.set(`${op.nodeId}#${op.kind}#${extra}`, op);
   }
   // Exclusión mutua text/textNode por nodo: en un nodo hoja, el rango de su único
@@ -110,6 +138,21 @@ export function applyEdits(html: string, ops: PageOp[]): string {
       pushAttrEdit(edits, el, "href", op.value, replacedAttrs);
     } else if (op.kind === "src") {
       pushAttrEdit(edits, el, "src", op.value, replacedAttrs);
+    } else if (op.kind === "insertImage") {
+      // Imagen NUEVA, como hermana del elemento elegido. A diferencia de "src",
+      // que solo cambia una que ya estaba, aquí se añade HTML al documento: por
+      // eso lleva sus propias guardas.
+      //
+      // Nada de meterla dentro de <head>, <script>, <style>, <svg> o <math>:
+      // `textoExcluido` marca esos subárboles enteros. Y nada de colgarla de
+      // <html>, <head> o <body>, porque «antes de <html>» la dejaría fuera del
+      // documento y «antes de <body>» dentro del <head>.
+      if (el.textoExcluido) continue;
+      if (["html", "head", "body"].includes(el.tagName)) continue;
+      // `endTagEnd` es null en los elementos sin cierre (<img>, <br>, <hr>): ahí
+      // el final del elemento ES el final de su etiqueta de apertura.
+      const at = op.posicion === "antes" ? el.startTagStart : (el.endTagEnd ?? el.startTagEnd);
+      edits.push({ start: at, end: at, text: imgHtml(op.value, op.alt) });
     } else if (op.kind === "textNode") {
       if (el.textoExcluido) continue;
       const t = el.textNodes.find((x) => x.index === op.index);

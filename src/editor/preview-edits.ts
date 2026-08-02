@@ -2,7 +2,7 @@ import { applyEdits, type EditOp } from "./apply";
 import { isValidOp } from "./validate-op";
 import { EditorError } from "./errors";
 import { toPageOp } from "./save-edits";
-import { rewriteHtml } from "@/src/preview/rewrite";
+import { rewriteHtml, apuntarAssetsAlPanel } from "@/src/preview/rewrite";
 import type { StorageAdapter } from "@/src/storage/types";
 import type { ProjectStore } from "@/src/repositories/types";
 
@@ -45,5 +45,13 @@ export async function previsualizarEdicion(
     .map(toPageOp);
 
   const html = applyEdits(file.body.toString("utf-8"), ops);
-  return { html: rewriteHtml(html, `/api/projects/${input.projectId}/preview/`) };
+  // Las imágenes recién subidas todavía no están dentro del snapshot —sus bytes se
+  // copian al guardar—, así que su ruta pública daría 404 aquí. Se apuntan al asset
+  // del proyecto (ver `apuntarAssetsAlPanel`). Va después de `rewriteHtml`.
+  return {
+    html: apuntarAssetsAlPanel(
+      rewriteHtml(html, `/api/projects/${input.projectId}/preview/`),
+      input.projectId
+    ),
+  };
 }
