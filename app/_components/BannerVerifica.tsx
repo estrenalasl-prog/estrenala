@@ -1,7 +1,10 @@
 "use client";
 import { useState } from "react";
+import type { TextosPanel } from "@/src/i18n/panel";
 
-export function BannerVerifica({ email }: { email: string }) {
+type Textos = TextosPanel["verifica"];
+
+export function BannerVerifica({ email, t }: { email: string; t: Textos }) {
   const [estado, setEstado] = useState<"idle" | "enviando" | "enviado">("idle");
 
   async function reenviar() {
@@ -17,13 +20,13 @@ export function BannerVerifica({ email }: { email: string }) {
   return (
     <div className="banner-verifica" role="status">
       <span className="crece">
-        Te enviamos un correo a <b>{email}</b> para confirmar tu cuenta. Revisa tu bandeja (y el spam).
+        {t.antes}<b>{email}</b>{t.despues}
       </span>
       {estado === "enviado" ? (
-        <span className="badge badge-exito"><span className="punto" />Reenviado</span>
+        <span className="badge badge-exito"><span className="punto" />{t.reenviado}</span>
       ) : (
         <button className="btn btn-sec btn-sm" onClick={reenviar} disabled={estado === "enviando"}>
-          {estado === "enviando" ? "Enviando…" : "Reenviar correo"}
+          {estado === "enviando" ? t.enviando : t.reenviar}
         </button>
       )}
     </div>

@@ -5,7 +5,7 @@ type Esp = { orgId: string; nombre: string; rol: string };
 
 // Selector de espacio activo en la cabecera. Solo aparece si perteneces a más de
 // uno. Se carga solo (así la cabecera sirve tanto en páginas server como client).
-export function SelectorEspacio() {
+export function SelectorEspacio({ etiqueta = "Espacio activo" }: { etiqueta?: string }) {
   const [espacios, setEspacios] = useState<Esp[]>([]);
   const [activa, setActiva] = useState("");
 
@@ -29,7 +29,7 @@ export function SelectorEspacio() {
   }
 
   return (
-    <select className="selector-espacio" value={activa} onChange={(e) => void cambiar(e.target.value)} aria-label="Espacio activo">
+    <select className="selector-espacio" value={activa} onChange={(e) => void cambiar(e.target.value)} aria-label={etiqueta}>
       {espacios.map((s) => <option key={s.orgId} value={s.orgId}>{s.nombre}</option>)}
     </select>
   );

@@ -1,6 +1,7 @@
 "use client";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import type { TextosPanel } from "@/src/i18n/panel";
 
 type ArchivoSubida = { file: File; ruta: string };
 
@@ -48,7 +49,9 @@ function nombreDe(archivos: ArchivoSubida[]): string {
   return archivos.every((a) => a.ruta.startsWith(raiz + "/")) ? raiz : "";
 }
 
-export function ImportDropzone({ tono = "oscuro" }: { tono?: "oscuro" | "claro" }) {
+type Textos = TextosPanel["subir"];
+
+export function ImportDropzone({ tono = "oscuro", t }: { tono?: "oscuro" | "claro"; t: Textos }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const carpetaRef = useRef<HTMLInputElement>(null);
@@ -67,10 +70,10 @@ export function ImportDropzone({ tono = "oscuro" }: { tono?: "oscuro" | "claro" 
       form.append("nombre", nombreDe(archivos));
       const res = await fetch("/api/projects", { method: "POST", body: form });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Error al importar");
+      if (!res.ok) throw new Error(data.error ?? t.error);
       router.push(`/projects/${data.projectId}`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Error al importar");
+      setError(e instanceof Error ? e.message : t.error);
       setSubiendo(false);
     }
   }
@@ -98,14 +101,14 @@ export function ImportDropzone({ tono = "oscuro" }: { tono?: "oscuro" | "claro" 
         }}
       >
         <div className="icono">↑</div>
-        <div className="grande">{subiendo ? "Subiendo…" : "Arrastra tu web aquí"}</div>
-        <div className="peque">un .zip, un .html o la carpeta entera</div>
+        <div className="grande">{subiendo ? t.subiendo : t.arrastra}</div>
+        <div className="peque">{t.formatos}</div>
         {tono === "oscuro" ? (
           <div className="o-boton" onClick={(e) => e.stopPropagation()}>
             <button type="button" className="btn btn-primario" disabled={subiendo}
-              onClick={() => inputRef.current?.click()}>Elegir archivos</button>
+              onClick={() => inputRef.current?.click()}>{t.elegirArchivos}</button>
             <button type="button" className="btn btn-sec" disabled={subiendo} style={{ marginLeft: 8 }}
-              onClick={() => carpetaRef.current?.click()}>Elegir carpeta</button>
+              onClick={() => carpetaRef.current?.click()}>{t.elegirCarpeta}</button>
           </div>
         ) : null}
       </div>
@@ -130,9 +133,9 @@ export function ImportDropzone({ tono = "oscuro" }: { tono?: "oscuro" | "claro" 
 
       {tono === "claro" && (
         <p className="ayuda-campo" style={{ marginTop: 10, textAlign: "center" }}>
-          ¿Tienes una carpeta?{" "}
+          {t.tienesCarpeta}{" "}
           <button type="button" className="btn btn-fantasma btn-sm" disabled={subiendo}
-            onClick={() => carpetaRef.current?.click()}>Elegir carpeta</button>
+            onClick={() => carpetaRef.current?.click()}>{t.elegirCarpeta}</button>
         </p>
       )}
       {error && <p className="error-campo" style={{ marginTop: 12 }}>{error}</p>}

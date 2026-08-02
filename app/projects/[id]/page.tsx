@@ -17,6 +17,8 @@ import { esOwner } from "@/src/auth/roles";
 import { accountStore } from "@/src/repositories/accounts";
 import { puede } from "@/src/planes/planes";
 import { dominiosAjenosDelSitemap } from "@/src/publish/seo";
+import { idiomaDeSesion } from "@/src/i18n/servidor";
+import { textosPanel, type TextosPanel } from "@/src/i18n/panel";
 
 export const dynamic = "force-dynamic";
 
@@ -41,10 +43,10 @@ async function dominiosDelSitemap(
   }
 }
 
-function estadoProyecto(p: ProjectRow): { clase: string; texto: string } {
-  if (!p.publishedSnapshotId) return { clase: "badge-neutro", texto: "Sin publicar" };
-  if (p.publishedSnapshotId === p.currentSnapshotId) return { clase: "badge-exito", texto: "Publicado" };
-  return { clase: "badge-aviso", texto: "Cambios sin publicar" };
+function estadoProyecto(p: ProjectRow, t: TextosPanel["estado"]): { clase: string; texto: string } {
+  if (!p.publishedSnapshotId) return { clase: "badge-neutro", texto: t.sinPublicar };
+  if (p.publishedSnapshotId === p.currentSnapshotId) return { clase: "badge-exito", texto: t.publicado };
+  return { clase: "badge-aviso", texto: t.cambiosSinPublicar };
 }
 
 export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
@@ -57,14 +59,15 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
   const platformHost = process.env.PLATFORM_HOST ?? "localhost:3000";
   const sitesBaseDomain = process.env.SITES_BASE_DOMAIN ?? platformHost;
   const dnsTargetIp = process.env.DNS_TARGET_IP ?? "127.0.0.1";
-  const estado = estadoProyecto(project);
+  const textos = textosPanel(await idiomaDeSesion());
+  const estado = estadoProyecto(project, textos.estado);
   const sitemapAjeno = await dominiosDelSitemap(orgId, id, sitesBaseDomain, project.dominio);
 
   return (
     <>
       <AppHeader />
       <main className="proyecto">
-        <p className="miga"><Link href="/">← Tus webs</Link></p>
+        <p className="miga"><Link href="/">← {textos.panel.tusWebs}</Link></p>
         <div className="proj-cabeza">
           <h1>{project.nombre}</h1>
           <span className={`badge ${estado.clase}`}><span className="punto" />{estado.texto}</span>
