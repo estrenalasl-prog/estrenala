@@ -314,3 +314,56 @@ describe("applyEdits · alinear", () => {
     expect(r).toContain("margin-right: 0");
   });
 });
+
+// El tamano existe PORQUE la alineacion sola no se notaba: una foto normal es mas
+// ancha que su columna, se queda al 100% y entonces centrarla no mueve nada
+// --no sobra espacio que repartir--. Se vio usandolo, no escribiendolo.
+describe("applyEdits · tamano de la imagen", () => {
+  const tam = (nodeId: number, value: "pequena" | "mediana" | "grande" | "completa") =>
+    ({ nodeId, kind: "size" as const, value });
+
+  it("cada tamano pone su ancho", () => {
+    expect(applyEdits(`<img src="/a.png">`, [tam(0, "pequena")])).toContain("width: 33%");
+    expect(applyEdits(`<img src="/a.png">`, [tam(0, "mediana")])).toContain("width: 50%");
+    expect(applyEdits(`<img src="/a.png">`, [tam(0, "grande")])).toContain("width: 75%");
+    expect(applyEdits(`<img src="/a.png">`, [tam(0, "completa")])).toContain("width: 100%");
+  });
+
+  // Sin esto, cambiar solo el ancho deforma la foto: es el fallo clasico de
+  // «achicar la imagen» y que salga aplastada.
+  it("lleva height:auto para no deformar la foto", () => {
+    expect(applyEdits(`<img src="/a.png">`, [tam(0, "mediana")])).toContain("height: auto");
+  });
+
+  it("cambiar de tamano no acumula anchos: gana el ultimo", () => {
+    const r = applyEdits(`<img src="/a.png">`, [tam(0, "pequena"), tam(0, "grande")]);
+    expect(r).toContain("width: 75%");
+    expect([...r.matchAll(/width:/g)]).toHaveLength(1);
+  });
+
+  // El caso de verdad: achicar Y centrar, que es lo que alguien quiere hacer.
+  // Los dos escriben el mismo atributo.
+  it("tamano y alineacion juntos: UN atributo style con las dos cosas", () => {
+    const r = applyEdits(`<img src="/a.png">`, [
+      tam(0, "mediana"),
+      { nodeId: 0, kind: "align", value: "centro" },
+    ]);
+    expect([...r.matchAll(/style=/g)]).toHaveLength(1);
+    expect(r).toContain("width: 50%");
+    expect(r).toContain("margin-left: auto");
+    expect(r).toContain("margin-right: auto");
+  });
+
+  it("y con color encima, tambien uno solo", () => {
+    const r = applyEdits(`<img src="/a.png" style="border: 1px solid red">`, [
+      tam(0, "pequena"),
+      { nodeId: 0, kind: "align", value: "derecha" },
+      { nodeId: 0, kind: "style", property: "color", value: "#333" },
+    ]);
+    expect([...r.matchAll(/style=/g)]).toHaveLength(1);
+    expect(r).toContain("border: 1px solid red");
+    expect(r).toContain("width: 33%");
+    expect(r).toContain("margin-right: 0");
+    expect(r).toContain("color: #333");
+  });
+});

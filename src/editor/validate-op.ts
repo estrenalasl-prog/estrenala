@@ -54,6 +54,8 @@ export function isValidOp(op: EditOp): boolean {
       const m = op.value.match(SRC_RE);
       return !!m && m[1].toLowerCase() === op.assetId.toLowerCase();
     }
+    case "size":
+      return op.value === "pequena" || op.value === "mediana" || op.value === "grande" || op.value === "completa";
     case "align":
       // Se admite la INTENCIÓN, no CSS: el servidor decide los márgenes. Así no
       // hay forma de colar una declaración de estilo en la página de nadie.

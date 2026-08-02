@@ -12,6 +12,7 @@ export type EditOp =
   | { page: string; nodeId: number; kind: "src"; value: string; assetId: string }
   | { page: string; nodeId: number; kind: "insertImage"; value: string; assetId: string; alt: string; posicion: PosicionImagen }
   | { page: string; nodeId: number; kind: "align"; value: Alineacion }
+  | { page: string; nodeId: number; kind: "size"; value: Tamano }
   | { page: string; nodeId: number; kind: "style"; property: "color"; value: string }
   | { page: string; nodeId: number; kind: "textNode"; index: number; value: string };
 
@@ -23,6 +24,7 @@ export type PageOp =
   | { nodeId: number; kind: "src"; value: string }
   | { nodeId: number; kind: "insertImage"; value: string; alt: string; posicion: PosicionImagen }
   | { nodeId: number; kind: "align"; value: Alineacion }
+  | { nodeId: number; kind: "size"; value: Tamano }
   | { nodeId: number; kind: "style"; property: "color"; value: string }
   | { nodeId: number; kind: "textNode"; index: number; value: string };
 
@@ -42,6 +44,24 @@ const MARGENES: Record<Alineacion, [string, string]> = {
   izquierda: ["0", "auto"],
   centro: ["auto", "auto"],
   derecha: ["auto", "0"],
+};
+
+/**
+ * Ancho de la imagen, en tanto por ciento de su hueco.
+ *
+ * Va de la mano de la alineación y no es un adorno: una foto normal es más ancha
+ * que la columna donde cae, así que se queda al 100% y **alinearla no mueve
+ * nada** —no sobra espacio que repartir—. El botón parece roto cuando en realidad
+ * está haciendo su trabajo. Le pasó a Sebas el 2026-08-02, y por eso el tamaño
+ * llegó después: se ve al usarlo, no al escribirlo.
+ */
+export type Tamano = "pequena" | "mediana" | "grande" | "completa";
+
+const ANCHOS: Record<Tamano, string> = {
+  pequena: "33%",
+  mediana: "50%",
+  grande: "75%",
+  completa: "100%",
 };
 
 export function escapeHtmlText(s: string): string {
@@ -128,7 +148,7 @@ export function applyEdits(html: string, ops: PageOp[]): string {
       const s = replacedAttrsPerNode.get(op.nodeId) ?? new Set();
       s.add("src");
       replacedAttrsPerNode.set(op.nodeId, s);
-    } else if ((op.kind === "style" || op.kind === "align") && el.attrLocations["style"]) {
+    } else if ((op.kind === "style" || op.kind === "align" || op.kind === "size") && el.attrLocations["style"]) {
       const s = replacedAttrsPerNode.get(op.nodeId) ?? new Set();
       s.add("style");
       replacedAttrsPerNode.set(op.nodeId, s);
@@ -141,17 +161,22 @@ export function applyEdits(html: string, ops: PageOp[]): string {
   // una sola vez, más abajo.
   const estiloPorNodo = new Map<number, string>();
   for (const op of dedup.values()) {
-    if (op.kind !== "style" && op.kind !== "align") continue;
+    if (op.kind !== "style" && op.kind !== "align" && op.kind !== "size") continue;
     const el = byId.get(op.nodeId);
     if (!el) continue;
     let s = estiloPorNodo.get(op.nodeId) ?? el.attrs.style ?? "";
     if (op.kind === "style") {
       s = mergeStyleProperty(s, op.property, op.value);
-    } else {
+    } else if (op.kind === "align") {
       const [ml, mr] = MARGENES[op.value];
       s = mergeStyleProperty(s, "display", "block");
       s = mergeStyleProperty(s, "margin-left", ml);
       s = mergeStyleProperty(s, "margin-right", mr);
+    } else {
+      // `height: auto` va siempre: sin él, cambiar solo el ancho deforma la foto.
+      s = mergeStyleProperty(s, "display", "block");
+      s = mergeStyleProperty(s, "width", ANCHOS[op.value]);
+      s = mergeStyleProperty(s, "height", "auto");
     }
     estiloPorNodo.set(op.nodeId, s);
   }

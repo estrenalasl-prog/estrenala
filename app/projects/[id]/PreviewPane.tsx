@@ -9,6 +9,7 @@ type EditOp =
   | { page: string; nodeId: number; kind: "src"; value: string; assetId: string }
   | { page: string; nodeId: number; kind: "insertImage"; value: string; assetId: string; alt: string; posicion: "antes" | "despues" }
   | { page: string; nodeId: number; kind: "align"; value: "izquierda" | "centro" | "derecha" }
+  | { page: string; nodeId: number; kind: "size"; value: "pequena" | "mediana" | "grande" | "completa" }
   | { page: string; nodeId: number; kind: "style"; property: "color"; value: string }
   | { page: string; nodeId: number; kind: "textNode"; index: number; value: string };
 type SnapshotInfo = { id: string; tipo: string; parentId: string | null; createdAt: string; esActual: boolean };

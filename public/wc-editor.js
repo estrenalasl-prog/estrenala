@@ -202,6 +202,23 @@
     return b;
   }
 
+  // Ancho de la imagen, en tanto por ciento de su hueco. Los mismos valores que
+  // usa el servidor (ver `ANCHOS` en src/editor/apply.ts): lo que se ve aquí y lo
+  // que se guarda tienen que ser lo mismo.
+  var ANCHOS_UI = { pequena: "33%", mediana: "50%", grande: "75%", completa: "100%" };
+  function botonTamano(txt, valor, el) {
+    var b = document.createElement("button");
+    b.type = "button"; b.textContent = txt;
+    b.style.cssText = "flex:1;height:30px;border-radius:9px;border:1px solid #DEDFD6;background:#fff;color:#141509;font-size:12px;font-weight:500;cursor:pointer";
+    b.addEventListener("click", function () {
+      el.style.display = "block";
+      el.style.width = ANCHOS_UI[valor];
+      el.style.height = "auto"; // sin esto, cambiar solo el ancho deforma la foto
+      emitir({ page: PAGE, nodeId: idDe(el), kind: "size", value: valor });
+    });
+    return b;
+  }
+
   function construir(el) {
     pop.innerHTML = "";
     objetivo = el;
@@ -268,6 +285,19 @@
         window.parent.postMessage({ type: "wc-image-request", nodeId: idDe(el), page: PAGE }, "*");
       });
       pop.appendChild(btn);
+
+      // El tamaño va ANTES que la alineación a propósito: una foto normal es más
+      // ancha que su columna, se queda al 100% y entonces alinearla no mueve nada
+      // porque no sobra espacio. Quien entra a centrar una imagen tiene que
+      // tropezarse primero con lo que hace falta para que centrar se note.
+      pop.appendChild(etiqueta("Tamaño"));
+      var ft = document.createElement("div");
+      ft.style.cssText = "display:flex;gap:6px";
+      ft.appendChild(botonTamano("33%", "pequena", el));
+      ft.appendChild(botonTamano("50%", "mediana", el));
+      ft.appendChild(botonTamano("75%", "grande", el));
+      ft.appendChild(botonTamano("Todo", "completa", el));
+      pop.appendChild(ft);
 
       // Alineación. Solo para imágenes: alinear un párrafo es otra cosa (ahí se
       // alinea el TEXTO, no el bloque) y mezclarlas confundiría.
