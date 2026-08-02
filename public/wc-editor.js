@@ -64,8 +64,11 @@
   // ---------- barra de formato (rich-text) ----------
   var barra = document.createElement("div");
   barra.setAttribute("data-wc-ui", "1");
-  barra.style.cssText = "position:fixed;z-index:2147483647;display:none;gap:2px;background:#fff;" +
+  barra.style.cssText = "position:fixed;z-index:2147483647;display:none;flex-direction:column;gap:4px;background:#fff;" +
     "border:1px solid rgba(20,21,9,.14);border-radius:10px;box-shadow:0 8px 24px -6px rgba(20,21,9,.20);padding:4px";
+  var filaFormato = document.createElement("div");
+  filaFormato.style.cssText = "display:flex;gap:2px";
+  barra.appendChild(filaFormato);
   function botonFormato(txt, estilo, accion, titulo) {
     var b = document.createElement("button"); b.type = "button"; b.textContent = txt; b.title = titulo;
     b.style.cssText = "width:30px;height:30px;border:0;background:none;border-radius:7px;cursor:pointer;color:#141509;font-size:14px;line-height:1;" + estilo;
@@ -75,30 +78,160 @@
     return b;
   }
   function comando(cmd) { try { document.execCommand("styleWithCSS", false, false); } catch (_) {} document.execCommand(cmd, false, null); }
-  barra.appendChild(botonFormato("B", "font-weight:700", function () { comando("bold"); }, "Negrita"));
-  barra.appendChild(botonFormato("I", "font-style:italic;font-weight:600", function () { comando("italic"); }, "Cursiva"));
-  barra.appendChild(botonFormato("U", "text-decoration:underline;font-weight:600", function () { comando("underline"); }, "Subrayado"));
-  barra.appendChild(botonFormato("🔗", "", function () {
-    var u = window.prompt("Enlace (https://…). Deja vacío para quitarlo.");
-    if (u === null) return;
-    if (u.trim() === "") { try { document.execCommand("styleWithCSS", false, false); } catch (_) {} document.execCommand("unlink", false, null); }
-    else document.execCommand("createLink", false, u.trim());
+  filaFormato.appendChild(botonFormato("B", "font-weight:700", function () { comando("bold"); }, "Negrita"));
+  filaFormato.appendChild(botonFormato("I", "font-style:italic;font-weight:600", function () { comando("italic"); }, "Cursiva"));
+  filaFormato.appendChild(botonFormato("U", "text-decoration:underline;font-weight:600", function () { comando("underline"); }, "Subrayado"));
+  filaFormato.appendChild(botonFormato("🔗", "", function () {
+    if (filaEnlace.style.display === "none") abrirEnlace(); else cerrarEnlace();
   }, "Enlace"));
-  // Mientras se interactúa con la barra (incluido el prompt del enlace) NO se
-  // cierra la edición por focusout.
+
+  /**
+   * El enlace se pide en un campo AQUÍ DENTRO, no con `window.prompt`.
+   *
+   * El preview corre en un iframe con `sandbox="allow-scripts"` y SIN
+   * `allow-modals`. En un documento así el navegador se salta alert/confirm/prompt
+   * y devuelve null sin preguntar nada. O sea que este botón no hacía
+   * absolutamente nada, en silencio, desde que existe. Y ampliar el sandbox NO es
+   * la solución: dejaría que la web del cliente llene el panel de ventanitas.
+   */
+  var filaEnlace = document.createElement("div");
+  filaEnlace.style.cssText = "display:none;gap:4px;align-items:center;padding:0 2px 2px";
+  var campoEnlace = inputTexto("", "https://…  ·  /precios  ·  #contacto");
+  campoEnlace.style.width = "236px";
+  var btnPonerEnlace = document.createElement("button");
+  btnPonerEnlace.type = "button"; btnPonerEnlace.textContent = "Poner";
+  btnPonerEnlace.style.cssText = "height:32px;padding:0 12px;border-radius:9px;border:0;background:#C4F000;color:#141509;font-size:13px;font-weight:600;cursor:pointer";
+  var btnQuitarEnlace = document.createElement("button");
+  btnQuitarEnlace.type = "button"; btnQuitarEnlace.textContent = "Quitar"; btnQuitarEnlace.title = "Dejar el texto sin enlace";
+  btnQuitarEnlace.style.cssText = "height:32px;padding:0 10px;border-radius:9px;border:1px solid #DEDFD6;background:#fff;color:#55584C;font-size:13px;cursor:pointer";
+  filaEnlace.appendChild(campoEnlace); filaEnlace.appendChild(btnPonerEnlace); filaEnlace.appendChild(btnQuitarEnlace);
+  var avisoEnlace = document.createElement("div");
+  avisoEnlace.style.cssText = "display:none;max-width:300px;font-size:11.5px;line-height:1.4;color:#8A3A12;padding:0 4px 3px";
+  barra.appendChild(filaEnlace); barra.appendChild(avisoEnlace);
+
+  // Mientras se interactúa con la barra NO se cierra la edición por focusout.
   var tocandoBarra = false;
   barra.addEventListener("mousedown", function () { tocandoBarra = true; setTimeout(function () { tocandoBarra = false; }, 0); });
+  function dentroDeBarra(el) { return el === barra || !!(el && barra.contains && barra.contains(el)); }
   function montarBarra() { if (!barra.parentNode && document.body) document.body.appendChild(barra); }
   if (document.body) montarBarra(); else document.addEventListener("DOMContentLoaded", montarBarra);
+
+  var elBarra = null;
   function mostrarBarra(el) {
-    var r = el.getBoundingClientRect();
+    elBarra = el;
+    filaEnlace.style.display = "none"; avisoEnlace.style.display = "none"; enlaceEnEdicion = null;
     barra.style.display = "flex";
-    var alto = 40;
+    colocarBarra();
+  }
+  // Se mide el alto de verdad en vez de darlo por hecho: la barra crece al abrir
+  // el campo del enlace o al salir un aviso, y con un alto fijo se comería el
+  // texto que está editando.
+  function colocarBarra() {
+    if (!elBarra || barra.style.display === "none") return;
+    var r = elBarra.getBoundingClientRect();
+    var alto = barra.offsetHeight || 40;
     var top = r.top - alto - 6; if (top < 6) top = r.bottom + 6;
     barra.style.top = Math.round(top) + "px";
     barra.style.left = Math.round(Math.max(6, r.left)) + "px";
   }
-  function ocultarBarra() { barra.style.display = "none"; }
+  function ocultarBarra() { barra.style.display = "none"; elBarra = null; enlaceEnEdicion = null; }
+
+  // ---------- enlaces dentro del texto ----------
+  var rangoGuardado = null;
+  var enlaceEnEdicion = null;
+
+  // Al enfocar el campo se pierde la selección del texto, así que se guarda antes
+  // y se repone justo antes de aplicar.
+  function guardarRango() {
+    var s = window.getSelection();
+    if (!s || s.rangeCount === 0 || !editando) return;
+    var r = s.getRangeAt(0);
+    if (editando.contains(r.commonAncestorContainer)) rangoGuardado = r.cloneRange();
+  }
+  function restaurarRango() {
+    if (!editando) return;
+    editando.focus();
+    if (!rangoGuardado) return;
+    var s = window.getSelection();
+    s.removeAllRanges(); s.addRange(rangoGuardado);
+  }
+  function seleccionarContenido(nodo) {
+    var r = document.createRange(); r.selectNodeContents(nodo);
+    var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+  }
+  function enlaceDeLaSeleccion() {
+    var s = window.getSelection();
+    if (!s || s.rangeCount === 0 || !editando) return null;
+    var n = s.getRangeAt(0).commonAncestorContainer;
+    if (n && n.nodeType === 3) n = n.parentNode;
+    while (n && n !== editando) {
+      if (n.tagName && n.tagName.toLowerCase() === "a") return n;
+      n = n.parentNode;
+    }
+    return null;
+  }
+  // Las MISMAS reglas que isSafeHref en el servidor. Si no coinciden, el servidor
+  // desenvuelve el <a> al guardar y el enlace desaparece sin que nadie avise.
+  function hrefSeguro(u) {
+    var t = u.replace(/[\x00-\x1f\x7f]/g, "").trim();
+    if (t === "") return false;
+    if (/^(javascript|data|vbscript):/i.test(t)) return false;
+    var m = t.match(/^([a-z][a-z0-9+.-]*):/i);
+    if (!m) return true; // sin esquema → ruta de la propia web
+    var esq = m[1].toLowerCase();
+    return esq === "http" || esq === "https" || esq === "mailto" || esq === "tel";
+  }
+  function avisar(texto) {
+    avisoEnlace.textContent = texto;
+    avisoEnlace.style.display = "block";
+    colocarBarra();
+  }
+  function abrirEnlace() {
+    guardarRango();
+    enlaceEnEdicion = enlaceDeLaSeleccion();
+    campoEnlace.value = enlaceEnEdicion ? (enlaceEnEdicion.getAttribute("href") || "") : "";
+    btnQuitarEnlace.style.display = enlaceEnEdicion ? "" : "none";
+    filaEnlace.style.display = "flex";
+    avisoEnlace.style.display = "none";
+    colocarBarra();
+    campoEnlace.focus(); campoEnlace.select();
+  }
+  function cerrarEnlace() {
+    filaEnlace.style.display = "none";
+    avisoEnlace.style.display = "none";
+    enlaceEnEdicion = null;
+    colocarBarra();
+  }
+  function aplicarEnlace() {
+    var u = campoEnlace.value.trim();
+    if (u === "") { quitarEnlace(); return; }
+    if (!hrefSeguro(u)) { avisar("Esa dirección no vale. Usa https://, mailto:, tel: o una ruta de tu web como /precios."); return; }
+    restaurarRango();
+    // Con el cursor dentro de un enlace pero sin nada seleccionado, createLink no
+    // hace nada. Si estamos dentro de uno se coge entero: es lo que espera quien
+    // pincha en un enlace para cambiarle la dirección.
+    if (enlaceEnEdicion && window.getSelection().isCollapsed) seleccionarContenido(enlaceEnEdicion);
+    if (window.getSelection().isCollapsed) { avisar("Selecciona antes el texto que quieres enlazar."); return; }
+    document.execCommand("createLink", false, u);
+    cerrarEnlace();
+  }
+  function quitarEnlace() {
+    restaurarRango();
+    if (enlaceEnEdicion && window.getSelection().isCollapsed) seleccionarContenido(enlaceEnEdicion);
+    try { document.execCommand("styleWithCSS", false, false); } catch (_) {}
+    document.execCommand("unlink", false, null);
+    cerrarEnlace();
+  }
+  btnPonerEnlace.addEventListener("mousedown", function (e) { e.preventDefault(); });
+  btnPonerEnlace.addEventListener("click", function (e) { e.preventDefault(); aplicarEnlace(); });
+  btnQuitarEnlace.addEventListener("mousedown", function (e) { e.preventDefault(); });
+  btnQuitarEnlace.addEventListener("click", function (e) { e.preventDefault(); quitarEnlace(); });
+  campoEnlace.addEventListener("keydown", function (e) {
+    // stopPropagation: si no, el Enter/Esc de aquí llega al documento y cierra la
+    // edición del texto en vez de poner el enlace.
+    if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); aplicarEnlace(); }
+    else if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); cerrarEnlace(); restaurarRango(); }
+  });
 
   var objetivo = null;
   var ocultarTimer = null;
@@ -497,15 +630,46 @@
 
   document.addEventListener("keydown", function (e) {
     if (!editando) return;
+    if (dentroDeBarra(e.target)) return; // el campo del enlace se apaña solo
     if (e.key === "Escape") { e.preventDefault(); terminarEdicion(false); }
     else if (e.key === "Enter") { e.preventDefault(); terminarEdicion(true); }
   });
+
+  /**
+   * Pegar trae el HTML de donde se copió: <span style="font-family:Calibri…">,
+   * <div>, <p>, <font>, tablas enteras. El servidor solo guarda <b> <i> <u> <a>
+   * <br>, así que todo eso se cae AL GUARDAR — y los párrafos, al perder su <p>,
+   * se quedan pegados unos a otros sin separación.
+   *
+   * O sea que se veía una cosa en pantalla y quedaba publicada otra. Se pega
+   * texto limpio, que es exactamente lo que se va a guardar.
+   */
+  document.addEventListener("paste", function (e) {
+    if (!editando) return;
+    e.preventDefault();
+    var dt = e.clipboardData || window.clipboardData;
+    var txt = dt ? dt.getData("text/plain") || "" : "";
+    if (txt === "") return;
+    if (esTextoMixto(editando)) {
+      // El texto suelto de un icono+texto es un nodo de texto: ahí no cabe un
+      // <br>, así que los saltos se quedan en espacios.
+      document.execCommand("insertText", false, txt.replace(/\s+/g, " ").trim());
+      return;
+    }
+    var lineas = txt.replace(/\r\n?/g, "\n").split("\n").map(escaparHtml);
+    document.execCommand("insertHTML", false, lineas.join("<br>"));
+  }, true);
+  function escaparHtml(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
   // Usamos focusout (trae relatedTarget) en vez de blur: si el foco pasa AL
   // popover (p.ej. el campo href o el selector de color de un <a> que se está
   // editando como texto), NO cerramos la edición de texto. El guard !editando
   // en terminarEdicion mantiene el caso Enter->focusout como no-op.
   document.addEventListener("focusout", function (e) {
-    if (tocandoBarra) return; // interactuando con la barra de formato / prompt del enlace
+    if (tocandoBarra) return; // interactuando con la barra de formato
+    // El foco se ha ido AL campo del enlace: es la misma edición, no una salida.
+    // (No basta con `tocandoBarra`, que solo cubre el ratón: al campo también se
+    // puede llegar con el tabulador.)
+    if (dentroDeBarra(e.relatedTarget)) return;
     if (dentroDePop(e.relatedTarget)) return;
     // El mousedown enfoca el ancestro enfocable más cercano (p.ej. el <a> de un
     // botón-enlace icono+texto); al iniciar la edición, focus() del elemento dispara

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { isSafeHref } from "@/src/editor/validate-op";
 
 // `public/wc-editor.js` es el script que corre DENTRO de la web del cliente, en un
 // iframe. No pasa por TypeScript, no lo importa ningún módulo y no se puede probar
@@ -49,5 +50,53 @@ describe("wc-editor.js", () => {
     // Y que de verdad emite algo, no vaya a ser que el regex deje de encontrar nada
     // y este test pase por no mirar nada.
     expect(emitidos.length).toBeGreaterThan(5);
+  });
+
+  /**
+   * El preview se pinta en un iframe con `sandbox="allow-scripts"` y SIN
+   * `allow-modals`. En un documento sandboxed así, el navegador se salta
+   * alert/confirm/prompt y devuelve null sin preguntar nada: el botón del enlace
+   * de la barra de formato estuvo sin hacer NADA, en silencio, desde que se
+   * escribió. Todo lo que haya que preguntar se pregunta con DOM propio.
+   */
+  it("no usa alert/confirm/prompt (el sandbox del preview se los salta)", () => {
+    const modales = [...FUENTE.matchAll(/\bwindow\.(alert|confirm|prompt)\s*\(/g)].map((m) => m[1]);
+    expect(modales, `el sandbox los ignora: ${modales.join(", ")}`).toEqual([]);
+  });
+
+  it("el iframe del preview sigue sin allow-same-origin", () => {
+    // `allow-scripts` + `allow-same-origin` juntos dejan que el documento de dentro
+    // se quite el sandbox a sí mismo. Dentro corre la web de un cliente: no.
+    const panel = readFileSync(resolve(process.cwd(), "app/projects/[id]/PreviewPane.tsx"), "utf-8");
+    const sandbox = panel.match(/sandbox="([^"]*)"/);
+    expect(sandbox, "el iframe del preview ya no declara sandbox").not.toBeNull();
+    expect(sandbox![1].split(/\s+/)).not.toContain("allow-same-origin");
+  });
+
+  /**
+   * `hrefSeguro` (aquí) y `isSafeHref` (servidor) tienen que decir lo mismo. Si el
+   * editor deja pasar una dirección que el servidor rechaza, `sanitizeInline`
+   * desenvuelve el <a> al guardar: el usuario ve su enlace puesto, publica, y el
+   * enlace no está. Sin ningún error por el camino.
+   */
+  it("valida los enlaces igual que el servidor", () => {
+    const i = FUENTE.indexOf("function hrefSeguro");
+    expect(i, "ya no existe hrefSeguro en el editor").toBeGreaterThan(-1);
+    let j = FUENTE.indexOf("{", i), prof = 0, fin = j;
+    for (; fin < FUENTE.length; fin++) {
+      if (FUENTE[fin] === "{") prof++;
+      else if (FUENTE[fin] === "}" && --prof === 0) break;
+    }
+    const hrefSeguro = new Function(`${FUENTE.slice(i, fin + 1)}; return hrefSeguro;`)() as (u: string) => boolean;
+
+    const casos = [
+      "https://estrenala.es", "http://x.com/a?b=1", "mailto:hola@estrenala.es", "tel:+34600000000",
+      "/precios", "#contacto", "contacto.html", "../index.html", "",
+      "javascript:alert(1)", "JavaScript:alert(1)", "java\tscript:alert(1)", "  javascript:alert(1)  ",
+      "data:text/html,<script>", "vbscript:msgbox", "ftp://x.com", "file:///etc/passwd",
+    ];
+    for (const c of casos) {
+      expect(hrefSeguro(c), `discrepan en ${JSON.stringify(c)}`).toBe(isSafeHref(c));
+    }
   });
 });
