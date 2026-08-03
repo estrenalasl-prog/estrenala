@@ -76,7 +76,7 @@ export async function examinarProyecto(
     if (f) paginas.push({ ruta: rel, html: f.body.toString("utf-8") });
   }
 
-  const examen = examinarSitio({ paginas, totales: todas.length });
+  const examen = examinarSitio({ paginas, totales: todas.length, portada: input.entryPath });
   cache.set(input.snapshotId, examen);
   return examen;
 }

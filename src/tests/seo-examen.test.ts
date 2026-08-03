@@ -21,9 +21,11 @@ const PERFECTA = `<!doctype html>
 </body>
 </html>`;
 
-const claves = (html: string): ClaveFallo[] => examinarPagina(html, "/").fallos.map((f) => f.clave);
+// Se examinan como PORTADA: es la única página donde se mira la ficha para
+// buscadores, porque es la única donde se pone (ver ficha.ts).
+const claves = (html: string): ClaveFallo[] => examinarPagina(html, "/", true).fallos.map((f) => f.clave);
 const busca = (html: string, clave: ClaveFallo) =>
-  examinarPagina(html, "/").fallos.find((f) => f.clave === clave);
+  examinarPagina(html, "/", true).fallos.find((f) => f.clave === clave);
 
 describe("examen de una página", () => {
   it("una página bien hecha no tiene ni un fallo", () => {
@@ -281,10 +283,52 @@ describe("examen del sitio entero", () => {
    * dibuja la página en el móvil y una web no responsive pasaría a verse cortada.
    */
   it("marca cuáles sabe arreglar la plataforma sola, y solo esas", () => {
-    const rota = `<html><head></head><body><p>Nada</p></body></html>`;
+    const rota = `<html><head><title>Contacto — Mi Negocio</title></head><body><img src="/a.jpg"></body></html>`;
     const r = examinarSitio({ paginas: [{ ruta: "/", html: rota }] });
     const arreglables = r.fallos.filter((f) => f.arreglable).map((f) => f.clave).sort();
     expect(arreglables).toEqual(["sinDatosEstructurados", "sinOgImage"]);
     expect(r.fallos.find((f) => f.clave === "sinViewport")?.arreglable).toBe(false);
+  });
+
+  /**
+   * La ficha necesita saber de QUIÉN es la web, y eso sale del `og:site_name` o
+   * del nombre detrás del separador del título. Sin eso no se genera (ficha.ts),
+   * así que prometerlo aquí sería mentir.
+   */
+  it("no promete la ficha si la web no dice de quién es", () => {
+    const anonima = `<html><head><title>Contacto</title></head><body><p>x</p></body></html>`;
+    const r = examinarSitio({ paginas: [{ ruta: "/", html: anonima }] });
+    expect(r.fallos.find((f) => f.clave === "sinDatosEstructurados")?.arreglable).toBe(false);
+  });
+
+  /**
+   * La imagen que ponemos al compartir es la primera de la propia página. En una
+   * página sin ninguna imagen no hay nada que poner, así que basta una así para
+   * que el conjunto deje de prometerlo: «lo arreglamos» a medias, en la pantalla
+   * donde nos están conociendo, es mentira.
+   */
+  it("basta una página que no se pueda arreglar para no prometerlo en el conjunto", () => {
+    const conFoto = `<html><head><title>A — Mi Negocio</title></head><body><img src="/a.jpg" alt="a"></body></html>`;
+    const sinFoto = `<html><head><title>B — Mi Negocio</title></head><body><p>Solo texto</p></body></html>`;
+
+    const todasConFoto = examinarSitio({ paginas: [{ ruta: "/a", html: conFoto }, { ruta: "/b", html: conFoto }] });
+    expect(todasConFoto.fallos.find((f) => f.clave === "sinOgImage")?.arreglable).toBe(true);
+
+    const mezcla = examinarSitio({ paginas: [{ ruta: "/a", html: conFoto }, { ruta: "/b", html: sinFoto }] });
+    expect(mezcla.fallos.find((f) => f.clave === "sinOgImage")?.arreglable).toBe(false);
+  });
+
+  /**
+   * La ficha solo se mira en la portada, porque es la única página donde se pone
+   * (ver ficha.ts). Avisar de veinte artículos «sin ficha» sería inventarse un
+   * problema de veinte páginas donde hay uno de una.
+   */
+  it("la ficha para buscadores solo se le exige a la portada", () => {
+    const sinFicha = `<html><head><title>X — Mi Negocio</title></head><body><p>x</p></body></html>`;
+    const r = examinarSitio({
+      paginas: [{ ruta: "index.html", html: sinFicha }, { ruta: "blog/uno.html", html: sinFicha }],
+      portada: "index.html",
+    });
+    expect(r.fallos.find((f) => f.clave === "sinDatosEstructurados")?.paginas).toEqual(["index.html"]);
   });
 });

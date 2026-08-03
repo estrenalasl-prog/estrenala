@@ -953,3 +953,81 @@ describe("dominiosAjenosDelSitemap", () => {
     expect(llamar("")).toEqual([]);
   });
 });
+
+/**
+ * La ficha para buscadores, puesta AL SERVIR.
+ *
+ * Aquí está el foso: quien sirve archivos tal cual —Netlify Drop, Tiiny, Pages—
+ * no puede hacer esto por contrato. Nosotros ya reescribimos el HTML de camino
+ * (sello, canónicos), así que sale casi gratis.
+ */
+describe("la ficha para buscadores se inyecta al servir", () => {
+  const CON_NOMBRE =
+    `<!doctype html><html lang="es"><head><title>Contacto — Cafetería La Esquina</title>` +
+    `<meta name="description" content="Dónde estamos."></head>` +
+    `<body><img src="local.jpg" alt="x"><a href="tel:+34952123456">Llamar</a></body></html>`;
+
+  function conFichaLista(extra: Record<string, unknown> = {}, html = CON_NOMBRE) {
+    const storage = new FakeStorage();
+    storage.files.set(PREFIX + "index.html", Buffer.from(html));
+    const store = new FakeStore();
+    store.sitios.set("sub:cafe", {
+      entryPath: "index.html", storagePrefix: PREFIX, plan: "pro", noIndexar: false,
+      dominio: null, subdominio: "cafe", projectId: "p1", orgId: "o1", recogeFormularios: false,
+      ...extra,
+    });
+    return { storage, store };
+  }
+  const servir = (store: ProjectStore, storage: StorageAdapter) =>
+    resolvePublicSite({ store, storage }, { host: "cafe.localhost:3000", platformHost: PLAT, pathSegments: [], conBarra: false });
+
+  it("la portada sale con su organización y su sitio, y con el teléfono de la página", async () => {
+    const { storage, store } = conFichaLista();
+    const html = (await servir(store, storage)).body.toString();
+    const json = JSON.parse(
+      html.match(/id="estrenala-ficha">([\s\S]*?)<\/script>/)![1].replace(/\u003c/g, "<")
+    );
+    expect(json["@graph"].map((n: { "@type": string }) => n["@type"])).toEqual(["Organization", "WebSite"]);
+    expect(json["@graph"][0]).toMatchObject({ name: "Cafetería La Esquina", telephone: "+34952123456" });
+  });
+
+  /**
+   * La portada se sirve TAMBIÉN en `/index.html`, y por ahí tiene que llevar su
+   * ficha igual: si se decidiera por la ruta «/» en vez de por el archivo de
+   * inicio, la misma página tendría ficha o no según por dónde se entrase.
+   */
+  it("también la lleva entrando por /index.html", async () => {
+    const { storage, store } = conFichaLista();
+    const r = await resolvePublicSite({ store, storage }, {
+      host: "cafe.localhost:3000", platformHost: PLAT, pathSegments: ["index.html"], conBarra: false,
+    });
+    expect(r.body.toString()).toContain("estrenala-ficha");
+  });
+
+  it("y también la imagen al compartir, absoluta", async () => {
+    const { storage, store } = conFichaLista();
+    const html = (await servir(store, storage)).body.toString();
+    expect(html).toContain('<meta property="og:image" content="https://cafe.localhost:3000/local.jpg">');
+  });
+
+  /** Los suyos saben más de su negocio: dos fichas que se contradicen son peores que una. */
+  it("si la web ya trae la suya, no se le añade otra", async () => {
+    const conLaSuya = CON_NOMBRE.replace("</head>", `<script type="application/ld+json">{"@type":"Cafe"}</script></head>`);
+    const { storage, store } = conFichaLista({}, conLaSuya);
+    const html = (await servir(store, storage)).body.toString();
+    expect(html).not.toContain("estrenala-ficha");
+    expect(html.match(/application\/ld\+json/g)).toHaveLength(1);
+  });
+
+  /**
+   * Con dominio propio, la ficha tiene que hablar del dominio bueno: si dijera
+   * el subdominio, le estaríamos declarando a Google una identidad en una
+   * dirección que su dueño ya no usa.
+   */
+  it("con dominio propio conectado, la ficha lo dice a él", async () => {
+    const { storage, store } = conFichaLista({ dominio: "laesquina.com" });
+    const html = (await servir(store, storage)).body.toString();
+    expect(html).toContain('"@id":"https://laesquina.com/#organizacion"');
+    expect(html).not.toContain("cafe.localhost");
+  });
+});

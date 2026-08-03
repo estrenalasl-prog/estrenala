@@ -1,4 +1,5 @@
 import { walkElementsInOrder } from "@/src/editor/walk";
+import { nombreDelSitio } from "@/src/seo/ficha";
 
 /**
  * El examen de SEO de una web recién subida.
@@ -157,7 +158,7 @@ function nombreDe(src: string): string {
  *
  * `ruta` solo se guarda para poder decir dónde estaba el fallo.
  */
-export function examinarPagina(html: string, ruta: string): ExamenPagina {
+export function examinarPagina(html: string, ruta: string, esPortada = false): ExamenPagina {
   const els = walkElementsInOrder(html);
   const fallos: Fallo[] = [];
   const añadir = (clave: ClaveFallo, cuantos = 1, ejemplos: string[] = []) => {
@@ -225,7 +226,13 @@ export function examinarPagina(html: string, ruta: string): ExamenPagina {
   // — Cabecera —
   if (metaPorNombre("viewport").trim() === "") añadir("sinViewport");
   if ((html_?.attrs.lang ?? "").trim() === "") añadir("sinLang");
-  if (metaPorPropiedad("og:image").trim() === "") añadir("sinOgImage");
+  if (metaPorPropiedad("og:image").trim() === "") {
+    añadir("sinOgImage");
+    // Otra vez lo mismo que con la ficha: solo se promete arreglarlo si se
+    // puede. La imagen que ponemos es la primera de la propia página, así que en
+    // una página sin ninguna imagen no hay nada que poner (ver ficha.ts).
+    fallos[fallos.length - 1].arreglable = imgs.length > 0;
+  }
 
   const tieneFavicon = links.some((l) =>
     (l.attrs.rel ?? "").toLowerCase().split(/\s+/).some((r) => r === "icon" || r === "shortcut" || r === "apple-touch-icon")
@@ -239,7 +246,18 @@ export function examinarPagina(html: string, ruta: string): ExamenPagina {
   const jsonLd = els.some(
     (e) => e.tagName === "script" && (e.attrs.type ?? "").toLowerCase().trim() === "application/ld+json"
   );
-  if (!jsonLd) añadir("sinDatosEstructurados");
+  // Solo se mira en la PORTADA, igual que solo ahí se pone (ver ficha.ts). La
+  // identidad de un negocio se declara una vez, no en cada página; y avisar de
+  // veinte artículos «sin ficha» sería inventarse un problema de veinte páginas
+  // donde hay uno de una.
+  if (esPortada && !jsonLd) {
+    añadir("sinDatosEstructurados");
+    // «Lo arreglamos nosotros» solo si de verdad podemos: la ficha necesita saber
+    // de QUIÉN es la web, y eso sale del `og:site_name` o del nombre detrás del
+    // separador del título. Sin eso no la generamos, y prometerlo aquí sería
+    // mentir en la única pantalla donde se está ganando su confianza.
+    fallos[fallos.length - 1].arreglable = nombreDelSitio(html) !== null;
+  }
 
   // — Enlaces —
   // También por `deepText`: `<a><span>Leer más</span></a>` es el mismo enlace
@@ -268,8 +286,14 @@ export function examinarSitio(input: {
   paginas: { ruta: string; html: string }[];
   /** Cuántas páginas tiene el sitio en total, si se ha examinado solo un tope. */
   totales?: number;
+  /**
+   * Cuál de las rutas es la portada. Si no se dice, la primera — que es lo que
+   * entrega `paginasAExaminar`, y así nunca se queda sin mirar.
+   */
+  portada?: string;
 }): ExamenSitio {
-  const paginas = input.paginas.map((p) => examinarPagina(p.html, p.ruta));
+  const portada = input.portada ?? input.paginas[0]?.ruta;
+  const paginas = input.paginas.map((p) => examinarPagina(p.html, p.ruta, p.ruta === portada));
   const examinadas = paginas.length;
   if (examinadas === 0) {
     return { nota: 0, fallos: [], paginas: [], examinadas: 0, totales: input.totales ?? 0 };
@@ -283,6 +307,11 @@ export function examinarSitio(input: {
       return;
     }
     ya.cuantos += f.cuantos;
+    // Solo se promete arreglarlo si se puede en TODAS las páginas donde sale.
+    // Si en cuatro de cinco sí y en una no, el sello «lo arreglamos nosotros»
+    // sería verdad a medias — y a medias, en la pantalla donde nos está
+    // conociendo, es mentira.
+    ya.arreglable = ya.arreglable && f.arreglable;
     if (!ya.paginas.includes(ruta)) ya.paginas.push(ruta);
     for (const e of f.ejemplos) if (ya.ejemplos.length < 5 && !ya.ejemplos.includes(e)) ya.ejemplos.push(e);
   };

@@ -7,6 +7,7 @@ import {
 import { puede } from "@/src/planes/planes";
 import { tieneExtensionConocida } from "@/src/storage/content-type";
 import { conFormulariosConectados } from "@/src/forms/conectar";
+import { conFicha, conTarjetaAlCompartir } from "@/src/seo/ficha";
 import { textosPublico } from "@/src/i18n/publico";
 import { idiomaDeAcceptLanguage, type Idioma } from "@/src/i18n/idiomas";
 import type { StorageAdapter } from "@/src/storage/types";
@@ -269,12 +270,28 @@ export async function resolvePublicSite(
     // reapunta a la dirección buena de este sitio, que es su dominio propio si
     // lo tiene conectado y si no el host por el que ha entrado (mismo criterio
     // que la cabecera canónica y el sitemap, para que los tres digan lo mismo).
-    html = reapuntarMetadatosImportados(html, `https://${site.dominio ?? input.host}`);
+    const raiz = `https://${site.dominio ?? input.host}`;
+    html = reapuntarMetadatosImportados(html, raiz);
+
+    // Lo que la web no trae y sí necesita para que la encuentren. Las dos cosas
+    // son etiquetas del `<head>`: no cambian ni un píxel de cómo se ve la web,
+    // y por eso se pueden poner solos. Nada de lo que entra está inventado —todo
+    // sale de la propia página—, y si ella ya lo trae, no se toca.
+    //
+    // Va DESPUÉS de reapuntar los metadatos (así la tarjeta ve el og:image ya
+    // corregido y no lo duplica) y ANTES de los formularios y de la marca, para
+    // que lo que leen estas dos funciones sea la web del cliente y no lo nuestro.
+    const rutaAqui = rutaPublica(input.pathSegments, laQuiere);
+    html = conTarjetaAlCompartir(html, raiz + rutaAqui);
+    // Portada es el ARCHIVO de inicio, no la ruta «/»: la misma página se sirve
+    // también en `/index.html`, y por ahí también tiene que llevar su ficha.
+    html = conFicha(html, { url: raiz + rutaAqui, base: `${raiz}/`, esPortada: rel === site.entryPath });
+
     // Los formularios que no envían a ninguna parte, apuntados a la plataforma.
     // Solo si el dueño lo ha encendido: apagado, su web sale exactamente como la
     // subió. Va ANTES de la marca para no tener que mirar dentro de ella.
     if (site.recogeFormularios) {
-      html = conFormulariosConectados(html, rutaPublica(input.pathSegments, laQuiere)).html;
+      html = conFormulariosConectados(html, rutaAqui).html;
     }
     if (!puede(site.plan, "sinMarca")) html = conMarca(html, input.platformHost);
     body = Buffer.from(html, "utf-8");
