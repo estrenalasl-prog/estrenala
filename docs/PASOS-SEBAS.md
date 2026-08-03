@@ -319,6 +319,58 @@ chirría, apúntalo aunque sea una tontería.
 
 ---
 
+## 6.5) La analítica (Umami) ⏱️ 20 min
+
+**Antes de abrir**, o abres a ciegas: no sabrás cuánta gente entra ni en qué
+pantalla se cae.
+
+Umami es analítica **sin cookies**. No es por el precio: el art. 22.2 de la LSSI
+habla de guardar o leer información en el equipo del visitante, y Umami no guarda
+nada ahí. Por eso **no necesita banner de consentimiento** y `/legal/cookies`
+—que dice que aquí solo hay cookies técnicas— sigue siendo verdad. Con Google
+Analytics no valdría: habría que pedir permiso ANTES de cargarlo, y el que diga
+que no, no se cuenta.
+
+**No hay que tocar el DNS.** El comodín `A *` ya resuelve
+`analitica.estrenala.com`, y `analitica` está en la lista de subdominios
+reservados, así que ningún cliente ha podido pedirlo.
+
+1. Dokploy → **Create Service → Database → PostgreSQL**. Nombre `umami-db`.
+   Guarda la contraseña que genere.
+   > Su propia base, no Supabase: cada visita es una fila, y eso se comería la
+   > cuota de la base donde viven las cuentas y las webs de los clientes.
+2. Dokploy → **Create Service → Application → Docker**, imagen
+   `ghcr.io/umami-software/umami:postgresql-latest`.
+3. En su **Environment**:
+   ```
+   DATABASE_URL=postgresql://<usuario>:<contraseña>@umami-db:5432/umami
+   APP_SECRET=<una cadena larga al azar>
+   ```
+   `APP_SECRET` firma las sesiones del panel de Umami. Genera una con
+   `openssl rand -base64 32` y **no la pegues en el chat**.
+4. **Domains** → `analitica.estrenala.com`, puerto **3000**, HTTPS y
+   **Let's Encrypt**. Deploy y espera al certificado (un par de minutos).
+5. Entra en `https://analitica.estrenala.com`. Usuario `admin`, contraseña
+   `umami`. **Cámbiala inmediatamente**, antes de nada.
+6. **Settings → Websites → Add website**: nombre «Estrénala», dominio
+   `estrenala.com`. Al guardarlo te da un **Website ID** con forma de UUID.
+7. En el servicio de **Estrénala** → Environment, añade:
+   ```
+   UMAMI_SRC=https://analitica.estrenala.com/script.js
+   UMAMI_WEBSITE_ID=<el UUID del paso 6>
+   ```
+   **Con Restart basta.** Estas dos las lee `app/layout.tsx`, que se renderiza en
+   cada petición. No es como `PLATAFORMA_NOINDEX`, que la lee el middleware
+   —runtime Edge— y esa sí se congela al construir la imagen y exige Deploy.
+8. Abre la landing, y luego Umami: la visita tiene que salir en menos de un
+   minuto. Si no sale, mira que el `<script defer src=…>` esté en el HTML: si no
+   está, es que una de las dos variables no pasó la validación (la URL tiene que
+   ser `https://` entera y el ID un UUID; ver `src/config/analitica.ts`).
+
+- [ ] Hecho. Website ID guardado: _______________
+
+---
+
 ## 7) El día que la abras al público
 
 **No lo hagas hasta haber terminado el paso 6.**
