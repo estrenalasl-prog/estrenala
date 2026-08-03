@@ -145,6 +145,8 @@ a:hover { color: var(--color-texto); }
   .badge-aviso  .punto { background: var(--color-aviso); }
   .badge-neutro { background: var(--color-superficie-2); color: var(--color-texto-2); }
   .badge-neutro .punto { background: var(--color-texto-3); }
+  .badge-peligro { background: var(--color-peligro-suave); color: var(--color-peligro-texto); }
+  .badge-peligro .punto { background: var(--color-peligro); }
 
   /* ---------- Tarjetas y piezas sueltas ---------- */
   .tarjeta { background: var(--color-superficie); border: 1px solid var(--color-borde); border-radius: var(--radius-t); box-shadow: var(--shadow-1); }

@@ -96,6 +96,99 @@ export const es = {
       cargando: "Cargando…",
       errorCargar: "No se han podido cargar los mensajes.",
     },
+    // El examen de SEO. Cada fallo se cuenta en dos partes: `que` es lo que está
+    // mal, y `porque` es lo que le CUESTA — que es lo único que hace que alguien
+    // se levante a arreglarlo. Nada de jerga: quien sube una web hecha con IA no
+    // sabe qué es una etiqueta canónica, y no tiene por qué.
+    seo: {
+      titulo: "Cómo te ve Google",
+      cargando: "Mirando tu web…",
+      errorCargar: "No se ha podido examinar la web.",
+      sinPublicar: "Publica la web y te decimos cómo la ve Google.",
+      todoBien: "No hemos encontrado nada que arreglar. Muy bien hecho.",
+      resumenTodoBien: "Todo en orden",
+      examinadas: "{n} de {total} páginas examinadas",
+      grave: "Grave",
+      aviso: "Mejorable",
+      arreglable: "Lo arreglamos nosotros",
+      enUnaPagina: "en 1 página",
+      enPaginas: "en {n} páginas",
+      ejemplos: "Por ejemplo:",
+      veredictoExcelente: "Tu web está muy bien preparada para que la encuentren.",
+      veredictoBien: "Está bastante bien, pero se le puede sacar más.",
+      veredictoRegular: "Le faltan cosas importantes para que Google la entienda.",
+      veredictoMal: "Google lo tiene difícil para entender esta web.",
+      fallos: {
+        sinTitulo: {
+          que: "Esta página no tiene título",
+          porque: "Es la línea azul que la gente pulsa en Google. Sin ella, Google se inventa una con lo que pilla.",
+        },
+        tituloLargo: {
+          que: "El título se corta en Google",
+          porque: "Pasa de 60 caracteres, así que en los resultados sale a medias.",
+        },
+        titulosRepetidos: {
+          que: "Varias páginas con el mismo título",
+          porque: "Google no sabe cuál enseñar y las hace competir entre ellas. Es el fallo más típico de una web hecha con IA.",
+        },
+        sinDescripcion: {
+          que: "Sin descripción",
+          porque: "Es el texto gris de debajo del título en Google: tu anuncio gratis. Sin él sale un trozo suelto de la página.",
+        },
+        descripcionLarga: {
+          que: "La descripción se corta",
+          porque: "Pasa de 160 caracteres y Google la recorta a mitad de frase.",
+        },
+        descripcionesRepetidas: {
+          que: "La misma descripción en varias páginas",
+          porque: "Le estás diciendo a Google que cuentan lo mismo, y acaba enseñando solo una.",
+        },
+        sinH1: {
+          que: "No hay titular",
+          porque: "Es lo primero que lee Google para saber de qué va la página. Sin él tiene que adivinarlo.",
+        },
+        variosH1: {
+          que: "Hay más de un titular",
+          porque: "Si todo es el titular, nada lo es: Google no sabe cuál es el tema de la página.",
+        },
+        saltoEncabezados: {
+          que: "Los apartados se saltan niveles",
+          porque: "Van de un nivel a otro sin pasar por el de en medio. Rompe el índice con el que Google entiende la página.",
+        },
+        imagenesSinAlt: {
+          que: "Imágenes sin describir",
+          porque: "Esa descripción es lo único que Google entiende de una foto, y lo que lee quien no puede verla. Además te mete gratis en Google Imágenes.",
+        },
+        imagenesSinTamano: {
+          que: "Imágenes sin medidas",
+          porque: "El navegador no sabe cuánto hueco dejar y la página pega saltos mientras carga. Google lo mide y cuenta para el puesto.",
+        },
+        sinViewport: {
+          que: "No está preparada para el móvil",
+          porque: "Falta la línea que le dice al móvil cómo dibujarla. Google ordena por la versión móvil: sin esto empiezas perdiendo.",
+        },
+        sinLang: {
+          que: "No dice en qué idioma está",
+          porque: "Google y los traductores tienen que adivinarlo, y a veces se equivocan de país.",
+        },
+        sinOgImage: {
+          que: "Sin imagen al compartir",
+          porque: "Al pegar el enlace en WhatsApp o LinkedIn sale una tarjeta sin foto. Es la diferencia entre que lo abran o no.",
+        },
+        sinDatosEstructurados: {
+          que: "Sin ficha para buscadores",
+          porque: "Es lo que le dice a Google y a ChatGPT qué eres: un negocio, un artículo, un producto. Casi ninguna web hecha con IA la trae, y es lo que hace que te citen.",
+        },
+        enlacesGenericos: {
+          que: "Enlaces que no dicen a dónde llevan",
+          porque: "«Leer más» o «aquí» no le dicen nada ni a Google ni a quien navega a ciegas.",
+        },
+        sinFavicon: {
+          que: "Sin icono de pestaña",
+          porque: "Es el cuadradito de la pestaña y de los favoritos. Sin él sale un folio en blanco.",
+        },
+      },
+    },
     publicar: {
       sinDireccion: "Sin dirección aún",
       copiar: "Copiar",

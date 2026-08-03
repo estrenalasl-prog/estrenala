@@ -85,6 +85,95 @@ export const it: TextosPanel = {
       cargando: "Caricamento…",
       errorCargar: "Non è stato possibile caricare i messaggi.",
     },
+    seo: {
+      titulo: "Come ti vede Google",
+      cargando: "Stiamo guardando il tuo sito…",
+      errorCargar: "Non è stato possibile esaminare il sito.",
+      sinPublicar: "Pubblica il sito e ti diciamo come lo vede Google.",
+      todoBien: "Non abbiamo trovato niente da sistemare. Ottimo lavoro.",
+      resumenTodoBien: "Tutto a posto",
+      examinadas: "{n} pagine esaminate su {total}",
+      grave: "Grave",
+      aviso: "Migliorabile",
+      arreglable: "Ci pensiamo noi",
+      enUnaPagina: "in 1 pagina",
+      enPaginas: "in {n} pagine",
+      ejemplos: "Per esempio:",
+      veredictoExcelente: "Il tuo sito è messo molto bene per farsi trovare.",
+      veredictoBien: "È abbastanza a posto, ma si può tirarne fuori di più.",
+      veredictoRegular: "Gli mancano cose importanti perché Google lo capisca.",
+      veredictoMal: "Google farà fatica a capire questo sito.",
+      fallos: {
+        sinTitulo: {
+          que: "Questa pagina non ha titolo",
+          porque: "È la riga blu su cui la gente clicca su Google. Senza, Google se ne inventa uno con quello che trova.",
+        },
+        tituloLargo: {
+          que: "Il titolo viene tagliato su Google",
+          porque: "Supera i 60 caratteri, quindi nei risultati esce a metà.",
+        },
+        titulosRepetidos: {
+          que: "Più pagine con lo stesso titolo",
+          porque: "Google non sa quale mostrare e le mette in concorrenza tra loro. È il difetto più comune di un sito fatto con l'IA.",
+        },
+        sinDescripcion: {
+          que: "Senza descrizione",
+          porque: "È il testo grigio sotto il titolo su Google: la tua pubblicità gratis. Senza, esce un pezzo qualsiasi della pagina.",
+        },
+        descripcionLarga: {
+          que: "La descrizione viene tagliata",
+          porque: "Supera i 160 caratteri e Google la taglia a metà frase.",
+        },
+        descripcionesRepetidas: {
+          que: "La stessa descrizione in più pagine",
+          porque: "Stai dicendo a Google che raccontano la stessa cosa, e finisce per mostrarne una sola.",
+        },
+        sinH1: {
+          que: "Non c'è un titolo principale",
+          porque: "È la prima cosa che Google legge per capire di cosa parla la pagina. Senza, deve indovinare.",
+        },
+        variosH1: {
+          que: "C'è più di un titolo principale",
+          porque: "Se tutto è il titolo, niente lo è: Google non capisce qual è l'argomento della pagina.",
+        },
+        saltoEncabezados: {
+          que: "I titoletti saltano dei livelli",
+          porque: "Passano da un livello all'altro senza quello in mezzo. Così si rompe l'indice con cui Google capisce la pagina.",
+        },
+        imagenesSinAlt: {
+          que: "Immagini senza descrizione",
+          porque: "Quella descrizione è tutto ciò che Google capisce di una foto, ed è quello che sente chi non riesce a vederla. In più ti fa entrare gratis su Google Immagini.",
+        },
+        imagenesSinTamano: {
+          que: "Immagini senza misure",
+          porque: "Il browser non sa quanto spazio lasciare e la pagina saltella mentre carica. Google lo misura e conta per la posizione.",
+        },
+        sinViewport: {
+          que: "Non è pronta per il cellulare",
+          porque: "Manca la riga che dice al telefono come disegnarla. Google ordina in base alla versione mobile: senza questo parti perdendo.",
+        },
+        sinLang: {
+          que: "Non dice in che lingua è",
+          porque: "Google e i traduttori devono indovinare, e a volte sbagliano paese.",
+        },
+        sinOgImage: {
+          que: "Senza immagine quando la condividi",
+          porque: "Se incolli il link su WhatsApp o LinkedIn esce una scheda senza foto. È la differenza tra aprirlo o no.",
+        },
+        sinDatosEstructurados: {
+          que: "Senza scheda per i motori di ricerca",
+          porque: "È quello che dice a Google e a ChatGPT cosa sei: un'attività, un articolo, un prodotto. Quasi nessun sito fatto con l'IA ce l'ha, ed è quello che ti fa citare.",
+        },
+        enlacesGenericos: {
+          que: "Link che non dicono dove portano",
+          porque: "«Leggi di più» o «qui» non dicono niente né a Google né a chi naviga alla cieca.",
+        },
+        sinFavicon: {
+          que: "Senza icona della scheda",
+          porque: "È il quadratino della scheda del browser e dei preferiti. Senza, esce un foglio bianco.",
+        },
+      },
+    },
     publicar: {
       sinDireccion: "Ancora senza indirizzo",
       copiar: "Copia",

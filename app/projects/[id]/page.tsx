@@ -10,6 +10,7 @@ import { PublishBar } from "./PublishBar";
 import { PreviewPane } from "./PreviewPane";
 import { ToolsPanel } from "./ToolsPanel";
 import { FormulariosPanel } from "./FormulariosPanel";
+import { SeoPanel } from "./SeoPanel";
 import { BlogPanel, BlogDePago } from "./BlogPanel";
 import { AssistantPanel } from "./AssistantPanel";
 import { ActualizarPanel } from "./ActualizarPanel";
@@ -88,6 +89,10 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
           sitemapAjeno={sitemapAjeno}
           t={textos.proyecto}
         />
+        {/* Arriba del todo a propósito: el examen vale justo cuando alguien
+            acaba de subir su web y la está mirando. Enterrado abajo, con el
+            editor y las herramientas por delante, no lo abre nadie. */}
+        <SeoPanel projectId={id} textos={textos.proyecto.seo} />
         <AssistantPanel projectId={id} pages={pages} entryPath={project.entryPath} textos={textos.proyecto} />
         <ActualizarPanel projectId={id} textos={textos.proyecto} />
         <ToolsPanel projectId={id} textos={textos.proyecto} />

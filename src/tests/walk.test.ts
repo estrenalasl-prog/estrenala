@@ -25,6 +25,49 @@ describe("walkElementsInOrder", () => {
     expect(html.slice(b.startTagEnd, b.endTagStart!)).toBe("dos");
   });
 
+  /**
+   * `text` es el texto DIRECTO y `deepText` el de todo el subárbol. La
+   * diferencia no es teórica: el héroe de la primera web real era
+   * `<h1><span class="word">Agencia</span> <span class="word">de IA</span></h1>`
+   * —animación palabra a palabra, lo que genera cualquier constructor con IA— y
+   * con `text` ese titular parecía vacío.
+   */
+  describe("deepText", () => {
+    it("junta el texto de todo el subárbol, en orden", () => {
+      const els = walkElementsInOrder(`<h1><span>Agencia</span> de <b>IA</b></h1>`);
+      const h1 = els.find((e) => e.tagName === "h1")!;
+      expect(h1.text).toBe(" de "); // lo directo: solo lo que hay ENTRE los spans
+      expect(h1.deepText).toBe("Agencia de IA");
+    });
+
+    it("el caso real: con todo el titular en spans, el texto directo es nada", () => {
+      const els = walkElementsInOrder(
+        `<h1 class="hero-title"><span class="word">Agencia</span><span class="word"> de IA</span></h1>`
+      );
+      const h1 = els.find((e) => e.tagName === "h1")!;
+      expect(h1.text).toBe("");
+      expect(h1.deepText).toBe("Agencia de IA");
+    });
+
+    it("en un nodo de texto suelto vale lo mismo que text", () => {
+      const els = walkElementsInOrder(`<p>Uno</p>`);
+      expect(els.find((e) => e.tagName === "p")!.deepText).toBe("Uno");
+    });
+
+    it("no arrastra el contenido de <script> ni de <style>", () => {
+      const els = walkElementsInOrder(`<div>Hola<script>var x = "adios";</script><style>.a{}</style></div>`);
+      const div = els.find((e) => e.tagName === "div")!;
+      expect(div.deepText).toBe("Hola");
+      // Pero el propio <script> sí sabe lo que lleva dentro: quien lo pida, lo tiene.
+      expect(els.find((e) => e.tagName === "script")!.deepText).toContain("adios");
+    });
+
+    it("decodifica las entidades, porque lo hace parse5 y no un apaño con regex", () => {
+      const els = walkElementsInOrder(`<h2>Caf&eacute; &amp; t&eacute;</h2>`);
+      expect(els.find((e) => e.tagName === "h2")!.deepText).toBe("Café & té");
+    });
+  });
+
   it("captura el texto directo del nodo", () => {
     const els = walkElementsInOrder(html);
     expect(els.find((e) => e.tagName === "h1")!.text).toBe("Hola");

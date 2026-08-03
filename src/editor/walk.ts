@@ -11,6 +11,17 @@ export type WalkedElement = {
   endTagEnd: number | null;
   hasElementChildren: boolean;
   text: string;
+  /**
+   * El texto de TODO el subárbol, no solo el de los hijos directos.
+   *
+   * `text` se queda corto justo donde más importa: un héroe animado palabra a
+   * palabra —`<h1><span class="word">Agencia</span> <span…`— tiene `text` vacío,
+   * y es lo que genera cualquier constructor de webs con IA. Quien pregunte «qué
+   * dice este encabezado» tiene que preguntarle a esto.
+   *
+   * Sin `<script>` ni `<style>`: su contenido es código, no texto de la página.
+   */
+  deepText: string;
   attrs: Record<string, string>;
   attrLocations: Record<string, { start: number; end: number }>;
   /** Nodos de texto significativos (hijos directos con algo no-blanco), en orden documental. */
@@ -27,9 +38,14 @@ export function walkElementsInOrder(html: string): WalkedElement[] {
   const out: WalkedElement[] = [];
   let nextId = 0;
 
-  const visit = (node: unknown, excluido: boolean) => {
+  // Devuelve el texto del subárbol que acaba de recorrer, para que cada elemento
+  // pueda quedarse con el suyo sin volver a bajar por sus hijos (así el coste
+  // sigue siendo una sola pasada y no una por elemento).
+  const visit = (node: unknown, excluido: boolean): string => {
     const n = node as {
       tagName?: string;
+      nodeName?: string;
+      value?: string;
       attrs?: { name: string; value: string }[];
       childNodes?: unknown[];
       sourceCodeLocation?: {
@@ -39,8 +55,10 @@ export function walkElementsInOrder(html: string): WalkedElement[] {
         attrs?: Record<string, { startOffset: number; endOffset: number }>;
       } | null;
     };
+    if (n.nodeName === "#text") return n.value ?? "";
     const loc = n.sourceCodeLocation;
     let excluidoHijos = excluido;
+    let mio = -1; // dónde ha quedado este elemento en `out`, para completarlo luego
     if (typeof n.tagName === "string" && loc && loc.startTag) {
       const propioExcluido = excluido || EXCLUIDOS.has(n.tagName);
       const kids = (n.childNodes ?? []) as {
@@ -66,9 +84,12 @@ export function walkElementsInOrder(html: string): WalkedElement[] {
         if (/<[a-zA-Z/!?]/.test(raw)) continue;
         textNodes.push({ index: idx++, start: tl.startOffset, end: tl.endOffset, raw });
       }
+      mio = out.length;
       out.push({
         id: nextId++,
         tagName: n.tagName,
+        deepText: "", // se rellena al volver de los hijos, más abajo
+
         startTagStart: loc.startOffset,
         startTagEnd: loc.startTag.endOffset,
         endTagStart: loc.endTag ? loc.endTag.startOffset : null,
@@ -82,7 +103,12 @@ export function walkElementsInOrder(html: string): WalkedElement[] {
       });
       excluidoHijos = propioExcluido;
     }
-    if (n.childNodes) for (const c of n.childNodes) visit(c, excluidoHijos);
+    let subarbol = "";
+    if (n.childNodes) for (const c of n.childNodes) subarbol += visit(c, excluidoHijos);
+    if (mio >= 0) out[mio].deepText = subarbol;
+    // El contenido de un <script> o un <style> es código: no es texto de la
+    // página y no debe subir a lo que digan sus antepasados.
+    return n.tagName === "script" || n.tagName === "style" ? "" : subarbol;
   };
   visit(doc, false);
   return out;

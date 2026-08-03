@@ -85,6 +85,95 @@ export const en: TextosPanel = {
       cargando: "Loading...",
       errorCargar: "The messages could not be loaded.",
     },
+    seo: {
+      titulo: "How Google sees you",
+      cargando: "Looking at your site…",
+      errorCargar: "The site could not be examined.",
+      sinPublicar: "Publish the site and we'll tell you how Google sees it.",
+      todoBien: "We found nothing to fix. Nicely done.",
+      resumenTodoBien: "All good",
+      examinadas: "{n} of {total} pages examined",
+      grave: "Serious",
+      aviso: "Could be better",
+      arreglable: "We'll fix this for you",
+      enUnaPagina: "on 1 page",
+      enPaginas: "on {n} pages",
+      ejemplos: "For example:",
+      veredictoExcelente: "Your site is very well set up to be found.",
+      veredictoBien: "It's in decent shape, but there's more to get out of it.",
+      veredictoRegular: "It's missing important things Google needs to understand it.",
+      veredictoMal: "Google is going to struggle to understand this site.",
+      fallos: {
+        sinTitulo: {
+          que: "This page has no title",
+          porque: "It's the blue line people click on in Google. Without it, Google makes one up from whatever it finds.",
+        },
+        tituloLargo: {
+          que: "The title gets cut off in Google",
+          porque: "It's over 60 characters, so search results show it half-finished.",
+        },
+        titulosRepetidos: {
+          que: "Several pages share the same title",
+          porque: "Google doesn't know which one to show and makes them compete with each other. It's the most common flaw in an AI-built site.",
+        },
+        sinDescripcion: {
+          que: "No description",
+          porque: "It's the grey text under the title in Google: your free ad. Without it, a random scrap of the page shows up instead.",
+        },
+        descripcionLarga: {
+          que: "The description gets cut off",
+          porque: "It's over 160 characters and Google trims it mid-sentence.",
+        },
+        descripcionesRepetidas: {
+          que: "The same description on several pages",
+          porque: "You're telling Google those pages say the same thing, so it ends up showing only one.",
+        },
+        sinH1: {
+          que: "There's no headline",
+          porque: "It's the first thing Google reads to work out what the page is about. Without it, it has to guess.",
+        },
+        variosH1: {
+          que: "There's more than one headline",
+          porque: "If everything is the headline, nothing is: Google can't tell what the page is about.",
+        },
+        saltoEncabezados: {
+          que: "Section headings skip levels",
+          porque: "They jump from one level to another without the one in between. That breaks the outline Google uses to understand the page.",
+        },
+        imagenesSinAlt: {
+          que: "Images with no description",
+          porque: "That description is all Google understands about a photo, and it's what people who can't see it hear. It also gets you into Google Images for free.",
+        },
+        imagenesSinTamano: {
+          que: "Images with no dimensions",
+          porque: "The browser doesn't know how much room to leave, so the page jumps around while it loads. Google measures that and it counts towards your ranking.",
+        },
+        sinViewport: {
+          que: "Not set up for mobile",
+          porque: "The line that tells phones how to draw the page is missing. Google ranks by the mobile version: without this you start out behind.",
+        },
+        sinLang: {
+          que: "It doesn't say what language it's in",
+          porque: "Google and translators have to guess, and sometimes they guess the wrong country.",
+        },
+        sinOgImage: {
+          que: "No image when shared",
+          porque: "Paste the link into WhatsApp or LinkedIn and the card comes out with no photo. That's the difference between people opening it or not.",
+        },
+        sinDatosEstructurados: {
+          que: "No profile for search engines",
+          porque: "It's what tells Google and ChatGPT what you are: a business, an article, a product. Almost no AI-built site has one, and it's what gets you cited.",
+        },
+        enlacesGenericos: {
+          que: "Links that don't say where they go",
+          porque: "«Read more» or «here» tells nothing to Google, nor to anyone browsing without sight.",
+        },
+        sinFavicon: {
+          que: "No tab icon",
+          porque: "It's the little square in the browser tab and in bookmarks. Without it, you get a blank sheet of paper.",
+        },
+      },
+    },
     publicar: {
       sinDireccion: "No address yet",
       copiar: "Copy",

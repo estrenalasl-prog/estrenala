@@ -85,6 +85,95 @@ export const pt: TextosPanel = {
       cargando: "A carregar…",
       errorCargar: "Não foi possível carregar as mensagens.",
     },
+    seo: {
+      titulo: "Como o Google te vê",
+      cargando: "A olhar para o teu site…",
+      errorCargar: "Não foi possível examinar o site.",
+      sinPublicar: "Publica o site e dizemos-te como o Google o vê.",
+      todoBien: "Não encontrámos nada para corrigir. Muito bem.",
+      resumenTodoBien: "Está tudo bem",
+      examinadas: "{n} de {total} páginas examinadas",
+      grave: "Grave",
+      aviso: "Pode melhorar",
+      arreglable: "Corrigimos nós",
+      enUnaPagina: "em 1 página",
+      enPaginas: "em {n} páginas",
+      ejemplos: "Por exemplo:",
+      veredictoExcelente: "O teu site está muito bem preparado para ser encontrado.",
+      veredictoBien: "Está razoável, mas ainda dá para tirar mais dele.",
+      veredictoRegular: "Faltam-lhe coisas importantes para o Google o perceber.",
+      veredictoMal: "O Google vai ter dificuldade em perceber este site.",
+      fallos: {
+        sinTitulo: {
+          que: "Esta página não tem título",
+          porque: "É a linha azul em que as pessoas clicam no Google. Sem ela, o Google inventa uma com o que apanhar.",
+        },
+        tituloLargo: {
+          que: "O título fica cortado no Google",
+          porque: "Passa dos 60 caracteres, por isso nos resultados aparece a meio.",
+        },
+        titulosRepetidos: {
+          que: "Várias páginas com o mesmo título",
+          porque: "O Google não sabe qual mostrar e põe-nas a competir entre si. É a falha mais comum num site feito com IA.",
+        },
+        sinDescripcion: {
+          que: "Sem descrição",
+          porque: "É o texto cinzento por baixo do título no Google: o teu anúncio grátis. Sem ele aparece um pedaço solto da página.",
+        },
+        descripcionLarga: {
+          que: "A descrição fica cortada",
+          porque: "Passa dos 160 caracteres e o Google corta-a a meio da frase.",
+        },
+        descripcionesRepetidas: {
+          que: "A mesma descrição em várias páginas",
+          porque: "Estás a dizer ao Google que contam o mesmo, e ele acaba por mostrar só uma.",
+        },
+        sinH1: {
+          que: "Não há manchete",
+          porque: "É a primeira coisa que o Google lê para saber do que trata a página. Sem ela, tem de adivinhar.",
+        },
+        variosH1: {
+          que: "Há mais do que uma manchete",
+          porque: "Se tudo é manchete, nada é: o Google não percebe qual é o tema da página.",
+        },
+        saltoEncabezados: {
+          que: "Os títulos de secção saltam níveis",
+          porque: "Vão de um nível para outro sem passar pelo do meio. Isso parte o índice com que o Google percebe a página.",
+        },
+        imagenesSinAlt: {
+          que: "Imagens sem descrição",
+          porque: "Essa descrição é tudo o que o Google percebe de uma foto, e é o que ouve quem não a consegue ver. Ainda por cima mete-te de graça no Google Imagens.",
+        },
+        imagenesSinTamano: {
+          que: "Imagens sem medidas",
+          porque: "O navegador não sabe quanto espaço deixar e a página dá saltos enquanto carrega. O Google mede isso e conta para a posição.",
+        },
+        sinViewport: {
+          que: "Não está preparada para o telemóvel",
+          porque: "Falta a linha que diz ao telemóvel como a desenhar. O Google ordena pela versão móvel: sem isto começas a perder.",
+        },
+        sinLang: {
+          que: "Não diz em que idioma está",
+          porque: "O Google e os tradutores têm de adivinhar, e às vezes enganam-se no país.",
+        },
+        sinOgImage: {
+          que: "Sem imagem ao partilhar",
+          porque: "Ao colar a ligação no WhatsApp ou no LinkedIn sai um cartão sem foto. É a diferença entre abrirem ou não.",
+        },
+        sinDatosEstructurados: {
+          que: "Sem ficha para os motores de busca",
+          porque: "É o que diz ao Google e ao ChatGPT o que és: um negócio, um artigo, um produto. Quase nenhum site feito com IA a traz, e é o que faz que te citem.",
+        },
+        enlacesGenericos: {
+          que: "Ligações que não dizem para onde levam",
+          porque: "«Ler mais» ou «aqui» não dizem nada ao Google nem a quem navega às cegas.",
+        },
+        sinFavicon: {
+          que: "Sem ícone de separador",
+          porque: "É o quadradinho do separador e dos favoritos. Sem ele aparece uma folha em branco.",
+        },
+      },
+    },
     publicar: {
       sinDireccion: "Ainda sem endereço",
       copiar: "Copiar",

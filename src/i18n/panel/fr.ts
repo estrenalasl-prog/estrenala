@@ -85,6 +85,95 @@ export const fr: TextosPanel = {
       cargando: "Chargement…",
       errorCargar: "Les messages n'ont pas pu être chargés.",
     },
+    seo: {
+      titulo: "Comment Google te voit",
+      cargando: "On regarde ton site…",
+      errorCargar: "Le site n'a pas pu être examiné.",
+      sinPublicar: "Publie le site et on te dira comment Google le voit.",
+      todoBien: "Nous n'avons rien trouvé à corriger. Beau travail.",
+      resumenTodoBien: "Tout va bien",
+      examinadas: "{n} pages examinées sur {total}",
+      grave: "Grave",
+      aviso: "À améliorer",
+      arreglable: "On s'en occupe",
+      enUnaPagina: "sur 1 page",
+      enPaginas: "sur {n} pages",
+      ejemplos: "Par exemple :",
+      veredictoExcelente: "Ton site est très bien préparé pour qu'on le trouve.",
+      veredictoBien: "C'est plutôt correct, mais on peut en tirer davantage.",
+      veredictoRegular: "Il lui manque des choses importantes pour que Google le comprenne.",
+      veredictoMal: "Google va avoir du mal à comprendre ce site.",
+      fallos: {
+        sinTitulo: {
+          que: "Cette page n'a pas de titre",
+          porque: "C'est la ligne bleue sur laquelle les gens cliquent dans Google. Sans elle, Google en invente une avec ce qu'il trouve.",
+        },
+        tituloLargo: {
+          que: "Le titre est coupé dans Google",
+          porque: "Il dépasse 60 caractères, donc il s'affiche à moitié dans les résultats.",
+        },
+        titulosRepetidos: {
+          que: "Plusieurs pages ont le même titre",
+          porque: "Google ne sait pas laquelle montrer et les met en concurrence entre elles. C'est le défaut le plus courant d'un site fait avec l'IA.",
+        },
+        sinDescripcion: {
+          que: "Aucune description",
+          porque: "C'est le texte gris sous le titre dans Google : ta publicité gratuite. Sans elle, c'est un bout de page pris au hasard qui s'affiche.",
+        },
+        descripcionLarga: {
+          que: "La description est coupée",
+          porque: "Elle dépasse 160 caractères et Google la tronque au milieu de la phrase.",
+        },
+        descripcionesRepetidas: {
+          que: "La même description sur plusieurs pages",
+          porque: "Tu dis à Google que ces pages racontent la même chose, et il finit par n'en montrer qu'une.",
+        },
+        sinH1: {
+          que: "Il n'y a pas de titre principal",
+          porque: "C'est la première chose que Google lit pour savoir de quoi parle la page. Sans lui, il doit deviner.",
+        },
+        variosH1: {
+          que: "Il y a plus d'un titre principal",
+          porque: "Si tout est le titre, rien ne l'est : Google ne sait pas quel est le sujet de la page.",
+        },
+        saltoEncabezados: {
+          que: "Les intertitres sautent des niveaux",
+          porque: "Ils passent d'un niveau à l'autre sans celui du milieu. Cela casse le plan avec lequel Google comprend la page.",
+        },
+        imagenesSinAlt: {
+          que: "Des images sans description",
+          porque: "Cette description est tout ce que Google comprend d'une photo, et c'est ce qu'entend celui qui ne peut pas la voir. En prime, elle te fait entrer gratuitement dans Google Images.",
+        },
+        imagenesSinTamano: {
+          que: "Des images sans dimensions",
+          porque: "Le navigateur ne sait pas quelle place laisser et la page sursaute pendant le chargement. Google le mesure et ça compte pour ton classement.",
+        },
+        sinViewport: {
+          que: "Pas prête pour le mobile",
+          porque: "Il manque la ligne qui indique au téléphone comment la dessiner. Google classe d'après la version mobile : sans ça, tu pars perdant.",
+        },
+        sinLang: {
+          que: "Elle ne dit pas dans quelle langue elle est",
+          porque: "Google et les traducteurs doivent deviner, et ils se trompent parfois de pays.",
+        },
+        sinOgImage: {
+          que: "Aucune image au partage",
+          porque: "Colle le lien dans WhatsApp ou LinkedIn et la carte sort sans photo. C'est ce qui décide si on l'ouvre ou pas.",
+        },
+        sinDatosEstructurados: {
+          que: "Aucune fiche pour les moteurs de recherche",
+          porque: "C'est ce qui dit à Google et à ChatGPT ce que tu es : une entreprise, un article, un produit. Presque aucun site fait avec l'IA n'en a, et c'est ce qui fait qu'on te cite.",
+        },
+        enlacesGenericos: {
+          que: "Des liens qui ne disent pas où ils mènent",
+          porque: "« En savoir plus » ou « ici » ne disent rien, ni à Google ni à celui qui navigue à l'aveugle.",
+        },
+        sinFavicon: {
+          que: "Aucune icône d'onglet",
+          porque: "C'est le petit carré de l'onglet et des favoris. Sans lui, on voit une feuille blanche.",
+        },
+      },
+    },
     publicar: {
       sinDireccion: "Pas encore d'adresse",
       copiar: "Copier",
