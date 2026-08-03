@@ -2,7 +2,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/src/db/client";
 import {
   assets, organizations, projects, snapshots, posts, scheduledPosts, trendsCache,
-  blogKeywords, articleDrafts, blogSettings, blogTemplates,
+  blogKeywords, articleDrafts, blogSettings, blogTemplates, formSubmissions,
 } from "@/src/db/schema";
 import type {
   AssetRow, CreateAssetInput, CreateProjectInput, CreateSnapshotInput,
@@ -171,6 +171,7 @@ export class DrizzleProjectStore implements ProjectStore {
   ): Promise<{
     entryPath: string; storagePrefix: string; plan: string; noIndexar: boolean;
     dominio: string | null; subdominio: string | null;
+    projectId: string; orgId: string; recogeFormularios: boolean;
   } | null> {
     const cond = "subdominio" in q
       ? eq(projects.subdominio, q.subdominio)
@@ -183,6 +184,9 @@ export class DrizzleProjectStore implements ProjectStore {
         noIndexar: projects.noIndexar, // decide la cabecera X-Robots-Tag
         dominio: projects.dominio, // decide el canónico cuando se entra por el subdominio
         subdominio: projects.subdominio, // la dirección VIEJA que el blog dejó escrita dentro del HTML
+        projectId: projects.id, // a qué web se le apunta un envío de formulario
+        orgId: projects.orgId, // a quién se le avisa por correo
+        recogeFormularios: projects.recogeFormularios, // si se conectan sus formularios al servir
       })
       .from(projects)
       .innerJoin(snapshots, eq(projects.publishedSnapshotId, snapshots.id))
@@ -200,6 +204,65 @@ export class DrizzleProjectStore implements ProjectStore {
   async setNoIndexar(orgId: string, projectId: string, noIndexar: boolean): Promise<void> {
     await db.update(projects).set({ noIndexar })
       .where(and(eq(projects.id, projectId), eq(projects.orgId, orgId)));
+  }
+
+  async setRecogeFormularios(orgId: string, projectId: string, recoge: boolean): Promise<void> {
+    await db.update(projects).set({ recogeFormularios: recoge })
+      .where(and(eq(projects.id, projectId), eq(projects.orgId, orgId)));
+  }
+
+  /**
+   * Guarda un envío. NO lleva orgId y es a propósito: quien llama es la ruta
+   * pública, donde no hay sesión de nadie — el projectId sale de resolver el host,
+   * que es la única autoridad que hay ahí.
+   */
+  async guardarEnvio(projectId: string, e: { pagina: string; formIndice: number; datos: Record<string, string> }): Promise<void> {
+    await db.insert(formSubmissions).values({
+      projectId, pagina: e.pagina, formIndice: e.formIndice, datos: e.datos,
+    });
+  }
+
+  /** La bandeja del dueño. El `orgId` es el candado: sin él se leería la de otro. */
+  async listarEnvios(orgId: string, projectId: string, limite = 100): Promise<{
+    id: string; pagina: string; formIndice: number;
+    datos: Record<string, string>; leido: boolean; createdAt: Date;
+  }[]> {
+    const r = await db
+      .select({
+        id: formSubmissions.id,
+        pagina: formSubmissions.pagina,
+        formIndice: formSubmissions.formIndice,
+        datos: formSubmissions.datos,
+        leido: formSubmissions.leido,
+        createdAt: formSubmissions.createdAt,
+      })
+      .from(formSubmissions)
+      .innerJoin(projects, eq(projects.id, formSubmissions.projectId))
+      .where(and(eq(formSubmissions.projectId, projectId), eq(projects.orgId, orgId)))
+      .orderBy(desc(formSubmissions.createdAt))
+      .limit(limite);
+    return r.map((f) => ({ ...f, datos: f.datos as Record<string, string> }));
+  }
+
+  async contarEnviosSinLeer(orgId: string, projectId: string): Promise<number> {
+    const r = await db
+      .select({ id: formSubmissions.id })
+      .from(formSubmissions)
+      .innerJoin(projects, eq(projects.id, formSubmissions.projectId))
+      .where(and(
+        eq(formSubmissions.projectId, projectId),
+        eq(projects.orgId, orgId),
+        eq(formSubmissions.leido, false)
+      ));
+    return r.length;
+  }
+
+  async marcarEnviosLeidos(orgId: string, projectId: string): Promise<void> {
+    const suyos = await db.select({ id: projects.id }).from(projects)
+      .where(and(eq(projects.id, projectId), eq(projects.orgId, orgId))).limit(1);
+    if (suyos.length === 0) return; // no es suya: no se toca nada
+    await db.update(formSubmissions).set({ leido: true })
+      .where(eq(formSubmissions.projectId, projectId));
   }
 
   async subdominioLibre(subdominio: string): Promise<boolean> {

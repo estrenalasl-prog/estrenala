@@ -4,6 +4,7 @@ import { conMarca, ID_MARCA } from "@/src/publish/marca";
 import { idiomaDeLaPagina } from "@/src/publish/idioma-pagina";
 import { textosPublico } from "@/src/i18n/publico";
 import { IDIOMAS } from "@/src/i18n/idiomas";
+import { RUTA_ENVIO } from "@/src/forms/conectar";
 import {
   ROBOTS_NOINDEX, reapuntarCanonicos, reapuntarMetadatosImportados, reapuntarSitemap,
   dominiosAjenosDelSitemap,
@@ -34,6 +35,7 @@ class FakeStorage implements StorageAdapter {
 type Sitio = {
   entryPath: string; storagePrefix: string; plan: string; noIndexar: boolean;
   dominio: string | null; subdominio: string | null;
+  projectId: string; orgId: string; recogeFormularios: boolean;
 };
 
 class FakeStore implements ProjectStore {
@@ -68,7 +70,12 @@ function preparado(plan = "personal", extra: Partial<Sitio> = {}) {
   storage.files.set(PREFIX + "index.html", Buffer.from(HTML));
   storage.files.set(PREFIX + "css/app.css", Buffer.from("body{}"));
   const store = new FakeStore();
-  const base = { entryPath: "index.html", storagePrefix: PREFIX, plan, noIndexar: false, dominio: null, subdominio: "cafe", ...extra };
+  const base = {
+    entryPath: "index.html", storagePrefix: PREFIX, plan, noIndexar: false,
+    dominio: null, subdominio: "cafe",
+    projectId: "p1", orgId: "o1", recogeFormularios: false,
+    ...extra,
+  };
   store.sitios.set("sub:cafe", base);
   store.sitios.set("dom:quantivatechnology.com", base);
   return { storage, store };
@@ -590,6 +597,68 @@ describe("conMarca", () => {
 
   it("escapa el host de la plataforma", () => {
     expect(conMarca(HTML, `x"><script>alert(1)</script>`, )).not.toContain("<script>alert(1)");
+  });
+});
+
+describe("los formularios solo se conectan si el dueño lo ha encendido", () => {
+  const CON_FORM =
+    `<!doctype html><html lang="es"><body><h1>Hola</h1>` +
+    `<form><input name="nombre"><textarea name="mensaje"></textarea></form>` +
+    `</body></html>`;
+
+  const sitio = (recogeFormularios: boolean) => {
+    const { storage, store } = preparado("personal", { recogeFormularios });
+    storage.files.set(PREFIX + "index.html", Buffer.from(CON_FORM));
+    return { storage, store };
+  };
+
+  const pedir = (recoge: boolean, segs: string[] = []) => {
+    const { storage, store } = sitio(recoge);
+    return resolvePublicSite({ store, storage }, { host: "cafe.localhost:3000", platformHost: PLAT, pathSegments: segs });
+  };
+
+  /**
+   * La guarda de fondo. Encender la recogida hace que la plataforma empiece a
+   * guardar datos de TERCEROS —quien rellena el formulario no es cliente nuestro,
+   * es cliente de nuestro cliente—, así que apagada no se toca ni un byte.
+   */
+  it("apagada, la web sale byte a byte como la subió", async () => {
+    const r = await pedir(false);
+    expect(r.body.toString()).toBe(CON_FORM);
+  });
+
+  it("encendida, el formulario apunta a la plataforma", async () => {
+    const html = (await pedir(true)).body.toString();
+    expect(html).toContain(`action="${RUTA_ENVIO}"`);
+    expect(html).toContain(`method="post"`);
+    expect(html).toContain("<h1>Hola</h1>"); // el resto, intacto
+  });
+
+  it("el campo oculto lleva la ruta REAL en la que se sirvió", async () => {
+    const { storage, store } = sitio(true);
+    storage.files.set(PREFIX + "contacto.html", Buffer.from(CON_FORM));
+    const r = await resolvePublicSite(
+      { store, storage },
+      { host: "cafe.localhost:3000", platformHost: PLAT, pathSegments: ["contacto.html"] }
+    );
+    expect(r.body.toString()).toContain(`value="/contacto.html"`);
+  });
+
+  it("una web sin formularios no cambia aunque esté encendida", async () => {
+    const { storage, store } = preparado("personal", { recogeFormularios: true });
+    const r = await resolvePublicSite({ store, storage }, { host: "cafe.localhost:3000", platformHost: PLAT, pathSegments: [] });
+    expect(r.body.toString()).toBe(HTML);
+  });
+
+  it("con el plan gratuito conviven el sello y el formulario conectado", async () => {
+    const { storage, store } = preparado("free", { recogeFormularios: true });
+    storage.files.set(PREFIX + "index.html", Buffer.from(CON_FORM));
+    const html = (await resolvePublicSite(
+      { store, storage },
+      { host: "cafe.localhost:3000", platformHost: PLAT, pathSegments: [] }
+    )).body.toString();
+    expect(html).toContain(`action="${RUTA_ENVIO}"`);
+    expect(html).toContain(ID_MARCA);
   });
 });
 

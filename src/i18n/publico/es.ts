@@ -17,4 +17,9 @@ export const es: TextosPublico = {
       "Estrénala la pone online en un clic, la editas sin código haciendo clic sobre ella, y su blog escribe solo.",
     pie: "Estrénala · Tu web hecha con IA, por fin en directo.",
   },
+  gracias: {
+    titulo: "Mensaje enviado",
+    texto: "Gracias por escribir. Te responderemos lo antes posible.",
+    volver: "Volver a la web",
+  },
 };

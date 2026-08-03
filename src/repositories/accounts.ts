@@ -223,6 +223,21 @@ export class DrizzleAccountStore implements AccountStore {
       .where(and(eq(memberships.orgId, orgId), eq(memberships.userId, userId)));
   }
 
+  /**
+   * A quién se le avisa de lo que pasa en un espacio: sus propietarios.
+   *
+   * A los editores no. Un editor entra a tocar la web; los mensajes que le
+   * escriben al negocio son del dueño, y meter a un colaborador de paso en esa
+   * lista es enseñarle datos de terceros que no le tocan.
+   */
+  async correosDePropietarios(orgId: string): Promise<string[]> {
+    const r = await db.select({ email: users.email })
+      .from(memberships)
+      .innerJoin(users, eq(users.id, memberships.userId))
+      .where(and(eq(memberships.orgId, orgId), eq(memberships.rol, "owner")));
+    return r.map((f) => f.email);
+  }
+
   async contarPropietarios(orgId: string): Promise<number> {
     const r = await db.select({ userId: memberships.userId })
       .from(memberships)

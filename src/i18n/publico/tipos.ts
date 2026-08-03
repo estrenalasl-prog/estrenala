@@ -30,4 +30,15 @@ export type TextosPublico = {
     /** El eslogan. Es el MISMO que el `<title>` de la landing en ese idioma. */
     pie: string;
   };
+  /**
+   * Lo que ve quien acaba de enviar un formulario de la web de un cliente.
+   *
+   * Va en el idioma del VISITANTE, no en el de la página: esto ya no está dentro
+   * del documento del cliente, es una página nuestra servida desde su dominio.
+   */
+  gracias: {
+    titulo: string;
+    texto: string;
+    volver: string;
+  };
 };

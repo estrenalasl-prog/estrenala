@@ -18,4 +18,9 @@ export const it: TextosPublico = {
       "Estrénala lo mette online in un clic, lo modifichi cliccandoci sopra, senza codice, e il suo blog si scrive da solo.",
     pie: "Estrénala · Il tuo sito fatto con l'IA, finalmente online.",
   },
+  gracias: {
+    titulo: "Messaggio inviato",
+    texto: "Grazie per averci scritto. Ti rispondiamo appena possibile.",
+    volver: "Torna al sito",
+  },
 };

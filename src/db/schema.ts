@@ -77,6 +77,30 @@ export const projects = pgTable("projects", {
   // «Que Google no la encuentre todavía»: se sirve con X-Robots-Tag en vez de
   // tocar el HTML del cliente. Por defecto false: publicar es querer que te vean.
   noIndexar: boolean("no_indexar").notNull().default(false),
+  // Recoger lo que la gente escriba en los formularios de esta web. Apagado por
+  // defecto y a propósito: encenderlo hace que la plataforma empiece a guardar
+  // datos de terceros, y eso lo decide el dueño, no nosotros. Mientras esté
+  // apagado, su web se sirve exactamente como la subió.
+  recogeFormularios: boolean("recoge_formularios").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
+ * Lo que la gente escribe en los formularios de las webs publicadas.
+ *
+ * Sin `references` a nada del visitante: aquí no hay cuentas, entra cualquiera de
+ * internet. Lo que se guarda son los campos tal cual los mandó, acotados en
+ * `src/forms/recibir.ts`.
+ */
+export const formSubmissions = pgTable("form_submissions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  projectId: uuid("project_id").notNull().references(() => projects.id),
+  /** La ruta pública donde se envió: `/contacto.html`. */
+  pagina: text("pagina").notNull(),
+  /** Cuál de los formularios de esa página, en orden documental. */
+  formIndice: integer("form_indice").notNull(),
+  datos: jsonb("datos").notNull(),
+  leido: boolean("leido").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

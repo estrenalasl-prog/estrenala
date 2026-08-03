@@ -83,6 +83,10 @@ export interface ProjectStore {
   ): Promise<{
     entryPath: string; storagePrefix: string; plan: string; noIndexar: boolean;
     dominio: string | null; subdominio: string | null;
+    /** Quién es esta web. Hace falta para guardar los envíos de sus formularios. */
+    projectId: string; orgId: string;
+    /** Si sus formularios muertos se conectan al servir (ver src/forms/). */
+    recogeFormularios: boolean;
   } | null>;
   setPublished(orgId: string, projectId: string, snapshotId: string | null): Promise<void>;
   setNoIndexar(orgId: string, projectId: string, noIndexar: boolean): Promise<void>;
