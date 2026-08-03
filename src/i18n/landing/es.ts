@@ -8,7 +8,7 @@ export const es = {
   meta: {
     titulo: "Estrénala — Tu web hecha con IA, por fin en directo",
     descripcion:
-      "¿La IA te hizo una web y no sabes cómo subirla? Estrénala la pone online en un clic con dominio y HTTPS, la editas sin código y hacemos que Google la encuentre. Gratis para empezar.",
+      "¿La IA te hizo una web y no sabes subirla? La ponemos online en un clic, con dominio y HTTPS, la editas sin código y hacemos que Google la encuentre.",
   },
 
   nav: {

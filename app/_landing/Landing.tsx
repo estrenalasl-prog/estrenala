@@ -3,6 +3,7 @@ import { Reveal } from "./Reveal";
 import { FirmaQuantiva } from "../_components/FirmaQuantiva";
 import { conFormato, sinFormato } from "@/src/i18n/formato";
 import { textosLanding } from "@/src/i18n/landing";
+import { fichaLanding } from "./ficha";
 import { IDIOMAS, NOMBRE_IDIOMA, rutaDeIdioma, type Idioma } from "@/src/i18n/idiomas";
 
 // Landing pública de estrenala.com. Viene del mockup 11-landing.html de la sesión
@@ -38,12 +39,21 @@ export function Landing({ idioma = "es" }: { idioma?: Idioma }) {
 
   return (
     <div className="landing" lang={idioma}>
+      {/* La ficha que le decimos a todo el mundo que hay que tener. La landing
+          no la traía: lo destapó nuestro propio examen de SEO al pasárselo a
+          esta página. */}
+      <script
+        type="application/ld+json"
+        // El contenido está serializado y con el `<` escapado en ficha.ts; no
+        // hay ninguna entrada de usuario en él.
+        dangerouslySetInnerHTML={{ __html: fichaLanding(idioma) }}
+      />
       <Reveal />
 
       <header className="top">
         <div className="contenedor top-int">
           <a href={rutaDeIdioma(idioma)} aria-label={t.nav.inicio}>
-            <img className="logo" src="/brand/logo-tinta.png" alt="Estrénala" />
+            <img className="logo" src="/brand/logo-tinta.png" alt="Estrénala" width={460} height={115} />
           </a>
           <nav aria-label={t.nav.principal}>
             <div className="enlaces">
@@ -457,25 +467,25 @@ export function Landing({ idioma = "es" }: { idioma?: Idioma }) {
         <div className="contenedor">
           <div className="pie-int">
             <div className="marca">
-              <img className="logo-pie" src="/brand/logo-blanco.png" alt="Estrénala" />
+              <img className="logo-pie" src="/brand/logo-blanco.png" alt="Estrénala" width={461} height={115} />
               <p>{t.pie.lema}</p>
             </div>
             <div className="pie-cols">
               <div className="pie-col">
-                <h4>{t.pie.colProducto}</h4>
+                <h3>{t.pie.colProducto}</h3>
                 <a href="#como">{t.nav.como}</a>
                 <a href="#editar">{t.pie.editarSinCodigo}</a>
                 <a href="#blog">{t.pie.blogAutomatico}</a>
                 <a href="#equipo">{t.nav.equipos}</a>
               </div>
               <div className="pie-col">
-                <h4>{t.pie.colEmpezar}</h4>
+                <h3>{t.pie.colEmpezar}</h3>
                 <a href={CTA}>{t.pie.subeTuWeb}</a>
                 <a href="/login">{t.pie.entrar}</a>
                 <a href="#faq">{t.pie.preguntasFrecuentes}</a>
               </div>
               <div className="pie-col">
-                <h4>{t.pie.colLegal}</h4>
+                <h3>{t.pie.colLegal}</h3>
                 <a href="/legal/aviso-legal">{t.pie.avisoLegal}</a>
                 <a href="/legal/privacidad">{t.pie.privacidad}</a>
                 <a href="/legal/cookies">{t.pie.cookies}</a>
@@ -484,7 +494,7 @@ export function Landing({ idioma = "es" }: { idioma?: Idioma }) {
               {/* También en el pie, y no solo por comodidad: es la única parte del
                   selector que Google ve sin abrir ningún desplegable. */}
               <div className="pie-col">
-                <h4>{t.pie.idioma}</h4>
+                <h3>{t.pie.idioma}</h3>
                 {enlacesIdioma}
               </div>
             </div>

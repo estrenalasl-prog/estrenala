@@ -7,7 +7,7 @@ export const pt: TextosLanding = {
   meta: {
     titulo: "Estrénala — O teu site feito com IA, finalmente no ar",
     descripcion:
-      "A IA fez-te um site e não sabes como o pôr online? A Estrénala publica-o num clique com domínio e HTTPS, editas sem código e fazemos que o Google o encontre. Grátis para começar.",
+      "A IA fez-te um site e não sabes pô-lo online? Publicamo-lo num clique, com domínio e HTTPS, editas sem código e fazemos que o Google o encontre.",
   },
 
   nav: {

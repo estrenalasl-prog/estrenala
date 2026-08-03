@@ -8,7 +8,7 @@ export const en: TextosLanding = {
   meta: {
     titulo: "Estrénala — Your AI-built website, finally live",
     descripcion:
-      "AI built you a website and you don't know how to put it online? Estrénala publishes it in one click with a domain and HTTPS, you edit it without code, and we get Google to find it. Free to start.",
+      "AI built you a website and you can't put it online? We publish it in one click with a domain and HTTPS, you edit it without code, and we get Google to find it.",
   },
 
   nav: {
