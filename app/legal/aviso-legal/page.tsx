@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function AvisoLegal() {
   return (
-    <PaginaLegal titulo="Aviso legal">
+    <PaginaLegal titulo="Aviso legal" soloEspanol>
       <p>
         Este aviso recoge los datos que exige el artículo 10 de la Ley 34/2002, de servicios de la
         sociedad de la información y de comercio electrónico (LSSI-CE), y las condiciones de uso

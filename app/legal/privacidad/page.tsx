@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function Privacidad() {
   return (
-    <PaginaLegal titulo="Política de privacidad">
+    <PaginaLegal titulo="Política de privacidad" soloEspanol>
       <p>
         Esta política explica qué datos personales tratamos en <b>{TITULAR.marca}</b>, para qué,
         durante cuánto tiempo y qué derechos tienes. Está redactada conforme al Reglamento (UE)

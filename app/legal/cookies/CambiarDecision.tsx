@@ -12,7 +12,7 @@ import { cookieOlvidar } from "@/src/legal/consentimiento";
  * consentimiento a mano — así el estado del navegador y el de Google vuelven a
  * partir del mismo sitio, sin quedarse a medias.
  */
-export function CambiarDecision() {
+export function CambiarDecision({ texto }: { texto: string }) {
   const [hecho, setHecho] = useState(false);
 
   function olvidar() {
@@ -24,7 +24,7 @@ export function CambiarDecision() {
   return (
     <p>
       <button className="btn btn-sec btn-sm" onClick={olvidar} disabled={hecho}>
-        Cambiar mi decisión sobre las cookies
+        {texto}
       </button>
     </p>
   );

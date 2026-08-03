@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function Terminos() {
   return (
-    <PaginaLegal titulo="Términos y condiciones">
+    <PaginaLegal titulo="Términos y condiciones" soloEspanol>
       <p>
         Estas condiciones regulan el uso de <b>{TITULAR.marca}</b> ({TITULAR.sitio}), titularidad
         de {TITULAR.nombre} (ver <a href="/legal/aviso-legal">aviso legal</a>). Al crear una cuenta
