@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { jsonError } from "@/src/auth/http";
 import { getContexto } from "@/src/auth/contexto";
 import { getStorage } from "@/src/storage/factory";
 import { projectStore } from "@/src/repositories/projects";
@@ -8,18 +9,25 @@ import { OpenRouterError } from "@/src/ia/claude";
 
 export const runtime = "nodejs";
 
+export const MSG_SIN_SALDO_ASISTENTE = "Tu clave de OpenRouter no tiene saldo suficiente.";
+export const MSG_PROVEEDOR_IA = "El proveedor de IA devolvió un error. Inténtalo de nuevo.";
+
 function conError(e: unknown) {
-  if (e instanceof EditorError) return NextResponse.json({ error: e.message }, { status: e.status });
+  if (e instanceof EditorError) return jsonError(e.message, e.status);
   if (e instanceof OpenRouterError) {
-    const msg = e.status === 402
-      ? "Tu clave de OpenRouter no tiene saldo suficiente."
-      : `El proveedor de IA devolvió un error (${e.status}). Inténtalo de nuevo.`;
-    return NextResponse.json({ error: msg }, { status: 502 });
+    // El código del proveedor se cae del texto y se queda en el status HTTP: a
+    // quien lee esto no le sirve de nada un «(429)», y meterlo dentro obligaba a
+    // que la frase fuera una plantilla en cinco idiomas para un dato que no
+    // cambia lo que hay que hacer.
+    return jsonError(
+      e.status === 402 ? MSG_SIN_SALDO_ASISTENTE : MSG_PROVEEDOR_IA,
+      502
+    );
   }
   // "Falta la clave de OpenRouter: añádela en Configuración" (lanzado por claude.ts)
   const texto = e instanceof Error ? e.message : "";
-  if (/clave de OpenRouter/i.test(texto)) return NextResponse.json({ error: texto }, { status: 400 });
-  return NextResponse.json({ error: "Error interno" }, { status: 500 });
+  if (/clave de OpenRouter/i.test(texto)) return jsonError(texto, 400);
+  return jsonError("Error interno", 500);
 }
 
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {

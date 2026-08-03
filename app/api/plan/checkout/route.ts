@@ -6,7 +6,7 @@ import { crearSesionCheckout, StripeError } from "@/src/pagos/stripe";
 import { priceIdDe, type Periodo } from "@/src/pagos/precios";
 import { planDe } from "@/src/planes/planes";
 import { baseApp } from "@/src/auth/url";
-import { errorJson } from "@/src/auth/http";
+import { errorJson, jsonError } from "@/src/auth/http";
 import { EditorError } from "@/src/editor/errors";
 
 export const runtime = "nodejs";
@@ -41,7 +41,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ url });
   } catch (e) {
     if (e instanceof StripeError) {
-      return NextResponse.json({ error: "No se pudo iniciar el pago. Inténtalo de nuevo." }, { status: 502 });
+      return jsonError("No se pudo iniciar el pago. Inténtalo de nuevo.", 502);
     }
     return errorJson(e);
   }

@@ -4,7 +4,7 @@ import { accountStore } from "@/src/repositories/accounts";
 import { exigirOwner } from "@/src/auth/roles";
 import { crearSesionPortal, StripeError } from "@/src/pagos/stripe";
 import { baseApp } from "@/src/auth/url";
-import { errorJson } from "@/src/auth/http";
+import { errorJson, jsonError } from "@/src/auth/http";
 import { EditorError } from "@/src/editor/errors";
 
 export const runtime = "nodejs";
@@ -23,7 +23,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ url });
   } catch (e) {
     if (e instanceof StripeError) {
-      return NextResponse.json({ error: "No se pudo abrir la gestión de tu suscripción." }, { status: 502 });
+      return jsonError("No se pudo abrir la gestión de tu suscripción.", 502);
     }
     return errorJson(e);
   }

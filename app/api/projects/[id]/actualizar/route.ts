@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { jsonError } from "@/src/auth/http";
 import { getContexto } from "@/src/auth/contexto";
 import { getStorage } from "@/src/storage/factory";
 import { projectStore } from "@/src/repositories/projects";
@@ -16,7 +17,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   try {
     const form = await req.formData();
     const file = form.get("file");
-    if (!(file instanceof File)) return NextResponse.json({ error: "Falta el archivo ZIP" }, { status: 400 });
+    if (!(file instanceof File)) return jsonError("Falta el archivo ZIP", 400);
     const zip = Buffer.from(await file.arrayBuffer());
     const { snapshotId } = await actualizarProyecto(
       { store: projectStore, storage: getStorage() },
@@ -24,8 +25,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     );
     return NextResponse.json({ snapshotId }, { status: 201 });
   } catch (e) {
-    if (e instanceof ImportError) return NextResponse.json({ error: e.message }, { status: 400 });
-    if (e instanceof EditorError) return NextResponse.json({ error: e.message }, { status: e.status });
+    if (e instanceof ImportError) return jsonError(e.message, 400);
+    if (e instanceof EditorError) return jsonError(e.message, e.status);
     return NextResponse.json({ error: e instanceof Error ? e.message : "Error" }, { status: 500 });
   }
 }

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { jsonError } from "@/src/auth/http";
 import { autenticar, normalizarEmail } from "@/src/auth/cuentas";
 import { permitirIntento, ipDe } from "@/src/auth/rate-limit";
 import { accountStore } from "@/src/repositories/accounts";
@@ -13,7 +14,7 @@ export async function POST(req: Request) {
 
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   if (!permitirIntento(`login|${ipDe(req)}|${normalizarEmail(body.email)}`)) {
-    return NextResponse.json({ error: "Demasiados intentos, espera un momento" }, { status: 429 });
+    return jsonError("Demasiados intentos, espera un momento", 429);
   }
 
   try {
@@ -22,7 +23,7 @@ export async function POST(req: Request) {
     await iniciarSesion(res, secret, userId);
     return res;
   } catch (e) {
-    if (e instanceof EditorError) return NextResponse.json({ error: e.message }, { status: e.status });
-    return NextResponse.json({ error: "No se pudo iniciar sesión" }, { status: 500 });
+    if (e instanceof EditorError) return jsonError(e.message, e.status);
+    return jsonError("No se pudo iniciar sesión", 500);
   }
 }

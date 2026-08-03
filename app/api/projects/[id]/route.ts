@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { jsonError } from "@/src/auth/http";
 import { getContexto } from "@/src/auth/contexto";
 import { getStorage } from "@/src/storage/factory";
 import { projectStore } from "@/src/repositories/projects";
@@ -27,8 +28,8 @@ export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string 
     await eliminarProyecto({ store: projectStore, storage: getStorage() }, { orgId, projectId: id });
     return NextResponse.json({ ok: true });
   } catch (e) {
-    if (e instanceof EditorError) return NextResponse.json({ error: e.message }, { status: e.status });
-    return NextResponse.json({ error: "Error interno" }, { status: 500 });
+    if (e instanceof EditorError) return jsonError(e.message, e.status);
+    return jsonError("Error interno", 500);
   }
 }
 
@@ -36,7 +37,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   const { id } = await ctx.params;
   const { orgId } = await getContexto();
   const project = await projectStore.getProject(orgId, id);
-  if (!project) return NextResponse.json({ error: "Proyecto no encontrado" }, { status: 404 });
+  if (!project) return jsonError("Proyecto no encontrado", 404);
   const pages = await listPages({ store: projectStore, storage: getStorage() }, { orgId, projectId: id });
   return NextResponse.json({ entryPath: project.entryPath, pages });
 }
@@ -45,7 +46,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   const { id } = await ctx.params;
   const { orgId, rol } = await getContexto();
   const project = await projectStore.getProject(orgId, id);
-  if (!project) return NextResponse.json({ error: "Proyecto no encontrado" }, { status: 404 });
+  if (!project) return jsonError("Proyecto no encontrado", 404);
   const body = (await req.json()) as {
     entryPath?: string; subdominio?: string; dominio?: string | null; noIndexar?: boolean;
   };
@@ -89,10 +90,10 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
         const extra = e.message === MSG_DOMINIO_SIN_VERIFICAR
           ? { txt: registroTxtEsperado(normalizarDominio(body.dominio as string), process.env.SECRETS_KEY ?? "") }
           : {};
-        return NextResponse.json({ error: e.message, ...extra }, { status: e.status });
+        return jsonError(e.message, e.status, extra);
       }
-      if (e instanceof EditorError) return NextResponse.json({ error: e.message }, { status: e.status });
-      return NextResponse.json({ error: "Error interno" }, { status: 500 });
+      if (e instanceof EditorError) return jsonError(e.message, e.status);
+      return jsonError("Error interno", 500);
     }
   }
   if (typeof body.subdominio === "string") {
@@ -103,7 +104,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       );
       return NextResponse.json(r);
     } catch (e) {
-      if (e instanceof PublishError) return NextResponse.json({ error: e.message }, { status: e.status });
+      if (e instanceof PublishError) return jsonError(e.message, e.status);
       return NextResponse.json({ error: e instanceof Error ? e.message : "Error interno" }, { status: 500 });
     }
   }

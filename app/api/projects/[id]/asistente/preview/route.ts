@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { jsonError } from "@/src/auth/http";
 import { getContexto } from "@/src/auth/contexto";
 import { getStorage } from "@/src/storage/factory";
 import { projectStore } from "@/src/repositories/projects";
@@ -28,7 +29,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     );
     return NextResponse.json({ html });
   } catch (e) {
-    if (e instanceof EditorError) return NextResponse.json({ error: e.message }, { status: e.status });
-    return NextResponse.json({ error: "Error interno" }, { status: 500 });
+    if (e instanceof EditorError) return jsonError(e.message, e.status);
+    return jsonError("Error interno", 500);
   }
 }

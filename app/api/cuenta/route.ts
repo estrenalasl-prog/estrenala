@@ -6,7 +6,7 @@ import { getStorage } from "@/src/storage/factory";
 import { cambiarNombre } from "@/src/auth/cuenta";
 import { eliminarCuenta } from "@/src/auth/eliminar-cuenta";
 import { cerrarSesion } from "@/src/auth/cookie-http";
-import { errorJson } from "@/src/auth/http";
+import { errorJson, jsonError } from "@/src/auth/http";
 
 export const runtime = "nodejs";
 
@@ -14,7 +14,7 @@ export async function GET() {
   try {
     const { userId } = await getContexto();
     const u = await accountStore.getUserById(userId);
-    if (!u) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    if (!u) return jsonError("No autorizado", 401);
     return NextResponse.json({
       nombre: u.nombre, email: u.email,
       tienePassword: !!u.passwordHash, google: !!u.googleSub, verificado: !!u.emailVerificadoAt,

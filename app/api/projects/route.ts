@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { jsonError } from "@/src/auth/http";
 import { importProject, importarArchivos } from "@/src/import/import-project";
 import { ImportError } from "@/src/import/unzip";
 import { getContexto } from "@/src/auth/contexto";
@@ -21,7 +22,7 @@ export async function POST(req: Request) {
     const entradas = form.getAll("file").filter((x): x is File => x instanceof File);
     const nombre = (form.get("nombre") as string | null) ?? undefined;
     if (entradas.length === 0) {
-      return NextResponse.json({ error: "Falta el archivo ZIP" }, { status: 400 });
+      return jsonError("Falta el archivo ZIP", 400);
     }
 
     // Rutas relativas paralelas (carpeta). Si no vienen, se usa el nombre del archivo.
@@ -55,12 +56,8 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ projectId }, { status: 201 });
   } catch (e) {
-    if (e instanceof ImportError) {
-      return NextResponse.json({ error: e.message }, { status: 400 });
-    }
-    if (e instanceof EditorError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
+    if (e instanceof ImportError) return jsonError(e.message, 400);
+    if (e instanceof EditorError) return jsonError(e.message, e.status);
     const msg = e instanceof Error ? e.message : "Error desconocido";
     return NextResponse.json({ error: msg }, { status: 500 });
   }

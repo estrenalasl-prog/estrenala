@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getContexto } from "@/src/auth/contexto";
 import { accountStore } from "@/src/repositories/accounts";
 import { cookieIdioma, esIdioma } from "@/src/i18n/idiomas";
-import { errorJson } from "@/src/auth/http";
+import { errorJson, jsonError } from "@/src/auth/http";
 
 export const runtime = "nodejs";
 
@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     // valor acaba decidiendo en qué idioma se le escribe a esta persona, y
     // guardar en silencio algo distinto de lo que pidió es peor que un error.
     if (!esIdioma(body.idioma)) {
-      return NextResponse.json({ error: "Ese idioma no existe" }, { status: 400 });
+      return jsonError("Ese idioma no existe", 400);
     }
     await accountStore.setIdioma(userId, body.idioma);
 

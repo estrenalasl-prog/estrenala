@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { jsonError } from "@/src/auth/http";
 import { getContexto } from "@/src/auth/contexto";
 import { exigirBlog } from "@/src/planes/guardas";
 import { projectStore } from "@/src/repositories/projects";
@@ -10,8 +11,8 @@ export const runtime = "nodejs";
 const DEFAULTS = { activo: false, cadaDias: 1, hora: 9, portada: "diseno", ultimoDia: null, ultimoMsg: null };
 
 function conError(e: unknown) {
-  if (e instanceof EditorError) return NextResponse.json({ error: e.message }, { status: e.status });
-  return NextResponse.json({ error: "Error interno" }, { status: 500 });
+  if (e instanceof EditorError) return jsonError(e.message, e.status);
+  return jsonError("Error interno", 500);
 }
 
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {

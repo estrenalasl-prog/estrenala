@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { jsonError } from "@/src/auth/http";
 import { getContexto } from "@/src/auth/contexto";
 import { exigirOwner } from "@/src/auth/roles";
 import { orgSettingsStore, type OrgSettings } from "@/src/repositories/org-settings";
@@ -7,8 +8,8 @@ import { EditorError } from "@/src/editor/errors";
 export const runtime = "nodejs";
 
 function conError(e: unknown) {
-  if (e instanceof EditorError) return NextResponse.json({ error: e.message }, { status: e.status });
-  return NextResponse.json({ error: "Error interno" }, { status: 500 });
+  if (e instanceof EditorError) return jsonError(e.message, e.status);
+  return jsonError("Error interno", 500);
 }
 
 // La clave completa NUNCA sale por la API: solo si está puesta y sus últimos 4.

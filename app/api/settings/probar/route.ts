@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { jsonError } from "@/src/auth/http";
 import { getContexto } from "@/src/auth/contexto";
 import { entrarOrg } from "@/src/auth/org-context";
 import { probarConexionModelo } from "@/src/ia/claude";
@@ -20,7 +21,7 @@ export async function POST(req: Request) {
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   const cual = typeof body.cual === "string" ? body.cual : "";
   if (cual !== "openrouter" && cual !== "serpapi") {
-    return NextResponse.json({ error: "Servicio desconocido" }, { status: 400 });
+    return jsonError("Servicio desconocido", 400);
   }
   try {
     const { orgId } = await getContexto();
@@ -28,7 +29,7 @@ export async function POST(req: Request) {
     const detalle = cual === "openrouter" ? await probarConexionModelo() : await probarConexionSerpApi();
     return NextResponse.json({ ok: true, detalle });
   } catch (e) {
-    if (e instanceof EditorError) return NextResponse.json({ error: e.message }, { status: e.status });
+    if (e instanceof EditorError) return jsonError(e.message, e.status);
     const msg = e instanceof Error ? e.message : "Error desconocido";
     return NextResponse.json({ ok: false, error: msg });
   }

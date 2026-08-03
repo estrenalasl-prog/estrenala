@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { jsonError } from "@/src/auth/http";
 import { getContexto } from "@/src/auth/contexto";
 import { accountStore } from "@/src/repositories/accounts";
 import { enviarVerificacion } from "@/src/auth/verificacion";
@@ -13,7 +14,7 @@ export async function POST(req: Request) {
   try {
     const { userId } = await getContexto();
     const user = await accountStore.getUserById(userId);
-    if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    if (!user) return jsonError("No autorizado", 401);
     if (!user.emailVerificadoAt) {
       await enviarVerificacion(accountStore, {
         userId, email: user.email, nombre: user.nombre, base: baseApp(req),
@@ -22,6 +23,6 @@ export async function POST(req: Request) {
     }
     return NextResponse.json({ ok: true });
   } catch {
-    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    return jsonError("No autorizado", 401);
   }
 }
