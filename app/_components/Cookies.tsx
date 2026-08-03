@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { cookieDecision, type Decision } from "@/src/legal/consentimiento";
+import { conValores } from "@/src/i18n/formato";
+import type { TextosLegal } from "@/src/i18n/legal";
 
 declare global {
   interface Window {
@@ -19,8 +21,11 @@ declare global {
  * Los dos botones son IGUALES a propósito —mismo tamaño, mismo peso, uno al lado
  * del otro—. Rechazar tiene que costar lo mismo que aceptar; poner «Aceptar» en
  * verde grande y «Rechazar» en gris pequeño es lo que multan.
+ *
+ * Los textos llegan RESUELTOS por props, como en todos los componentes de
+ * cliente: importar el catálogo aquí mandaría los cinco idiomas al navegador.
  */
-export function Cookies({ seguro }: { seguro: boolean }) {
+export function Cookies({ seguro, t }: { seguro: boolean; t: TextosLegal["banner"] }) {
   const [visible, setVisible] = useState(true);
 
   function decidir(decision: Decision) {
@@ -42,16 +47,11 @@ export function Cookies({ seguro }: { seguro: boolean }) {
   if (!visible) return null;
 
   return (
-    <div className="cookies" role="dialog" aria-live="polite" aria-label="Cookies">
+    <div className="cookies" role="dialog" aria-live="polite" aria-label={t.aria}>
       <div className="cookies-texto">
-        <p>
-          Usamos cookies propias necesarias para que funcione la plataforma, y cookies de
-          Google para medir si nuestros anuncios sirven de algo. Las segundas solo si tú
-          quieres.
-        </p>
+        <p>{t.aviso}</p>
         <p className="cookies-mas">
-          Puedes cambiar de idea cuando quieras desde la <a href="/legal/cookies">política de
-          cookies</a>.
+          {conValores(t.mas, { enlace: <a href="/legal/cookies">{t.enlace}</a> })}
         </p>
       </div>
       {/* Los dos con la MISMA clase, a propósito. Poner «Aceptar todas» con el
@@ -59,10 +59,10 @@ export function Cookies({ seguro }: { seguro: boolean }) {
           estás empujando, y esto no es una pantalla de conversión. */}
       <div className="cookies-botones">
         <button className="btn btn-sec" onClick={() => decidir("rechazado")}>
-          Solo las necesarias
+          {t.soloNecesarias}
         </button>
         <button className="btn btn-sec" onClick={() => decidir("aceptado")}>
-          Aceptar todas
+          {t.aceptarTodas}
         </button>
       </div>
     </div>

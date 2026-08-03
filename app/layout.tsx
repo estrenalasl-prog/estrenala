@@ -8,9 +8,10 @@ import {
   COOKIE_CONSENTIMIENTO, estadoConsentMode, haceFaltaBanner, leerDecision,
 } from "@/src/legal/consentimiento";
 import { cookies, headers } from "next/headers";
-import { CABECERA_IDIOMA, idiomaDeCabecera } from "@/src/i18n/idiomas";
+import { CABECERA_IDIOMA, esIdioma } from "@/src/i18n/idiomas";
 import { idiomaDeSesion } from "@/src/i18n/servidor";
 import { textosPanel } from "@/src/i18n/panel";
+import { textosLegal } from "@/src/i18n/legal";
 import { ProveedorDialogo } from "./_components/Dialogo";
 import { Cookies } from "./_components/Cookies";
 
@@ -78,15 +79,28 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const banner = haceFaltaBanner(ads ?? undefined, decision);
   const seguro = urlPlataforma().startsWith("https://");
 
-  // Lo pone el middleware en las landings traducidas (/en, /pt…). En el resto de
-  // la app no viene y sale español, que es lo correcto: el panel todavía no está
-  // traducido, así que anunciar otro idioma sería mentir.
-  const idioma = idiomaDeCabecera((await headers()).get(CABECERA_IDIOMA));
+  // `idiomaDeSesion` está memorizado por petición, así que pedirlo aquí NO añade
+  // una consulta más aunque la pantalla ya lo haya pedido (ver i18n/servidor.ts).
+  const idiomaSesion = await idiomaDeSesion();
 
-  // Los botones de la ventanita de avisos. Salen en toda la plataforma, así que
-  // el idioma se resuelve aquí una sola vez; `idiomaDeSesion` está memorizado por
-  // petición, o sea que esto NO añade una consulta más (ver i18n/servidor.ts).
-  const dialogo = textosPanel(await idiomaDeSesion()).dialogo;
+  // Qué idioma se ANUNCIA en <html lang>. Manda la cabecera que pone el
+  // middleware, que solo existe en las landings traducidas (/en, /pt…) y sabe
+  // cuál es porque lo dice la URL; en el resto de la app manda el idioma de la
+  // sesión, que es en el que se está pintando el panel.
+  //
+  // Antes esto era solo la cabecera, con el argumento de que el panel no estaba
+  // traducido. Ya lo está: desde entonces, alguien con la cuenta en inglés veía
+  // el panel entero en inglés dentro de un documento que declaraba `lang="es"`.
+  // Eso es lo que usa un lector de pantalla para elegir la voz con la que lo lee
+  // y el navegador para ofrecer traducir la página; con el idioma equivocado, no
+  // funciona ninguna de las dos.
+  const cabecera = (await headers()).get(CABECERA_IDIOMA);
+  const idioma = esIdioma(cabecera) ? cabecera : idiomaSesion;
+
+  // Los botones de la ventanita de avisos y el banner de cookies: salen en toda
+  // la plataforma, así que se resuelven aquí una sola vez.
+  const dialogo = textosPanel(idiomaSesion).dialogo;
+  const textosBanner = textosLegal(idioma).banner;
 
   return (
     <html lang={idioma} className={spaceGrotesk.variable}>
@@ -125,7 +139,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           layout de servidor: `children` se sigue renderizando en el servidor. */}
       <body>
         <ProveedorDialogo textos={dialogo}>{children}</ProveedorDialogo>
-        {banner && <Cookies seguro={seguro} />}
+        {banner && <Cookies seguro={seguro} t={textosBanner} />}
       </body>
     </html>
   );

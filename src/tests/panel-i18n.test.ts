@@ -5,6 +5,7 @@ import { CATALOGO_CUENTA } from "@/src/i18n/cuenta";
 import { CATALOGO_AJUSTES, textosAjustes } from "@/src/i18n/ajustes";
 import { CATALOGO_BLOG, textosBlog } from "@/src/i18n/blog";
 import { CATALOGO_PUBLICO } from "@/src/i18n/publico";
+import { CATALOGO_LEGAL } from "@/src/i18n/legal";
 import { IDIOMAS, type Idioma } from "@/src/i18n/idiomas";
 import { patronHuecos } from "@/src/i18n/rellenar";
 
@@ -35,6 +36,7 @@ const CATALOGOS = {
   ajustes: CATALOGO_AJUSTES,
   blog: CATALOGO_BLOG,
   publico: CATALOGO_PUBLICO,
+  legal: CATALOGO_LEGAL,
 } as const;
 
 type Catalogo = Record<Idioma, unknown>;
@@ -71,13 +73,26 @@ describe.each(lista)("catálogo «%s»", (_nombre, cat) => {
     }
   });
 
+  /**
+   * Se mide por CARACTERES, no por número de claves.
+   *
+   * Contando claves, un catálogo pequeño salta en falso: «Cookies» y «política
+   * de cookies» se dicen igual en portugués, y con seis claves eso ya es un
+   * tercio del fichero. Y al revés, contar claves deja pasar lo grave — diez
+   * etiquetas de una palabra traducidas y el párrafo largo copiado tal cual es
+   * un 9 % de claves iguales y la mitad del texto sin traducir.
+   *
+   * Lo que delata un fichero a medias es la MASA de texto repetido, y eso es lo
+   * que se mide aquí.
+   */
   it("nadie se ha dejado el fichero a medio traducir", () => {
     const es = hojas(cat.es);
+    const total = es.reduce((n, h) => n + h.valor.length, 0);
     for (const idioma of IDIOMAS) {
       if (idioma === "es") continue;
       const otro = hojas(cat[idioma]);
-      const iguales = es.filter((h, i) => h.valor === otro[i].valor).length;
-      expect(iguales / es.length, `${idioma} se parece demasiado al español`).toBeLessThan(0.25);
+      const copiado = es.reduce((n, h, i) => (h.valor === otro[i].valor ? n + h.valor.length : n), 0);
+      expect(copiado / total, `${idioma} se parece demasiado al español`).toBeLessThan(0.25);
     }
   });
 
