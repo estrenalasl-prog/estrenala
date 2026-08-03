@@ -139,6 +139,33 @@ html:has(.landing){scroll-behavior:smooth}
     background:var(--superficie);border:1px solid var(--borde);border-radius:var(--radio-t);padding:16px 20px;box-shadow:var(--sombra-1)}
 .landing .banda-revertir .txt{font-size:15px;color:var(--texto-2)}
 .landing .banda-revertir .txt b{color:var(--texto)}
+/* Y hacemos que la encuentren. Mismo esqueleto que la sección del blog, pero en
+   claro: allí los colores son los de `--tinta-*` (sección oscura) y no se pueden
+   reutilizar sin que el texto salga blanco sobre blanco. */
+.landing .enc-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:32px;align-items:center}
+.landing .enc-features{display:flex;flex-direction:column;gap:20px}
+.landing .enc-feature{display:flex;gap:14px;align-items:flex-start}
+.landing .enc-feature .ic{width:38px;height:38px;border-radius:10px;background:var(--acento-suave);
+    color:var(--acento-texto);display:grid;place-items:center;font-size:18px;flex:none}
+.landing .enc-feature h3{font:700 16px/1.3 var(--sans)}
+.landing .enc-feature p{font-size:14.5px;color:var(--texto-2);margin-top:4px}
+
+.landing .examen{background:var(--superficie);border:1px solid var(--borde);border-radius:var(--radio-t);
+    overflow:hidden;box-shadow:var(--sombra-3)}
+.landing .examen .nota{padding:22px 20px 18px;border-bottom:1px solid var(--borde);
+    display:grid;grid-template-columns:auto 1fr;gap:0 10px;align-items:baseline}
+.landing .examen .nota .n{font:700 46px/1 var(--sans);color:var(--aviso);font-variant-numeric:tabular-nums}
+.landing .examen .nota .de{font:500 15px/1 var(--sans);color:var(--texto-3)}
+.landing .examen .nota p{grid-column:1/-1;margin-top:10px;font-size:14px;color:var(--texto-2)}
+.landing .examen .item{display:flex;align-items:flex-start;gap:11px;padding:13px 16px;border-bottom:1px solid var(--borde)}
+.landing .examen .item:last-child{border-bottom:0}
+.landing .examen .item .t{flex:1;min-width:0}
+.landing .examen .item .t b{display:block;font:600 14px/1.3 var(--sans)}
+.landing .examen .item .t small{font-size:12px;color:var(--texto-3)}
+.landing .examen .badge{flex:none;margin-top:1px}
+.landing .badge-grave{background:#FEECEC;color:#B42020}
+.landing .badge-nuestro{background:var(--acento-suave);color:var(--acento-texto)}
+
 .landing .blog-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:28px;align-items:center}
 .landing .blog-features{display:flex;flex-direction:column;gap:14px}
 .landing .blog-feature{display:flex;gap:14px;align-items:flex-start}
@@ -214,8 +241,8 @@ html:has(.landing){scroll-behavior:smooth}
 @keyframes cintaAnim{from{width:0}to{width:100%}}
 .landing .mock-cinta{width:0;animation:cintaAnim 1.5s cubic-bezier(.2,.8,.2,1) .6s forwards}
 @media (max-width:820px){
-.landing .pasos,.landing .vias,.landing .publico,.landing .blog-grid,.landing .equipo-grid{grid-template-columns:1fr}
-.landing .blog-grid,.landing .equipo-grid{gap:34px}
+.landing .pasos,.landing .vias,.landing .publico,.landing .blog-grid,.landing .enc-grid,.landing .equipo-grid{grid-template-columns:1fr}
+.landing .blog-grid,.landing .enc-grid,.landing .equipo-grid{gap:34px}
 .landing .top nav .enlaces{display:none}
 /* OJO CON EL «>»: es el boton de la cabecera el que se esconde en movil, no
    TODOS los botones que haya dentro de <nav>. Sin el, esta regla alcanzaba

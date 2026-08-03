@@ -8,13 +8,14 @@ export const fr: TextosLanding = {
   meta: {
     titulo: "Estrénala — Ton site fait par l'IA, enfin en ligne",
     descripcion:
-      "L'IA t'a fait un site et tu ne sais pas comment le mettre en ligne ? Estrénala le publie en un clic avec un domaine et HTTPS, tu le modifies sans code et son blog s'écrit tout seul. Gratuit pour commencer.",
+      "L'IA t'a fait un site et tu ne sais pas comment le mettre en ligne ? Estrénala le publie en un clic avec un domaine et HTTPS, tu le modifies sans code et on fait que Google le trouve. Gratuit pour commencer.",
   },
 
   nav: {
     inicio: "Estrénala — accueil",
     como: "Comment ça marche",
     editar: "Modifier",
+    encontrar: "Être trouvé",
     blog: "Blog",
     equipos: "Équipes",
     faq: "Questions",
@@ -27,7 +28,7 @@ export const fr: TextosLanding = {
     eyebrow: "L'IA t'a fait un site magnifique…",
     titular: "…et il dort depuis des semaines dans un dossier.",
     promesa: "Nous, on le met [[devant le monde]].",
-    sub: "Glisse le site que Claude, ChatGPT ou v0 t'a donné et il passe en ligne avec un domaine et HTTPS. Modifie-le comme tu veux. Le blog s'écrit tout seul. Sans savoir coder.",
+    sub: "Glisse le site que Claude, ChatGPT ou v0 t'a donné et il passe en ligne avec un domaine et HTTPS. Modifie-le comme tu veux, et on fait que Google le trouve. Sans savoir coder.",
     cta: "Mets ton site en ligne, gratuit →",
     nota: "Gratuit pour commencer · sans carte",
     mockAria:
@@ -91,6 +92,40 @@ export const fr: TextosLanding = {
     via3Punto3: "On ne t'enferme jamais ici",
     bandaBadge: "Historique",
     bandaTexto: "Quoi que tu changes, **tu peux toujours revenir en arrière**. Si quelque chose casse, tu le restaures en un clic.",
+  },
+
+  encontrar: {
+    eyebrow: "Et on fait qu'on le trouve",
+    titulo: "L'IA t'a fait un joli site. À l'intérieur, il sort cassé.",
+    texto:
+      "Ça ne se voit pas en le regardant, parce que ce ne sont pas des défauts de design. Ça se remarque des mois plus tard, quand tu n'apparais nulle part sur Google et que tu ne sais plus pourquoi. Nous, on regarde dedans le jour même où tu le mets en ligne.",
+
+    f1Titulo: "On lui met une note et on te dit ce que ça te coûte",
+    f1Texto:
+      "Dix-sept vérifications sur toutes tes pages, sans jargon. « Aucune description » se lit ici : « c'est le texte gris sous le titre dans Google, ta publicité gratuite ».",
+    f2Titulo: "La fiche qui dit à Google et à ChatGPT ce que tu es",
+    f2Texto:
+      "Une entreprise, avec ton téléphone, ton logo et tes réseaux. Presque aucun site fait avec l'IA n'en a, et c'est ce qui fait qu'on te cite quand quelqu'un pose une question sur ton métier.",
+    f3Titulo: "Et les formulaires qui n'allaient nulle part",
+    f3Texto:
+      "Le grand classique : quelqu'un t'écrit, appuie sur « envoyer » et rien ne se passe. Ni avertissement pour lui, ni message pour toi. On te le montre et, si tu veux, les messages commencent à arriver.",
+
+    banda:
+      "Tout ce qui peut être corrigé **sans que ton site ait l'air différent, on le corrige nous-mêmes** au moment de le servir. Tu n'as jamais rien à renvoyer, et le jour où tu pars, ton site ressort exactement comme tu l'avais envoyé.",
+
+    panelAria:
+      "Examen d'un site tout juste mis en ligne : note de 62 sur 100, avec trois choses trouvées — pas prêt pour le mobile, aucune fiche pour les moteurs de recherche et des images sans description.",
+    notaPie: "sur 100",
+    veredicto: "Il lui manque des choses importantes pour que Google le comprenne.",
+    fallo1: "Pas prête pour le mobile",
+    fallo1Pie: "sur 5 pages",
+    fallo1Badge: "Grave",
+    fallo2: "Aucune fiche pour les moteurs de recherche",
+    fallo2Pie: "sur la page d'accueil",
+    fallo2Badge: "On s'en occupe",
+    fallo3: "Des images sans description",
+    fallo3Pie: "12 images sur 4 pages",
+    fallo3Badge: "Grave",
   },
 
   blog: {
@@ -169,6 +204,10 @@ export const fr: TextosLanding = {
       {
         p: "Et si je préfère continuer à modifier dans mon outil d'IA ?",
         r: "Parfait. Reste sur Claude Code, ChatGPT ou v0 et, quand tu as fini, renvoie le ZIP : ton site en ligne se met à jour en un clic et la version précédente reste dans l'historique. On ne t'enferme pas ici.",
+      },
+      {
+        p: "C'est quoi, ce site que vous « réparez » pour Google ?",
+        r: "Quand tu le mets en ligne, on lui fait passer un examen et on te montre ce qui ne va pas, en clair. Tout ce qui peut être ajouté **sans que ton site ait l'air différent** —la fiche qui dit à Google et à ChatGPT ce que tu es, l'image qui s'affiche au partage du lien— on le met au moment de le servir. **On ne touche jamais à tes fichiers** : si demain tu emmènes ton site ailleurs, il ressort exactement comme tu l'avais envoyé.",
       },
       {
         p: "Puis-je revenir en arrière si je casse quelque chose ?",

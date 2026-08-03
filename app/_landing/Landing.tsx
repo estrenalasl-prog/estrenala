@@ -49,6 +49,7 @@ export function Landing({ idioma = "es" }: { idioma?: Idioma }) {
             <div className="enlaces">
               <a href="#como">{t.nav.como}</a>
               <a href="#editar">{t.nav.editar}</a>
+              <a href="#encontrar">{t.nav.encontrar}</a>
               <a href="#blog">{t.nav.blog}</a>
               <a href="#faq">{t.nav.faq}</a>
             </div>
@@ -68,6 +69,7 @@ export function Landing({ idioma = "es" }: { idioma?: Idioma }) {
               <div className="panel">
                 <a href="#como">{t.nav.como}</a>
                 <a href="#editar">{t.nav.editar}</a>
+                <a href="#encontrar">{t.nav.encontrar}</a>
                 <a href="#blog">{t.nav.blog}</a>
                 <a href="#equipo">{t.nav.equipos}</a>
                 <a href="#faq">{t.nav.faq}</a>
@@ -209,6 +211,79 @@ export function Landing({ idioma = "es" }: { idioma?: Idioma }) {
         </section>
 
         {/* BLOG AUTOMÁTICO */}
+        {/* Y HACEMOS QUE LA ENCUENTREN.
+            Va aquí, entre «edítala» y «el blog», porque cuenta el paso de en
+            medio: ya la tienes online y bonita, ahora falta que la vean. */}
+        <section className="seccion" id="encontrar">
+          <div className="contenedor">
+            <div className="cab-seccion reveal">
+              <span className="eyebrow">{t.encontrar.eyebrow}</span>
+              <h2>{t.encontrar.titulo}</h2>
+              <p>{t.encontrar.texto}</p>
+            </div>
+            <div className="enc-grid">
+              <div className="enc-features">
+                <div className="enc-feature reveal">
+                  <div className="ic">◐</div>
+                  <div>
+                    <h3>{t.encontrar.f1Titulo}</h3>
+                    <p>{t.encontrar.f1Texto}</p>
+                  </div>
+                </div>
+                <div className="enc-feature reveal d1">
+                  <div className="ic">◈</div>
+                  <div>
+                    <h3>{t.encontrar.f2Titulo}</h3>
+                    <p>{t.encontrar.f2Texto}</p>
+                  </div>
+                </div>
+                <div className="enc-feature reveal d2">
+                  <div className="ic">✉</div>
+                  <div>
+                    <h3>{t.encontrar.f3Titulo}</h3>
+                    <p>{t.encontrar.f3Texto}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* El examen tal y como se ve en el panel. Es el «ajá» de la
+                  sección: se entiende antes viéndolo que leyéndolo. */}
+              <div className="examen reveal d1" role="img" aria-label={t.encontrar.panelAria}>
+                <div className="nota">
+                  <span className="n">62</span>
+                  <span className="de">{t.encontrar.notaPie}</span>
+                  <p>{t.encontrar.veredicto}</p>
+                </div>
+                <div className="item">
+                  <span className="badge badge-grave">{t.encontrar.fallo1Badge}</span>
+                  <div className="t">
+                    <b>{t.encontrar.fallo1}</b>
+                    <small>{t.encontrar.fallo1Pie}</small>
+                  </div>
+                </div>
+                <div className="item">
+                  <span className="badge badge-nuestro">{t.encontrar.fallo2Badge}</span>
+                  <div className="t">
+                    <b>{t.encontrar.fallo2}</b>
+                    <small>{t.encontrar.fallo2Pie}</small>
+                  </div>
+                </div>
+                <div className="item">
+                  <span className="badge badge-grave">{t.encontrar.fallo3Badge}</span>
+                  <div className="t">
+                    <b>{t.encontrar.fallo3}</b>
+                    <small>{t.encontrar.fallo3Pie}</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="banda-revertir reveal d2">
+              <span className="txt">{conFormato(t.encontrar.banda)}</span>
+            </div>
+          </div>
+        </section>
+
         <section className="seccion seccion-oscura" id="blog">
           <div className="grano" />
           <div className="contenedor" style={{ position: "relative" }}>

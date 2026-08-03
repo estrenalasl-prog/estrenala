@@ -7,13 +7,14 @@ export const pt: TextosLanding = {
   meta: {
     titulo: "Estrénala — O teu site feito com IA, finalmente no ar",
     descripcion:
-      "A IA fez-te um site e não sabes como o pôr online? A Estrénala publica-o num clique com domínio e HTTPS, editas sem código e o blogue escreve-se sozinho. Grátis para começar.",
+      "A IA fez-te um site e não sabes como o pôr online? A Estrénala publica-o num clique com domínio e HTTPS, editas sem código e fazemos que o Google o encontre. Grátis para começar.",
   },
 
   nav: {
     inicio: "Estrénala — início",
     como: "Como funciona",
     editar: "Editar",
+    encontrar: "Que te encontrem",
     blog: "Blogue",
     equipos: "Equipas",
     faq: "Perguntas",
@@ -26,7 +27,7 @@ export const pt: TextosLanding = {
     eyebrow: "A IA fez-te um site lindíssimo…",
     titular: "…e há semanas que está morto numa pasta.",
     promesa: "Nós pomo-lo [[no mundo]].",
-    sub: "Arrasta o site que o Claude, o ChatGPT ou o v0 te deram e fica online com domínio e HTTPS. Edita-o como quiseres. O blogue escreve-se sozinho. Sem saber programar.",
+    sub: "Arrasta o site que o Claude, o ChatGPT ou o v0 te deram e fica online com domínio e HTTPS. Edita-o como quiseres, e fazemos que o Google o encontre. Sem saber programar.",
     cta: "Põe o teu site online, grátis →",
     nota: "Grátis para começar · sem cartão",
     mockAria:
@@ -90,6 +91,40 @@ export const pt: TextosLanding = {
     via3Punto3: "Nunca te prendemos aqui",
     bandaBadge: "Histórico",
     bandaTexto: "Mudes o que mudares, **podes sempre voltar atrás**. Se alguma coisa se estragar, repõe-la num clique.",
+  },
+
+  encontrar: {
+    eyebrow: "E fazemos que a encontrem",
+    titulo: "A IA fez-te um site bonito. Por dentro sai partido.",
+    texto:
+      "Não se vê a olhar para ele, porque não são falhas de design. Notam-se meses depois, quando não apareces no Google e já não sabes porquê. Nós olhamos por dentro no mesmo dia em que o publicas.",
+
+    f1Titulo: "Damos-lhe nota e dizemos-te o que te custa",
+    f1Texto:
+      "Dezassete verificações em todas as tuas páginas, sem linguagem técnica. «Sem descrição» aqui lê-se: «é o texto cinzento por baixo do título no Google, o teu anúncio grátis».",
+    f2Titulo: "A ficha que diz ao Google e ao ChatGPT o que és",
+    f2Texto:
+      "Um negócio, com o teu telefone, o teu logótipo e as tuas redes. Quase nenhum site feito com IA a traz, e é o que faz que te citem quando alguém pergunta pela tua área.",
+    f3Titulo: "E os formulários que não enviavam a lado nenhum",
+    f3Texto:
+      "O clássico: alguém escreve-te, carrega em «enviar» e não acontece nada. Nem o avisa, nem te chega. Mostramos-te, e se quiseres as mensagens começam a chegar-te.",
+
+    banda:
+      "O que se pode corrigir **sem que o teu site fique diferente, corrigimos nós** ao servi-lo. Não tens de voltar a carregar nada, e no dia em que saíres o teu site sai tal como o carregaste.",
+
+    panelAria:
+      "Exame de um site acabado de carregar: nota 62 em 100, com três coisas encontradas — sem preparação para telemóvel, sem ficha para motores de busca e imagens sem descrição.",
+    notaPie: "em 100",
+    veredicto: "Faltam-lhe coisas importantes para o Google o perceber.",
+    fallo1: "Não está preparada para o telemóvel",
+    fallo1Pie: "em 5 páginas",
+    fallo1Badge: "Grave",
+    fallo2: "Sem ficha para motores de busca",
+    fallo2Pie: "na página inicial",
+    fallo2Badge: "Corrigimos nós",
+    fallo3: "Imagens sem descrição",
+    fallo3Pie: "12 imagens em 4 páginas",
+    fallo3Badge: "Grave",
   },
 
   blog: {
@@ -168,6 +203,10 @@ export const pt: TextosLanding = {
       {
         p: "E se preferir continuar a editar na minha ferramenta de IA?",
         r: "Perfeito. Continua no Claude Code, no ChatGPT ou no v0 e, quando acabares, volta a carregar o ZIP: o teu site online atualiza-se num clique e a versão anterior fica no histórico. Não te prendemos aqui.",
+      },
+      {
+        p: "O que é isso de «corrigirem» o meu site para o Google?",
+        r: "Ao carregá-lo fazemos-lhe um exame e mostramos-te o que está mal, em bom português. O que se pode acrescentar **sem que o teu site fique diferente** —a ficha que diz ao Google e ao ChatGPT o que és, a imagem que aparece ao partilhar o link— pomos nós ao servi-lo. **Os teus ficheiros não se tocam**: se amanhã levares o site para outro lado, sai tal como o carregaste.",
       },
       {
         p: "Posso voltar atrás se estragar alguma coisa?",

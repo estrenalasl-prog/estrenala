@@ -8,13 +8,14 @@ export const es = {
   meta: {
     titulo: "Estrénala — Tu web hecha con IA, por fin en directo",
     descripcion:
-      "¿La IA te hizo una web y no sabes cómo subirla? Estrénala la pone online en un clic con dominio y HTTPS, la editas sin código y su blog escribe solo. Gratis para empezar.",
+      "¿La IA te hizo una web y no sabes cómo subirla? Estrénala la pone online en un clic con dominio y HTTPS, la editas sin código y hacemos que Google la encuentre. Gratis para empezar.",
   },
 
   nav: {
     inicio: "Estrénala — inicio",
     como: "Cómo funciona",
     editar: "Editar",
+    encontrar: "Que la encuentren",
     blog: "Blog",
     equipos: "Equipos",
     faq: "Preguntas",
@@ -27,7 +28,7 @@ export const es = {
     eyebrow: "La IA te hizo una web preciosa…",
     titular: "…y lleva semanas muerta en una carpeta.",
     promesa: "Nosotros la ponemos [[en el mundo]].",
-    sub: "Arrastra la web que te dio Claude, ChatGPT o v0 y queda online con dominio y HTTPS. Edítala como quieras. El blog escribe solo. Sin saber programar.",
+    sub: "Arrastra la web que te dio Claude, ChatGPT o v0 y queda online con dominio y HTTPS. Edítala como quieras, y hacemos que Google la encuentre. Sin saber programar.",
     cta: "Sube tu web gratis →",
     nota: "Gratis para empezar · sin tarjeta",
     mockAria:
@@ -91,6 +92,43 @@ export const es = {
     via3Punto3: "Nunca te encerramos aquí",
     bandaBadge: "Historial",
     bandaTexto: "Cambies como cambies, **siempre puedes volver atrás**. Si algo se rompe, lo restauras en un clic.",
+  },
+
+  // Lo que la web hecha con IA NO trae, y que es lo único que la competencia no
+  // puede copiar: para arreglarlo hay que tener el HTML delante al servirlo, y
+  // quien solo guarda archivos se ha comprometido a devolverlos tal cual.
+  encontrar: {
+    eyebrow: "Y hacemos que la encuentren",
+    titulo: "La IA te hizo una web bonita. Por dentro sale rota.",
+    texto:
+      "No lo ves mirándola, porque no son fallos de diseño. Se notan meses después, cuando no apareces en Google y ya no sabes por qué. Nosotros la miramos por dentro el mismo día que la subes.",
+
+    f1Titulo: "Le ponemos nota y te decimos qué te cuesta",
+    f1Texto:
+      "Diecisiete comprobaciones sobre todas tus páginas, sin jerga. «Sin descripción» aquí se lee: «es el texto gris de debajo del título en Google, tu anuncio gratis».",
+    f2Titulo: "La ficha que le dice a Google y a ChatGPT qué eres",
+    f2Texto:
+      "Un negocio, con tu teléfono, tu logo y tus redes. Casi ninguna web hecha con IA la trae, y es lo que hace que te citen cuando alguien pregunta por lo tuyo.",
+    f3Titulo: "Y los formularios que no enviaban a ninguna parte",
+    f3Texto:
+      "El clásico: alguien te escribe, pulsa «enviar» y no pasa nada. Ni le avisa, ni te llega. Te lo enseñamos y, si quieres, los mensajes empiezan a llegarte.",
+
+    banda:
+      "Lo que se puede arreglar **sin que tu web se vea distinta, lo arreglamos solos** al servirla. No tienes que volver a subir nada, y el día que te vayas tu web sale tal y como la subiste.",
+
+    panelAria:
+      "Examen de una web recién subida: nota 62 sobre 100, con tres cosas encontradas — sin preparar para el móvil, sin ficha para buscadores e imágenes sin describir.",
+    notaPie: "de 100",
+    veredicto: "Le faltan cosas importantes para que Google la entienda.",
+    fallo1: "No está preparada para el móvil",
+    fallo1Pie: "en 5 páginas",
+    fallo1Badge: "Grave",
+    fallo2: "Sin ficha para buscadores",
+    fallo2Pie: "en la portada",
+    fallo2Badge: "Lo arreglamos",
+    fallo3: "Imágenes sin describir",
+    fallo3Pie: "12 imágenes en 4 páginas",
+    fallo3Badge: "Grave",
   },
 
   blog: {
@@ -171,6 +209,10 @@ export const es = {
       {
         p: "¿Y si prefiero seguir editando en mi herramienta de IA?",
         r: "Perfecto. Sigue en Claude Code, ChatGPT o v0 y, cuando termines, vuelve a subir el ZIP: tu web online se actualiza en un clic y la versión anterior queda en el historial. No te encerramos aquí.",
+      },
+      {
+        p: "¿Qué es eso de que «arregláis» mi web para Google?",
+        r: "Al subirla le pasamos un examen y te enseñamos qué tiene mal, en cristiano. Lo que se puede añadir **sin que tu web se vea distinta** —la ficha que le dice a Google y a ChatGPT qué eres, la imagen que sale al compartir el enlace— lo ponemos nosotros al servirla. **Tus archivos no se tocan**: si mañana te llevas la web a otro sitio, sale tal y como la subiste.",
       },
       {
         p: "¿Puedo volver atrás si rompo algo?",

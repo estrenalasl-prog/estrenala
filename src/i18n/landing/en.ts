@@ -8,13 +8,14 @@ export const en: TextosLanding = {
   meta: {
     titulo: "Estrénala — Your AI-built website, finally live",
     descripcion:
-      "AI built you a website and you don't know how to put it online? Estrénala publishes it in one click with a domain and HTTPS, you edit it without code, and its blog writes itself. Free to start.",
+      "AI built you a website and you don't know how to put it online? Estrénala publishes it in one click with a domain and HTTPS, you edit it without code, and we get Google to find it. Free to start.",
   },
 
   nav: {
     inicio: "Estrénala — home",
     como: "How it works",
     editar: "Editing",
+    encontrar: "Get found",
     blog: "Blog",
     equipos: "Teams",
     faq: "FAQ",
@@ -27,7 +28,7 @@ export const en: TextosLanding = {
     eyebrow: "AI built you a beautiful website…",
     titular: "…and it's been sitting dead in a folder for weeks.",
     promesa: "We put it [[out in the world]].",
-    sub: "Drag in the site Claude, ChatGPT or v0 made you and it goes live with a domain and HTTPS. Edit it however you like. The blog writes itself. No coding needed.",
+    sub: "Drag in the site Claude, ChatGPT or v0 made you and it goes live with a domain and HTTPS. Edit it however you like, and we get Google to find it. No coding needed.",
     cta: "Put your site online — free →",
     nota: "Free to start · no card",
     mockAria:
@@ -91,6 +92,40 @@ export const en: TextosLanding = {
     via3Punto3: "We never lock you in here",
     bandaBadge: "History",
     bandaTexto: "However you edit, **you can always go back**. If something breaks, you restore it in one click.",
+  },
+
+  encontrar: {
+    eyebrow: "And we get it found",
+    titulo: "The AI built you a good-looking site. Inside, it comes out broken.",
+    texto:
+      "You can't see it by looking at it, because these aren't design flaws. You notice them months later, when you're nowhere on Google and you no longer know why. We look inside the same day you upload it.",
+
+    f1Titulo: "We score it, and tell you what it's costing you",
+    f1Texto:
+      "Seventeen checks across every one of your pages, no jargon. «No description» reads here as: «it's the grey text under the title in Google, your free ad».",
+    f2Titulo: "The profile that tells Google and ChatGPT what you are",
+    f2Texto:
+      "A business, with your phone, your logo and your social profiles. Almost no AI-built site has one, and it's what gets you cited when somebody asks about your line of work.",
+    f3Titulo: "And the forms that went nowhere",
+    f3Texto:
+      "The classic one: somebody writes to you, hits «send» and nothing happens. No warning for them, nothing for you. We show you, and if you want, the messages start arriving.",
+
+    banda:
+      "Whatever can be fixed **without your site looking any different, we fix ourselves** as we serve it. You never re-upload anything, and the day you leave, your site comes out exactly as you uploaded it.",
+
+    panelAria:
+      "Exam of a freshly uploaded site: 62 out of 100, with three things found — not set up for mobile, no profile for search engines, and images with no description.",
+    notaPie: "out of 100",
+    veredicto: "It's missing important things Google needs to understand it.",
+    fallo1: "Not set up for mobile",
+    fallo1Pie: "on 5 pages",
+    fallo1Badge: "Serious",
+    fallo2: "No profile for search engines",
+    fallo2Pie: "on the home page",
+    fallo2Badge: "We fix this",
+    fallo3: "Images with no description",
+    fallo3Pie: "12 images across 4 pages",
+    fallo3Badge: "Serious",
   },
 
   blog: {
@@ -169,6 +204,10 @@ export const en: TextosLanding = {
       {
         p: "What if I'd rather keep editing in my AI tool?",
         r: "Perfect. Stay in Claude Code, ChatGPT or v0 and, when you're done, upload the ZIP again: your live site updates in one click and the previous version stays in the history. We don't lock you in here.",
+      },
+      {
+        p: "What do you mean you «fix» my site for Google?",
+        r: "When you upload it we run an exam and show you what's wrong, in plain words. Whatever can be added **without your site looking any different** —the profile that tells Google and ChatGPT what you are, the image that shows when the link is shared— we put in as we serve it. **Your files are never touched**: if you take the site elsewhere tomorrow, it comes out exactly as you uploaded it.",
       },
       {
         p: "Can I go back if I break something?",
