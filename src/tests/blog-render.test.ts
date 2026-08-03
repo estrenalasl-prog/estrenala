@@ -29,6 +29,59 @@ describe("renderPost", () => {
     expect(h).toContain("https://a.b/blog/img/tu-y-yo.webp");
     expect(h).not.toContain("</script><b>\"");
   });
+  /** Se saca el JSON-LD ya inyectado, deshaciendo el escape del `<`. */
+  const grafoDe = (h: string) =>
+    JSON.parse(
+      h.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)![1].replace(/\\u003c/g, "<")
+    )["@graph"] as Record<string, unknown>[];
+
+  it("el artículo dice también cuándo se actualizó y de qué página es", () => {
+    const a = grafoDe(html)[0];
+    expect(a).toMatchObject({
+      "@type": "Article",
+      dateModified: "2026-07-06",
+      mainEntityOfPage: "https://acme.wc.app/blog/tu-y-yo.html",
+    });
+  });
+
+  /**
+   * Sin autor ni editor, Google trata el artículo como texto huérfano — y es de
+   * lo poco de esta familia que HOY sigue contando. No hay hueco de plantilla
+   * que diga de quién es el sitio, así que se lee de la plantilla ya rellena.
+   */
+  it("el autor y el editor salen del nombre del sitio, leído de la plantilla", () => {
+    const tpl = TPL.replace("<title>{{titulo}}</title>", "<title>{{titulo}} | Blog de Acme</title>");
+    const a = grafoDe(renderPost(tpl, post, "2026-07-06", "https://acme.wc.app"))[0];
+    expect(a.author).toEqual({ "@type": "Organization", name: "Blog de Acme", url: "https://acme.wc.app/" });
+    expect(a.publisher).toEqual(a.author);
+  });
+
+  it("si la plantilla no dice de quién es el sitio, no se inventa un autor", () => {
+    const a = grafoDe(html)[0];
+    expect(a.author).toBeUndefined();
+    expect(a.publisher).toBeUndefined();
+  });
+
+  /**
+   * Google retiró los resultados enriquecidos de FAQ el 7 de mayo de 2026, así
+   * que esto no cambia nada en Google. Sigue porque es lo que leen ChatGPT y
+   * Perplexity al rastrear: preguntas ya troceadas en vez de un muro de texto.
+   */
+  it("si el artículo trae preguntas, van en el mismo grafo", () => {
+    const conFaq = {
+      ...post,
+      md: "## Qué es\n\nUna cosa que hace cosas y funciona bastante bien.\n\n### ¿Cuánto cuesta?\n\nDiez euros al mes, sin permanencia ninguna.\n\n### ¿Hay prueba gratis?\n\nSí, catorce días sin meter la tarjeta.\n",
+    };
+    const g = grafoDe(renderPost(TPL, conFaq, "2026-07-06", "https://a.b"));
+    expect(g.map((n) => n["@type"])).toEqual(["Article", "FAQPage"]);
+    const preguntas = g[1].mainEntity as Record<string, unknown>[];
+    expect(preguntas.map((p) => p.name)).toEqual(["¿Cuánto cuesta?", "¿Hay prueba gratis?"]);
+  });
+
+  it("un artículo sin preguntas lleva solo el artículo", () => {
+    expect(grafoDe(html).map((n) => n["@type"])).toEqual(["Article"]);
+  });
+
   it("imagenSrc sustituye la ruta de imagen (preview)", () => {
     const h = renderPost(TPL, post, "2026-07-06", "https://a.b", IMAGEN_EJEMPLO);
     expect(h).toContain(`src="${IMAGEN_EJEMPLO}"`);

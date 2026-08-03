@@ -36,7 +36,12 @@ Requisitos:
 - Aporta valor concreto en cada párrafo: ejemplos, analogías, consejos accionables. Nada de relleno ni introducciones genéricas.
 - Cita la investigación con enlaces Markdown: [texto](URL). Incluye al menos 4 referencias.
 - No satures de keywords: intégralas con naturalidad.
-- Termina con una sección de Conclusión y una sección FAQ (4-6 preguntas con respuestas breves).
+- Termina con una sección de Conclusión y una sección de preguntas frecuentes.
+- En esa sección, cada pregunta va como un encabezado propio del MISMO nivel (H3)
+  y termina en «?», con su respuesta en el párrafo de debajo. De 4 a 6 preguntas.
+  Ejemplo:  ### ¿Cuánto cuesta empezar?  y debajo el párrafo con la respuesta.
+  Esto es lo que permite marcarlas para que ChatGPT y Perplexity las encuentren
+  troceadas; si las pones en negrita o en una lista, se pierden.
 - Devuelve SOLO el Markdown del artículo, sin comentarios.
 ${instruccion ? `\nInstrucción adicional del editor: ${instruccion}` : ""}`;
   const articuloMd = limpiarMd(await pedirTexto(prompt, 16000, ctx.modelo || undefined));

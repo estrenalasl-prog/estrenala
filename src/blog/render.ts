@@ -2,6 +2,8 @@ import { mdAHtml } from "./markdown";
 import { renderTemplate } from "./template";
 import type { PostIndice } from "./blog-index";
 import { escapeAttr } from "@/src/editor/apply";
+import { nombreDelSitio } from "@/src/seo/ficha";
+import { preguntasDelMarkdown, fichaDePreguntas } from "./preguntas";
 
 export type DatosPost = { titulo: string; slug: string; metaDescripcion: string; md: string; imagenExt: string };
 
@@ -46,19 +48,11 @@ export function basePublica(
 export function renderPost(tplPost: string, post: DatosPost, fecha: string, base: string, imagenSrc?: string): string {
   const imagen = `/blog/img/${post.slug}.${post.imagenExt}`;
   const canonical = `${base}/blog/${post.slug}.html`;
-  const jsonLd = JSON.stringify({
-    "@context": "https://schema.org",
-    "@type": "Article",
-    headline: post.titulo,
-    description: post.metaDescripcion,
-    datePublished: fecha,
-    image: `${base}${imagen}`,
-    inLanguage: "es",
-  }).replace(/<\//g, "<\\/");
+
   // Escape con escapeAttr (no escapeHtmlText) porque los huecos {{titulo}}, {{meta_descripcion}}, {{fecha}}
   // aparecen tanto en contextos de texto como en atributos (ej: og:title, og:description, alt);
   // escapeAttr protege ambos contextos escapando &, ", <.
-  return renderTemplate(tplPost, {
+  const huecos = {
     titulo: escapeAttr(post.titulo),
     contenido: mdAHtml(post.md),
     meta_descripcion: escapeAttr(post.metaDescripcion),
@@ -67,6 +61,45 @@ export function renderPost(tplPost: string, post: DatosPost, fecha: string, base
     fecha: escapeAttr(fechaEnEspanol(fecha)),
     fecha_iso: escapeAttr(fecha),
     canonical,
+  };
+
+  // Quién publica esto. No hay hueco de plantilla que lo diga, así que se saca
+  // de la propia plantilla ya rellena: el `og:site_name` o el nombre detrás del
+  // separador del `<title>` (ver seo/ficha.ts). Se renderiza una vez de más para
+  // poder leerlo, que es una operación sobre una cadena y no cuesta nada — esto
+  // pasa al publicar, no en cada visita.
+  //
+  // Sin autor ni editor, Google trata el artículo como texto huérfano. Es de lo
+  // poco de esta lista que HOY sigue contando para los resultados de artículo.
+  const sitio = nombreDelSitio(renderTemplate(tplPost, { ...huecos, json_ld: "" }));
+
+  const articulo: Record<string, unknown> = {
+    "@type": "Article",
+    headline: post.titulo,
+    description: post.metaDescripcion,
+    datePublished: fecha,
+    dateModified: fecha,
+    image: `${base}${imagen}`,
+    mainEntityOfPage: canonical,
+    inLanguage: "es",
+  };
+  if (sitio) {
+    articulo.author = { "@type": "Organization", name: sitio, url: `${base}/` };
+    articulo.publisher = { "@type": "Organization", name: sitio, url: `${base}/` };
+  }
+
+  // Las preguntas del propio artículo, si las tiene. Google ya no enseña las
+  // listas desplegables —las retiró el 7 de mayo de 2026—, pero es lo que leen
+  // ChatGPT y Perplexity al rastrear (ver preguntas.ts).
+  const faq = fichaDePreguntas(preguntasDelMarkdown(post.md));
+
+  const jsonLd = JSON.stringify({
+    "@context": "https://schema.org",
+    "@graph": faq ? [articulo, faq] : [articulo],
+  }).replace(/</g, "\\u003c");
+
+  return renderTemplate(tplPost, {
+    ...huecos,
     json_ld: `<script type="application/ld+json">${jsonLd}</script>`,
   });
 }
