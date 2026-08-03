@@ -4,7 +4,7 @@ import { projectStore } from "@/src/repositories/projects";
 import { getStorage } from "@/src/storage/factory";
 import { esOwner, MSG_SOLO_OWNER } from "@/src/auth/roles";
 import { errorJson, jsonError } from "@/src/auth/http";
-import { detectarFormularios } from "@/src/forms/detectar";
+import { detectarFormularios, scriptsDeLaPagina } from "@/src/forms/detectar";
 
 export const runtime = "nodejs";
 
@@ -36,9 +36,31 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     // portada.
     let detectados: { indice: number; estado: string; campos: string[] }[] = [];
     if (snapshot) {
-      const f = await getStorage().get(snapshot.storagePrefix + project.entryPath);
+      const storage = getStorage();
+      const f = await storage.get(snapshot.storagePrefix + project.entryPath);
       if (f) {
-        detectados = detectarFormularios(f.body.toString("utf-8")).map((d) => ({
+        const html = f.body.toString("utf-8");
+        // Aquí SÍ se van a buscar los `.js` de la web, al revés que al servir: es
+        // una pantalla que se abre de vez en cuando, no una página vista. Y sin
+        // esto el panel miente en el caso más común — un formulario sin `action`
+        // que en realidad maneja su propio JavaScript (ver detectar.ts).
+        const { externos, enLinea } = scriptsDeLaPagina(html);
+        const carpeta = project.entryPath.includes("/")
+          ? project.entryPath.slice(0, project.entryPath.lastIndexOf("/") + 1)
+          : "";
+        const trozos = await Promise.all(
+          externos
+            // Solo los suyos: un `<script src="https://…">` de otro dominio no
+            // está en nuestro almacenamiento y no se va a ir a buscar a internet.
+            .filter((s) => !/^(https?:)?\/\//i.test(s) && !s.startsWith("data:"))
+            .slice(0, 10) // tope: una web con 200 scripts no va a costar 200 lecturas
+            .map(async (s) => {
+              const rel = s.startsWith("/") ? s.slice(1) : carpeta + s;
+              const j = await storage.get(snapshot.storagePrefix + rel.split("?")[0]);
+              return j ? j.body.toString("utf-8") : "";
+            })
+        );
+        detectados = detectarFormularios(html, enLinea + trozos.join("\n")).map((d) => ({
           indice: d.indice, estado: d.estado, campos: d.campos,
         }));
       }

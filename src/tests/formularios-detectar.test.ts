@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { detectarFormularios, formulariosMuertos } from "@/src/forms/detectar";
+import { detectarFormularios, formulariosMuertos, scriptsDeLaPagina } from "@/src/forms/detectar";
 import {
   conFormulariosConectados, RUTA_ENVIO, CAMPO_TRAMPA, CAMPO_PAGINA, CAMPO_INDICE,
 } from "@/src/forms/conectar";
@@ -39,9 +39,60 @@ describe("detectar formularios", () => {
     expect(detectarFormularios(html)[0].estado).toBe("mailto");
   });
 
-  it("si lo maneja su propio JavaScript, no se toca", () => {
+  it("si lo maneja su propio JavaScript por atributo, no se toca", () => {
     const html = doc(CONTACTO.replace("<form>", `<form onsubmit="enviar(event)">`));
     expect(detectarFormularios(html)[0].estado).toBe("propio");
+  });
+
+  /**
+   * EL CASO DE LA PRIMERA WEB REAL, y el más común de todos.
+   *
+   * Su formulario no tenía `action` —así que se daba por muerto— pero su
+   * `main.js` hacía `form.addEventListener("submit", e => { e.preventDefault();
+   * … abrir WhatsApp })`. Sí iba a alguna parte, y encima el `preventDefault()`
+   * impide que el navegador envíe nada.
+   *
+   * Sin esto pasaban las dos cosas a la vez: se le decía al dueño que su
+   * formulario no funcionaba (mentira) y, si encendía la recogida, no le llegaba
+   * nada. Probaría una vez y daría la función por rota.
+   */
+  it("si un escuchador de submit se queda con el envío, tampoco se toca", () => {
+    const js = `form.addEventListener("submit", (e) => { e.preventDefault(); abrirWhatsApp(); });`;
+    expect(detectarFormularios(doc(CONTACTO), js)[0].estado).toBe("propio");
+    // Y sin mirar el script, el mismo HTML se daría por muerto: es justo la
+    // diferencia que hace falta.
+    expect(detectarFormularios(doc(CONTACTO))[0].estado).toBe("muerto");
+  });
+
+  it("un <script> EN LÍNEA se mira sin que haya que pasarlo", () => {
+    const html = doc(`${CONTACTO}<script>document.forms[0].onsubmit = enviar;</script>`);
+    expect(detectarFormularios(html)[0].estado).toBe("propio");
+  });
+
+  it("las formas de escribirlo que hay que reconocer", () => {
+    const casos = [
+      `addEventListener("submit", f)`,
+      `addEventListener('submit', f)`,
+      "addEventListener(`submit`, f)",
+      `addEventListener( "submit" , f)`,
+      `el.onsubmit = function(){}`,
+      `form.onsubmit=enviar`,
+    ];
+    for (const js of casos) {
+      expect(detectarFormularios(doc(CONTACTO), js)[0].estado, js).toBe("propio");
+    }
+  });
+
+  it("un script que no toca el envío no estorba", () => {
+    const js = `document.addEventListener("click", abrirMenu); const x = "submit";`;
+    expect(detectarFormularios(doc(CONTACTO), js)[0].estado).toBe("muerto");
+  });
+
+  it("saca los scripts de la página, separando los externos de los de dentro", () => {
+    const html = doc(`<script src="main.js"></script><script>hola()</script><script src="https://cdn.com/x.js"></script>`);
+    const { externos, enLinea } = scriptsDeLaPagina(html);
+    expect(externos).toEqual(["main.js", "https://cdn.com/x.js"]);
+    expect(enLinea).toContain("hola()");
   });
 
   /**
