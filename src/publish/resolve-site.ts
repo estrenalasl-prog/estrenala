@@ -6,6 +6,7 @@ import {
 } from "./seo";
 import { puede } from "@/src/planes/planes";
 import { tieneExtensionConocida } from "@/src/storage/content-type";
+import { conFormulariosConectados } from "@/src/forms/conectar";
 import { textosPublico } from "@/src/i18n/publico";
 import { idiomaDeAcceptLanguage, type Idioma } from "@/src/i18n/idiomas";
 import type { StorageAdapter } from "@/src/storage/types";
@@ -269,6 +270,12 @@ export async function resolvePublicSite(
     // lo tiene conectado y si no el host por el que ha entrado (mismo criterio
     // que la cabecera canónica y el sitemap, para que los tres digan lo mismo).
     html = reapuntarMetadatosImportados(html, `https://${site.dominio ?? input.host}`);
+    // Los formularios que no envían a ninguna parte, apuntados a la plataforma.
+    // Solo si el dueño lo ha encendido: apagado, su web sale exactamente como la
+    // subió. Va ANTES de la marca para no tener que mirar dentro de ella.
+    if (site.recogeFormularios) {
+      html = conFormulariosConectados(html, rutaPublica(input.pathSegments, laQuiere)).html;
+    }
     if (!puede(site.plan, "sinMarca")) html = conMarca(html, input.platformHost);
     body = Buffer.from(html, "utf-8");
   } else if (rel === "sitemap.xml") {

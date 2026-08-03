@@ -28,7 +28,7 @@ class FakeStore implements ProjectStore {
       id: "p1", orgId: "org1", nombre: this.nombre, entryPath: "index.html",
       currentSnapshotId: this.currentSnapshot?.id ?? null,
       subdominio: this.subdominio, dominio: this.dominio, publishedSnapshotId: this.publishedSnapshotId,
-      noIndexar: false, createdAt: "",
+      noIndexar: false, recogeFormularios: false, createdAt: "",
     };
   }
   async listProjects(): Promise<ProjectRow[]> { return []; }

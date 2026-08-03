@@ -3,6 +3,9 @@ import {
   leerEnvio, cabeElEnvio, olvidarFrenos, MAX_CAMPOS, MAX_LARGO_VALOR, MAX_POR_HORA,
 } from "@/src/forms/recibir";
 import { CAMPO_TRAMPA, CAMPO_PAGINA, CAMPO_INDICE } from "@/src/forms/conectar";
+import { paginaGracias } from "@/src/forms/gracias";
+import { textosPublico } from "@/src/i18n/publico";
+import { IDIOMAS } from "@/src/i18n/idiomas";
 
 function envio(campos: Record<string, string>, extra?: { pagina?: string; indice?: string }) {
   const f = new FormData();
@@ -87,6 +90,31 @@ describe("leer un envío", () => {
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.envio.datos).toEqual({ nombre: "Ana" });
+  });
+});
+
+describe("la página de gracias", () => {
+  it("habla el idioma del visitante y lo declara en el <html lang>", () => {
+    for (const idioma of IDIOMAS) {
+      const html = paginaGracias(idioma, "/contacto.html");
+      expect(html, idioma).toContain(`<html lang="${idioma}"`);
+      expect(html, idioma).toContain(textosPublico(idioma).gracias.titulo);
+      expect(html, idioma).toContain(textosPublico(idioma).gracias.volver);
+    }
+  });
+
+  it("no la indexa Google (es una página de paso, no contenido del cliente)", () => {
+    expect(paginaGracias("es", "/")).toContain('<meta name="robots" content="noindex">');
+  });
+
+  /**
+   * La ruta de vuelta llega de un campo del formulario, o sea de cualquiera de
+   * internet. Sin escapar, quien rellena el formulario de un cliente podría
+   * meter marcado en una página servida DESDE EL DOMINIO de ese cliente.
+   */
+  it("escapa la dirección de vuelta", () => {
+    const html = paginaGracias("es", `/x"><script>alert(1)</script>`);
+    expect(html).not.toContain("<script>alert(1)");
   });
 });
 

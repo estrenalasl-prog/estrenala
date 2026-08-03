@@ -56,6 +56,35 @@ export const en: TextosPanel = {
   },
 
   proyecto: {
+    formularios: {
+      titulo: "Messages from your forms",
+      apagado: "Off",
+      encendido: "Collecting",
+      encender: "Collect messages",
+      apagar: "Stop collecting",
+      queEs:
+        "When someone fills in a form on your site, the message lands here and we email you. While this is off, your site is served exactly as you uploaded it.",
+      avisoDatos:
+        "Turning this on means you start storing data about the people who write to you. You are the one answerable for it: say so on your site, and don't ask for more than you need.",
+      rotos: "We found {n} form that goes nowhere.",
+      rotosPlural: "We found {n} forms that go nowhere.",
+      rotosDetalle:
+        "Whoever fills it in hits send and nothing happens: no warning for them, nothing for you. Turn collecting on and the messages will start arriving.",
+      ningunoRoto: "Every form on your home page goes somewhere. Nothing to fix.",
+      sinFormularios: "We did not see any form on your home page.",
+      buscador: "site search",
+      ajeno: "sends to its own destination",
+      mailto: "opens the visitor mail app",
+      propio: "handled by your own code",
+      muerto: "goes nowhere",
+      vacia: "Nobody has written to you yet.",
+      vaciaEncendida: "All set. The moment someone writes, it will show up here.",
+      sinLeer: "{n} unread",
+      marcarLeidos: "Mark as read",
+      en: "on {pagina}",
+      cargando: "Loading...",
+      errorCargar: "The messages could not be loaded.",
+    },
     publicar: {
       sinDireccion: "No address yet",
       copiar: "Copy",

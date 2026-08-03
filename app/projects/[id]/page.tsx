@@ -9,6 +9,7 @@ import { AppHeader } from "../../_components/AppHeader";
 import { PublishBar } from "./PublishBar";
 import { PreviewPane } from "./PreviewPane";
 import { ToolsPanel } from "./ToolsPanel";
+import { FormulariosPanel } from "./FormulariosPanel";
 import { BlogPanel, BlogDePago } from "./BlogPanel";
 import { AssistantPanel } from "./AssistantPanel";
 import { ActualizarPanel } from "./ActualizarPanel";
@@ -90,6 +91,12 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
         <AssistantPanel projectId={id} pages={pages} entryPath={project.entryPath} textos={textos.proyecto} />
         <ActualizarPanel projectId={id} textos={textos.proyecto} />
         <ToolsPanel projectId={id} textos={textos.proyecto} />
+        {/* Solo el propietario: aquí se leen datos de TERCEROS —lo que le escribe
+            la gente al negocio del cliente— y un editor entra a tocar la web, no
+            a leer su correspondencia. Mismo criterio que el aviso por correo. */}
+        {esOwner(rol) && (
+          <FormulariosPanel projectId={id} textos={textos.proyecto.formularios} idioma={idioma} />
+        )}
         {puede(plan, "blog")
           ? <BlogPanel projectId={id} idioma={idioma} t={textosBlog(idioma)} />
           : <BlogDePago t={textosBlog(idioma)} />}

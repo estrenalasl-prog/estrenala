@@ -43,7 +43,7 @@ function fakes(opts: {
   const project: ProjectRow = {
     id: P, orgId: ORG, nombre: "Mi Sitio", entryPath: "index.html",
     currentSnapshotId: "s1", subdominio: "mi-sitio", dominio: null,
-    publishedSnapshotId: null, noIndexar: false, createdAt: "",
+    publishedSnapshotId: null, noIndexar: false, recogeFormularios: false, createdAt: "",
   };
   const store = {
     async getProject() { return project; },

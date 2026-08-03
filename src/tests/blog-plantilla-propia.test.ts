@@ -35,7 +35,7 @@ function entorno(archivos: string[] = []) {
     async getProject(): Promise<ProjectRow> {
       return {
         id: "p1", orgId: "o1", nombre: "Mi Sitio", entryPath: "index.html", currentSnapshotId: "s1",
-        subdominio: null, dominio: null, publishedSnapshotId: null, noIndexar: false, createdAt: "",
+        subdominio: null, dominio: null, publishedSnapshotId: null, noIndexar: false, recogeFormularios: false, createdAt: "",
       };
     },
     async getCurrentSnapshot(): Promise<SnapshotRow> {

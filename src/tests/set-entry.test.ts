@@ -17,7 +17,7 @@ class StubStore implements ProjectStore {
   entryGuardado: string | null = null;
   async createProjectWithSnapshot(i: CreateProjectInput) { return { projectId: i.projectId }; }
   async getProject(): Promise<ProjectRow | null> {
-    return { id: "p1", orgId: "org1", nombre: "x", entryPath: "index.html", currentSnapshotId: "s1", subdominio: null, dominio: null, publishedSnapshotId: null, noIndexar: false, createdAt: "" };
+    return { id: "p1", orgId: "org1", nombre: "x", entryPath: "index.html", currentSnapshotId: "s1", subdominio: null, dominio: null, publishedSnapshotId: null, noIndexar: false, recogeFormularios: false, createdAt: "" };
   }
   async listProjects(): Promise<ProjectRow[]> { return []; }
   async setEntryPath(_o: string, _p: string, e: string) { this.entryGuardado = e; }

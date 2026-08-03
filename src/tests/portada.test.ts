@@ -29,7 +29,7 @@ function fakes(opts: { archivos?: Record<string, string>; conProyecto?: boolean 
   const project: ProjectRow = {
     id: P, orgId: ORG, nombre: "Mi Sitio", entryPath: "index.html",
     currentSnapshotId: "s1", subdominio: "mi-sitio", dominio: null,
-    publishedSnapshotId: null, noIndexar: false, createdAt: "",
+    publishedSnapshotId: null, noIndexar: false, recogeFormularios: false, createdAt: "",
   };
   const guardados: { key: string; contentType?: string; body: Buffer }[] = [];
   const assets: { assetId: string; contentType: string }[] = [];

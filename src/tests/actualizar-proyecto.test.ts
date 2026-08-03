@@ -26,7 +26,7 @@ class FakeStore implements ProjectStore {
   entryPath = "index.html";
   async createProjectWithSnapshot(i: CreateProjectInput) { return { projectId: i.projectId }; }
   async getProject(): Promise<ProjectRow | null> {
-    return { id: "p1", orgId: "org1", nombre: "x", entryPath: this.entryPath, currentSnapshotId: "s0", subdominio: "mi-web", dominio: null, publishedSnapshotId: null, noIndexar: false, createdAt: "" };
+    return { id: "p1", orgId: "org1", nombre: "x", entryPath: this.entryPath, currentSnapshotId: "s0", subdominio: "mi-web", dominio: null, publishedSnapshotId: null, noIndexar: false, recogeFormularios: false, createdAt: "" };
   }
   async listProjects(): Promise<ProjectRow[]> { return []; }
   async setEntryPath(_o: string, _p: string, e: string) { this.entryFijado = e; }

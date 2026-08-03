@@ -56,6 +56,35 @@ export const pt: TextosPanel = {
   },
 
   proyecto: {
+    formularios: {
+      titulo: "Mensagens dos teus formulários",
+      apagado: "Desligado",
+      encendido: "A recolher",
+      encender: "Recolher as mensagens",
+      apagar: "Deixar de recolher",
+      queEs:
+        "Quando alguém preenche um formulário do teu site, a mensagem chega aqui e avisamos-te por email. Enquanto isto estiver desligado, o teu site é servido exatamente como o carregaste.",
+      avisoDatos:
+        "Ao ligares isto passas a guardar dados das pessoas que te escrevem. És tu quem responde por eles perante a lei: diz isso no teu site e não peças mais do que precisas.",
+      rotos: "Encontrámos {n} formulário que não envia para lado nenhum.",
+      rotosPlural: "Encontrámos {n} formulários que não enviam para lado nenhum.",
+      rotosDetalle:
+        "Quem o preencher carrega em «enviar» e não acontece nada: nem lhe avisa, nem te chega. Liga a recolha e começarão a chegar-te.",
+      ningunoRoto: "Todos os formulários da tua página inicial vão para algum lado. Não há nada a corrigir.",
+      sinFormularios: "Não vimos nenhum formulário na tua página inicial.",
+      buscador: "pesquisa do site",
+      ajeno: "envia para o seu próprio destino",
+      mailto: "abre o email do visitante",
+      propio: "é o teu próprio código que trata dele",
+      muerto: "não envia para lado nenhum",
+      vacia: "Ainda não te escreveu ninguém.",
+      vaciaEncendida: "Tudo pronto. Assim que alguém te escrever, aparece aqui.",
+      sinLeer: "{n} por ler",
+      marcarLeidos: "Marcar como lidas",
+      en: "em {pagina}",
+      cargando: "A carregar…",
+      errorCargar: "Não foi possível carregar as mensagens.",
+    },
     publicar: {
       sinDireccion: "Ainda sem endereço",
       copiar: "Copiar",

@@ -1,11 +1,8 @@
 # Sistema visual — entregables de la sesión de diseño (v2 · «Alto Voltaje»)
 
 Fecha: 2026-07-17 · Responde al `docs/design-brief.md`.
-**Dirección elegida: 1b · Alto Voltaje.** **Marca: Estrénala** (estrenala.com). El sistema sigue
-siendo agnóstico del nombre: cambiar el wordmark no toca ningún token.
-
-> Actualización 2026-07-25: añadida la **landing pública de marketing** (`11-landing.html`) y el
-> **logo real** (`logo-tinta.png` / `logo-blanco.png`).
+**Dirección elegida: 1b · Alto Voltaje.** **Marca de trabajo: Estrénala** (el sistema sigue
+siendo agnóstico del nombre: cambiar el wordmark no toca ningún token).
 
 > Qué cambió frente a la v1: fuera el índigo `#4f46e5` de fábrica y los neutrales slate fríos.
 > Ahora **neutro papel/tinta cálido** + **un único acento lima eléctrico `#C4F000`** (identidad +
@@ -30,7 +27,6 @@ de verdad; el resto son mockups que reflejan esos tokens.
 | `08-wordmarks.html` | Direcciones de marca: **Estrénala** (desarrollada) · WebNace · YaVive |
 | `09-blog.html` | Panel del blog completo: lista con estados, radar de temas, carril del piloto automático |
 | `10-configuracion.html` | Configuración por dentro: general, herramientas del sitio, equipo, plan, cuenta, zona de peligro |
-| `11-landing.html` | Landing pública de marketing (estrenala.com): hero «valiente», 3 pasos, 3 vías de edición, blog automático, equipos, FAQ, CTA. Logo real incrustado |
 
 ## Decisiones clave (el porqué en `01-tokens.md`)
 
@@ -70,14 +66,6 @@ de verdad; el resto son mockups que reflejan esos tokens.
 8. **Configuración** → `app/projects/[id]/settings/page.tsx`. Maqueta en `10-configuracion.html`:
    navegación de secciones + filas [nombre + descripción + control]. Contiene la **caja de
    herramientas del sitio** y la **zona de peligro** con confirmación en dos pasos.
-9. **Landing pública** → `app/(marketing)/page.tsx` (ruta raíz del dominio público, fuera del
-   panel autenticado). Maqueta en `11-landing.html`. Dirección de hero elegida: **1b «valiente»**.
-   Notas: CTA único `#registro` (conectar al alta real); logos en base64 → sustituir por el
-   PNG/SVG real (`logo-tinta.png` claro / `logo-blanco.png` oscuro); Space Grotesk vía `next/font`.
-   Clases nuevas de landing (`.seccion`, `.contenedor`, `.titular-xl`, `.tarjeta-via`, `.paso`,
-   `.faq`, `.reveal`) documentadas en el comentario de cabecera del archivo; todos los colores
-   salen de los tokens. Único JS: revelado en scroll (respeta `prefers-reduced-motion`) + menú
-   móvil con `<details>`.
 
 Sugerencia de fases: **A** = tokens + login + panel · **B** = pantalla de proyecto ·
 **C** = popover del editor · **D** = 404 + repaso del BlogPanel con las recetas.
@@ -99,6 +87,6 @@ Sugerencia de fases: **A** = tokens + login + panel · **B** = pantalla de proye
 ## Lo que NO se hizo (a propósito, según el brief)
 
 Modo oscuro (los tokens lo dejan listo en `01 §6`, sin activar) · librerías de componentes
-(nada de shadcn/MUI) · JavaScript nuevo en la app · rediseño de las webs de los clientes ·
-tabla de precios (la landing va sin precios por decisión de producto). El logotipo de Estrénala
-ya está entregado (ver `logo-tinta.png` / `logo-blanco.png`); recomendación pendiente: pasarlo a SVG.
+(nada de shadcn/MUI) · JavaScript nuevo · rediseño de las webs de los clientes · landing de
+marketing (usará estos mismos tokens). El logotipo definitivo de Estrénala lo diseña el cliente
+con la paleta fijada (notas en `01-tokens.md §8`).

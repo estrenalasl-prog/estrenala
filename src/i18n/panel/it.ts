@@ -56,6 +56,35 @@ export const it: TextosPanel = {
   },
 
   proyecto: {
+    formularios: {
+      titulo: "Messaggi dai tuoi moduli",
+      apagado: "Spento",
+      encendido: "In raccolta",
+      encender: "Raccogli i messaggi",
+      apagar: "Smetti di raccogliere",
+      queEs:
+        "Quando qualcuno compila un modulo del tuo sito, il messaggio arriva qui e ti avvisiamo per email. Finché resta spento, il tuo sito viene servito esattamente come lo hai caricato.",
+      avisoDatos:
+        "Accendendolo inizi a conservare dati delle persone che ti scrivono. Sei tu a risponderne per legge: dillo sul tuo sito e non chiedere più di quello che ti serve.",
+      rotos: "Abbiamo trovato {n} modulo che non manda da nessuna parte.",
+      rotosPlural: "Abbiamo trovato {n} moduli che non mandano da nessuna parte.",
+      rotosDetalle:
+        "Chi lo compila preme «invia» e non succede niente: né un avviso per lui, né un messaggio per te. Accendi la raccolta e cominceranno ad arrivarti.",
+      ningunoRoto: "Tutti i moduli della tua home vanno da qualche parte. Non c'è niente da sistemare.",
+      sinFormularios: "Non abbiamo visto nessun modulo nella tua pagina iniziale.",
+      buscador: "ricerca del sito",
+      ajeno: "manda alla sua destinazione",
+      mailto: "apre la posta del visitatore",
+      propio: "lo gestisce il tuo codice",
+      muerto: "non manda da nessuna parte",
+      vacia: "Non ti ha ancora scritto nessuno.",
+      vaciaEncendida: "Tutto pronto. Appena qualcuno ti scrive, comparirà qui.",
+      sinLeer: "{n} da leggere",
+      marcarLeidos: "Segna come letti",
+      en: "su {pagina}",
+      cargando: "Caricamento…",
+      errorCargar: "Non è stato possibile caricare i messaggi.",
+    },
     publicar: {
       sinDireccion: "Ancora senza indirizzo",
       copiar: "Copia",

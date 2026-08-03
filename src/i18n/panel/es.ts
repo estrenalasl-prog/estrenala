@@ -67,6 +67,35 @@ export const es = {
 
   // Dentro de una web. Cada apartado va a su componente (ver projects/[id]/).
   proyecto: {
+    formularios: {
+      titulo: "Mensajes de tus formularios",
+      apagado: "Apagado",
+      encendido: "Recogiendo",
+      encender: "Recoger los mensajes",
+      apagar: "Dejar de recoger",
+      queEs:
+        "Cuando alguien rellena un formulario de tu web, el mensaje llega aquí y te avisamos por correo. Mientras esto esté apagado, tu web se sirve exactamente como la subiste.",
+      avisoDatos:
+        "Al encenderlo empezarás a guardar datos de las personas que te escriban. Eres tú quien responde de ellos ante la ley: cuéntaselo en tu web y no pidas más de lo que necesites.",
+      rotos: "Hemos encontrado {n} formulario que no envía a ninguna parte.",
+      rotosPlural: "Hemos encontrado {n} formularios que no envían a ninguna parte.",
+      rotosDetalle:
+        "Quien lo rellene pulsa «enviar» y no pasa nada: ni le avisa, ni te llega. Enciende la recogida y empezarán a llegarte.",
+      ningunoRoto: "Todos los formularios de tu portada van a alguna parte. No hay nada que arreglar.",
+      sinFormularios: "No hemos visto ningún formulario en tu página de inicio.",
+      buscador: "buscador del sitio",
+      ajeno: "envía a su propio sitio",
+      mailto: "abre el correo del visitante",
+      propio: "lo maneja tu propio código",
+      muerto: "no envía a ninguna parte",
+      vacia: "Todavía no te ha escrito nadie.",
+      vaciaEncendida: "Todo listo. En cuanto alguien te escriba, aparecerá aquí.",
+      sinLeer: "{n} sin leer",
+      marcarLeidos: "Marcar como leídos",
+      en: "en {pagina}",
+      cargando: "Cargando…",
+      errorCargar: "No se han podido cargar los mensajes.",
+    },
     publicar: {
       sinDireccion: "Sin dirección aún",
       copiar: "Copiar",

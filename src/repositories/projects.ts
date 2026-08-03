@@ -20,6 +20,7 @@ function toProjectRow(r: typeof projects.$inferSelect): ProjectRow {
     dominio: r.dominio,
     publishedSnapshotId: r.publishedSnapshotId,
     noIndexar: r.noIndexar,
+    recogeFormularios: r.recogeFormularios,
     createdAt: r.createdAt.toISOString(),
   };
 }

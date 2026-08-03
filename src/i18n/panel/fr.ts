@@ -56,6 +56,35 @@ export const fr: TextosPanel = {
   },
 
   proyecto: {
+    formularios: {
+      titulo: "Messages de tes formulaires",
+      apagado: "Éteint",
+      encendido: "Collecte active",
+      encender: "Collecter les messages",
+      apagar: "Arrêter la collecte",
+      queEs:
+        "Quand quelqu'un remplit un formulaire de ton site, le message arrive ici et on te prévient par e-mail. Tant que c'est éteint, ton site est servi exactement comme tu l'as téléversé.",
+      avisoDatos:
+        "En l'activant, tu commences à stocker des données sur les personnes qui t'écrivent. C'est toi qui en réponds devant la loi : dis-le sur ton site et ne demande pas plus que nécessaire.",
+      rotos: "On a trouvé {n} formulaire qui n'envoie nulle part.",
+      rotosPlural: "On a trouvé {n} formulaires qui n'envoient nulle part.",
+      rotosDetalle:
+        "Celui qui le remplit appuie sur « envoyer » et rien ne se passe : ni avertissement pour lui, ni message pour toi. Active la collecte et ils commenceront à arriver.",
+      ningunoRoto: "Tous les formulaires de ta page d'accueil vont quelque part. Rien à corriger.",
+      sinFormularios: "On n'a vu aucun formulaire sur ta page d'accueil.",
+      buscador: "recherche du site",
+      ajeno: "envoie vers sa propre destination",
+      mailto: "ouvre la messagerie du visiteur",
+      propio: "géré par ton propre code",
+      muerto: "n'envoie nulle part",
+      vacia: "Personne ne t'a encore écrit.",
+      vaciaEncendida: "Tout est prêt. Dès que quelqu'un t'écrit, ça apparaîtra ici.",
+      sinLeer: "{n} non lus",
+      marcarLeidos: "Marquer comme lus",
+      en: "sur {pagina}",
+      cargando: "Chargement…",
+      errorCargar: "Les messages n'ont pas pu être chargés.",
+    },
     publicar: {
       sinDireccion: "Pas encore d'adresse",
       copiar: "Copier",

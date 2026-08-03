@@ -8,6 +8,8 @@ export type ProjectRow = {
   dominio: string | null;
   publishedSnapshotId: string | null;
   noIndexar: boolean;
+  /** Si se recogen los envíos de sus formularios (ver src/forms/). */
+  recogeFormularios: boolean;
   createdAt: string;
 };
 
