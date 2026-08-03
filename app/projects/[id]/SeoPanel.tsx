@@ -26,6 +26,22 @@ function veredicto(nota: number, t: Textos): string {
   return t.veredictoMal;
 }
 
+/**
+ * Corta por palabras y pone puntos suspensivos.
+ *
+ * Los ejemplos son títulos y descripciones ENTEROS del cliente —el fallo es
+ * justo que son largos—, así que sin cortar ocupan cuatro líneas cada uno y el
+ * panel deja de leerse. Con ver el principio se reconoce cuál es, que es para lo
+ * único que están.
+ */
+function corto(s: string, max = 56): string {
+  const t = s.trim().replace(/\s+/g, " ");
+  if (t.length <= max) return t;
+  const corte = t.slice(0, max);
+  const espacio = corte.lastIndexOf(" ");
+  return (espacio > max * 0.6 ? corte.slice(0, espacio) : corte) + "…";
+}
+
 function colorNota(nota: number): string {
   if (nota >= 90) return "var(--color-exito)";
   if (nota >= 70) return "var(--color-aviso)";
@@ -125,19 +141,46 @@ export function SeoPanel({ projectId, textos }: { projectId: string; textos: Tex
                     )}
                   </div>
                   <p className="ayuda-campo" style={{ marginTop: 0 }}>{texto.porque}</p>
+
+                  {/* DÓNDE está. «En 21 páginas» sin decir cuáles no sirve para
+                      ir a arreglarlo, que es lo único que se quiere hacer al
+                      leer esto. */}
+                  <p className="ayuda-campo" style={{ marginTop: 6 }}>
+                    {f.paginas.slice(0, 3).map((p, i) => (
+                      <span key={p}>
+                        {i > 0 && <span style={{ opacity: 0.4 }}> · </span>}
+                        <code style={{ fontSize: 12 }}>{p}</code>
+                      </span>
+                    ))}
+                    {f.paginas.length > 3 && (
+                      <span> {rellenar(t.yMas, { n: String(f.paginas.length - 3) })}</span>
+                    )}
+                  </p>
+
                   {f.ejemplos.length > 0 && (
+                    // Uno por línea y recortados. Antes iban pegados con «·», y
+                    // como los títulos del cliente llevan «|» y «·» dentro, no
+                    // se veía dónde acababa uno y empezaba el siguiente.
+                    //
                     // Texto plano SIEMPRE: son trozos del HTML del cliente, y
                     // pintarlos como marcado sería dejar que su web escriba en
                     // nuestro panel.
-                    <p className="ayuda-campo" style={{ marginTop: 4 }}>
-                      {t.ejemplos}{" "}
-                      {f.ejemplos.map((e, i) => (
-                        <span key={i}>
-                          {i > 0 && " · "}
-                          <code style={{ fontSize: 12 }}>{e}</code>
-                        </span>
-                      ))}
-                    </p>
+                    <div className="ayuda-campo" style={{ marginTop: 6 }}>
+                      {t.ejemplos}
+                      <ul style={{ margin: "3px 0 0", padding: 0, listStyle: "none" }}>
+                        {f.ejemplos.slice(0, 3).map((e, i) => (
+                          <li
+                            key={i}
+                            style={{
+                              borderLeft: "2px solid var(--color-borde)",
+                              paddingLeft: 8, marginTop: 2,
+                            }}
+                          >
+                            <code style={{ fontSize: 12 }}>{corto(e)}</code>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   )}
                 </div>
               );

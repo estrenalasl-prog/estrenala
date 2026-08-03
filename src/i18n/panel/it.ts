@@ -99,6 +99,7 @@ export const it: TextosPanel = {
       enUnaPagina: "in 1 pagina",
       enPaginas: "in {n} pagine",
       ejemplos: "Per esempio:",
+      yMas: "e altre {n}",
       veredictoExcelente: "Il tuo sito è messo molto bene per farsi trovare.",
       veredictoBien: "È abbastanza a posto, ma si può tirarne fuori di più.",
       veredictoRegular: "Gli mancano cose importanti perché Google lo capisca.",

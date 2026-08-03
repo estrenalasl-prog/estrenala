@@ -114,6 +114,7 @@ export const es = {
       enUnaPagina: "en 1 página",
       enPaginas: "en {n} páginas",
       ejemplos: "Por ejemplo:",
+      yMas: "y {n} más",
       veredictoExcelente: "Tu web está muy bien preparada para que la encuentren.",
       veredictoBien: "Está bastante bien, pero se le puede sacar más.",
       veredictoRegular: "Le faltan cosas importantes para que Google la entienda.",
