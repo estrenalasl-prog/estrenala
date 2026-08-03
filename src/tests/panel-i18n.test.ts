@@ -4,6 +4,7 @@ import { CATALOGO_LANDING } from "@/src/i18n/landing";
 import { CATALOGO_CUENTA } from "@/src/i18n/cuenta";
 import { CATALOGO_AJUSTES, textosAjustes } from "@/src/i18n/ajustes";
 import { CATALOGO_BLOG, textosBlog } from "@/src/i18n/blog";
+import { CATALOGO_PUBLICO } from "@/src/i18n/publico";
 import { IDIOMAS, type Idioma } from "@/src/i18n/idiomas";
 import { patronHuecos } from "@/src/i18n/rellenar";
 
@@ -33,6 +34,7 @@ const CATALOGOS = {
   panel: CATALOGO_PANEL,
   ajustes: CATALOGO_AJUSTES,
   blog: CATALOGO_BLOG,
+  publico: CATALOGO_PUBLICO,
 } as const;
 
 type Catalogo = Record<Idioma, unknown>;

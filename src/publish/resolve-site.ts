@@ -6,6 +6,8 @@ import {
 } from "./seo";
 import { puede } from "@/src/planes/planes";
 import { tieneExtensionConocida } from "@/src/storage/content-type";
+import { textosPublico } from "@/src/i18n/publico";
+import { idiomaDeAcceptLanguage, type Idioma } from "@/src/i18n/idiomas";
 import type { StorageAdapter } from "@/src/storage/types";
 import type { ProjectStore } from "@/src/repositories/types";
 
@@ -24,12 +26,22 @@ function esc(s: string): string {
 // Página pública 404 con el sistema visual Estrénala (docs/design/07-404-publica.html).
 // Autocontenida: sin assets ni fuentes externas (se sirve desde el dominio del cliente),
 // por eso usa el stack de sistema en vez de Space Grotesk.
-function pagina404(mensaje: string, opciones?: { host?: string; platformHost?: string }): PublicResponse {
-  const m = esc(mensaje);
+//
+// El idioma sale del `Accept-Language` de quien la pide. Es el único sitio de
+// las webs de clientes donde se usa esa señal, y es porque aquí NO hay página a
+// la que parecerse: o la web no está publicada, o la dirección no existe. Lo
+// único que se sabe de quien está mirando es lo que dice su navegador.
+function pagina404(
+  cual: "noPublicada" | "noEncontrado",
+  opciones?: { host?: string; platformHost?: string; idioma?: Idioma }
+): PublicResponse {
+  const idioma = opciones?.idioma ?? "es";
+  const t = textosPublico(idioma).pagina404;
+  const m = esc(t[cual]);
   const host = opciones?.host ? esc(opciones.host) : null;
   const plataforma = opciones?.platformHost ? esc(opciones.platformHost) : null;
   const html = `<!doctype html>
-<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<html lang="${idioma}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${m} — Estrénala</title><meta name="robots" content="noindex">
 <style>
 :root{--lienzo:#F5F6F1;--superficie:#FFF;--superficie-2:#ECEDE4;--borde:#DEDFD6;--borde-fuerte:#C9CABF;
@@ -69,17 +81,24 @@ h1{font-size:32px;font-weight:700;letter-spacing:-.03em;margin:0 0 12px;line-hei
 <div class="glifo">404</div>
 ${host ? `<div class="direccion"><span class="pt"></span>${host}</div>` : ""}
 <h1>${m}</h1>
-<p class="lead">Si esta dirección es tuya, entra en Estrénala para publicarla o revisar su contenido.</p>
-${plataforma ? `<a class="btn btn-primario" href="//${plataforma}">Entrar en Estrénala</a>` : ""}
+<p class="lead">${esc(t.lead)}</p>
+${plataforma ? `<a class="btn btn-primario" href="//${plataforma}">${esc(t.boton)}</a>` : ""}
 </div></div>
 <div class="promo"><div class="promo-int"><div class="txt">
-<div class="eyebrow">Hecho con Estrénala</div>
-<h2>¿Tienes una web hecha con IA y no sabes cómo subirla?</h2>
-<p>Estrénala la pone online en un clic, la editas sin código haciendo clic sobre ella, y su blog escribe solo.</p>
+<div class="eyebrow">${esc(textosPublico(idioma).marca.texto)}</div>
+<h2>${esc(t.promoTitulo)}</h2>
+<p>${esc(t.promoTexto)}</p>
 </div></div></div>
-<div class="pie">Estrénala · Tu web hecha con IA, por fin en directo.</div>
+<div class="pie">${esc(t.pie)}</div>
 </body></html>`;
-  return { status: 404, body: Buffer.from(html, "utf-8"), contentType: "text/html; charset=utf-8", cacheControl: "no-cache" };
+  return {
+    status: 404, body: Buffer.from(html, "utf-8"), contentType: "text/html; charset=utf-8",
+    cacheControl: "no-cache",
+    // Sin esto, un proxy que guardara esta página se la serviría en francés al
+    // siguiente que pasara. Va aunque sea `no-cache`, porque lo que declara no
+    // es cuánto dura sino DE QUÉ depende.
+    headers: { vary: "Accept-Language" },
+  };
 }
 
 /** Cómo se ha llegado al archivo: tal cual, por índice de carpeta, o por URL limpia. */
@@ -99,11 +118,22 @@ export async function resolvePublicSite(
     conBarra?: boolean;
     /** La query tal cual (`?utm_source=x`), para no perderla al redirigir. */
     search?: string;
+    /**
+     * La cabecera `Accept-Language` de quien pide. SOLO decide el idioma de la
+     * 404: lo que se sirve —qué archivo, con qué cabeceras— no depende de ella
+     * en ningún caso. Si el idioma cambiara el contenido, Googlebot (que rastrea
+     * sin esta cabecera) vería siempre una versión y las demás no existirían.
+     */
+    acceptLanguage?: string | null;
   }
 ): Promise<PublicResponse> {
   const h = parseHost(input.host, input.platformHost, input.sitesBaseDomain ?? input.platformHost);
-  const marca = { host: input.host, platformHost: input.platformHost };
-  if (h.tipo === "plataforma" || h.tipo === "raiz" || h.tipo === "desconocido") return pagina404("Esta web no está publicada", marca);
+  const marca = {
+    host: input.host,
+    platformHost: input.platformHost,
+    idioma: idiomaDeAcceptLanguage(input.acceptLanguage),
+  };
+  if (h.tipo === "plataforma" || h.tipo === "raiz" || h.tipo === "desconocido") return pagina404("noPublicada", marca);
 
   // Guard de traversal: evalúa justo después de parseHost, antes de cualquier lookup
   if (input.pathSegments.some((s) => s === ".." || s.includes("/") || s.includes("\\"))) {
@@ -126,7 +156,7 @@ export async function resolvePublicSite(
   const site = h.tipo === "subdominio"
     ? await deps.store.getPublishedSiteByHost({ subdominio: h.valor })
     : await deps.store.getPublishedSiteByHost({ dominio: h.valor });
-  if (!site) return pagina404("Esta web no está publicada", marca);
+  if (!site) return pagina404("noPublicada", marca);
 
   // `rel` y `file` no son const a propósito: si la ruta no casa con ningún
   // archivo, más abajo se reintenta como carpeta o como URL limpia y AMBOS se
@@ -186,7 +216,7 @@ export async function resolvePublicSite(
     }
   }
 
-  if (!file) return pagina404("No encontrado", marca);
+  if (!file) return pagina404("noEncontrado", marca);
 
   // La barra final no es cosmética: decide dónde caen los enlaces RELATIVOS de
   // la página que estamos sirviendo, porque el navegador los resuelve contra la

@@ -1,6 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { resolvePublicSite } from "@/src/publish/resolve-site";
-import { conMarca, ID_MARCA, TEXTO_MARCA } from "@/src/publish/marca";
+import { conMarca, ID_MARCA } from "@/src/publish/marca";
+import { idiomaDeLaPagina } from "@/src/publish/idioma-pagina";
+import { textosPublico } from "@/src/i18n/publico";
+import { IDIOMAS } from "@/src/i18n/idiomas";
 import {
   ROBOTS_NOINDEX, reapuntarCanonicos, reapuntarMetadatosImportados, reapuntarSitemap,
   dominiosAjenosDelSitemap,
@@ -539,7 +542,7 @@ describe("marca «Hecho con Estrénala» (plan gratuito)", () => {
   it("el HTML del plan gratuito sale con la insignia justo antes de </body>", async () => {
     const { storage, store } = preparado("free");
     const html = (await pedir(store, storage)).body.toString();
-    expect(html).toContain(TEXTO_MARCA);
+    expect(html).toContain(textosPublico("es").marca.texto);
     expect(html.indexOf(`id="${ID_MARCA}"`)).toBeLessThan(html.indexOf("</body>"));
     expect(html).toContain("<h1>Hola</h1>"); // no se ha tocado nada del original
   });
@@ -587,6 +590,133 @@ describe("conMarca", () => {
 
   it("escapa el host de la plataforma", () => {
     expect(conMarca(HTML, `x"><script>alert(1)</script>`, )).not.toContain("<script>alert(1)");
+  });
+});
+
+describe("idiomaDeLaPagina", () => {
+  it("lee el lang del <html>, con comillas dobles, simples o sin ellas", () => {
+    expect(idiomaDeLaPagina(`<html lang="fr">`)).toBe("fr");
+    expect(idiomaDeLaPagina(`<html lang='it'>`)).toBe("it");
+    expect(idiomaDeLaPagina(`<html lang=pt>`)).toBe("pt");
+  });
+
+  it("manda la parte de delante: pt-BR es portugués y fr-CA es francés", () => {
+    expect(idiomaDeLaPagina(`<html lang="pt-BR">`)).toBe("pt");
+    expect(idiomaDeLaPagina(`<html lang="fr-CA">`)).toBe("fr");
+    expect(idiomaDeLaPagina(`<html LANG="EN-GB">`)).toBe("en");
+  });
+
+  it("sin lang, o en un idioma que no hablamos, se cae al español", () => {
+    expect(idiomaDeLaPagina(`<html>`)).toBe("es");
+    expect(idiomaDeLaPagina(`<html lang="de">`)).toBe("es");
+    expect(idiomaDeLaPagina(`<html lang="">`)).toBe("es");
+    expect(idiomaDeLaPagina(`sin etiqueta html siquiera`)).toBe("es");
+  });
+
+  it("no se lo come el <html> de otro atributo parecido", () => {
+    expect(idiomaDeLaPagina(`<html data-lang="fr"><body>`)).toBe("es");
+  });
+
+  /**
+   * El patrón es de módulo. Si algún día lleva `g`, `exec` arrastra `lastIndex`
+   * entre llamadas y la SEGUNDA página empieza a buscar por la mitad: la
+   * primera visita saldría bien y la siguiente en español, sin que falle nada.
+   */
+  it("dos llamadas seguidas dan lo mismo (el patrón no arrastra estado)", () => {
+    const pagina = `<html lang="it"><body>hola</body></html>`;
+    expect(idiomaDeLaPagina(pagina)).toBe("it");
+    expect(idiomaDeLaPagina(pagina)).toBe("it");
+  });
+});
+
+describe("el sello habla el idioma de la PÁGINA, no el del dueño ni el del visitante", () => {
+  const paginaEn = (lang: string) =>
+    `<!doctype html><html lang="${lang}"><head><title>t</title></head><body><h1>Hola</h1></body></html>`;
+
+  it("una web francesa lleva el sello en francés", () => {
+    const html = conMarca(paginaEn("fr"), PLAT);
+    expect(html).toContain(textosPublico("fr").marca.texto); // «Fait avec Estrénala»
+    expect(html).not.toContain(textosPublico("es").marca.texto);
+  });
+
+  it("cada idioma pone el suyo", () => {
+    for (const idioma of IDIOMAS) {
+      expect(conMarca(paginaEn(idioma), PLAT)).toContain(textosPublico(idioma).marca.texto);
+    }
+  });
+
+  it("una web sin lang sigue saliendo en español, como hasta ahora", () => {
+    expect(conMarca(HTML, PLAT)).toContain(textosPublico("es").marca.texto);
+  });
+
+  it("el aria-label va traducido, no solo el texto visible", () => {
+    expect(conMarca(paginaEn("it"), PLAT)).toContain(`aria-label="${textosPublico("it").marca.aria}"`);
+  });
+
+  it("sigue siendo idempotente en cualquier idioma", () => {
+    const una = conMarca(paginaEn("pt"), PLAT);
+    expect(conMarca(una, PLAT)).toBe(una);
+  });
+});
+
+describe("la 404 pública habla el idioma del VISITANTE", () => {
+  const pedir404 = (acceptLanguage?: string) =>
+    resolvePublicSite(
+      { store: new FakeStore(), storage: new FakeStorage() },
+      { host: "nadie.localhost:3000", platformHost: PLAT, pathSegments: [], acceptLanguage }
+    );
+
+  it("«esta web no está publicada», en los cinco", async () => {
+    for (const idioma of IDIOMAS) {
+      const r = await pedir404(idioma);
+      expect(r.status).toBe(404);
+      expect(r.body.toString(), idioma).toContain(textosPublico(idioma).pagina404.noPublicada);
+    }
+  });
+
+  it("respeta los pesos: `de;q=0.9, fr;q=0.8` es alemán, que no hablamos, luego francés", async () => {
+    const r = await pedir404("de;q=0.9, fr;q=0.8");
+    expect(r.body.toString()).toContain(textosPublico("fr").pagina404.noPublicada);
+  });
+
+  it("sin cabecera —como Googlebot— sale en español", async () => {
+    expect((await pedir404()).body.toString()).toContain(textosPublico("es").pagina404.noPublicada);
+  });
+
+  it("el <html lang> dice la verdad, que es lo que usa un lector de pantalla", async () => {
+    expect((await pedir404("it")).body.toString()).toContain(`<html lang="it"`);
+  });
+
+  it("«no encontrado» (la web SÍ está, la página no) también va traducido", async () => {
+    const { storage, store } = preparado("free");
+    const r = await resolvePublicSite(
+      { store, storage },
+      { host: "cafe.localhost:3000", platformHost: PLAT, pathSegments: ["no-existe.html"], acceptLanguage: "pt" }
+    );
+    expect(r.status).toBe(404);
+    expect(r.body.toString()).toContain(textosPublico("pt").pagina404.noEncontrado);
+  });
+
+  it("declara Vary: Accept-Language (o un proxy la serviría en el idioma del anterior)", async () => {
+    expect((await pedir404("fr")).headers?.vary).toBe("Accept-Language");
+  });
+
+  /**
+   * La guarda de verdad de todo este montaje. Si alguien «simplifica» pasando el
+   * Accept-Language al sello, una web francesa empezaría a enseñar el sello en
+   * el idioma de cada visitante que pasa: alemán para uno, italiano para otro.
+   * No falla nada y no hay test en rojo — salvo este.
+   */
+  it("el Accept-Language NO toca el sello de una web publicada", async () => {
+    const { storage, store } = preparado("free");
+    storage.files.set(PREFIX + "index.html", Buffer.from(`<html lang="fr"><body>Bonjour</body></html>`));
+    const r = await resolvePublicSite(
+      { store, storage },
+      { host: "cafe.localhost:3000", platformHost: PLAT, pathSegments: [], acceptLanguage: "it,de;q=0.9" }
+    );
+    const html = r.body.toString();
+    expect(html).toContain(textosPublico("fr").marca.texto);
+    expect(html).not.toContain(textosPublico("it").marca.texto);
   });
 });
 

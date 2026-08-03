@@ -20,6 +20,9 @@ export async function GET(req: Request, ctx: { params: Promise<{ host: string; p
       // Para que una redirección (barra final, www→pelado) no se coma el
       // `?utm_source=...` con el que llega la gente desde una campaña.
       search: url.search,
+      // Solo para el idioma de la 404. El sello de las webs publicadas NO usa
+      // esto: se pone en el idioma de la propia página (ver idioma-pagina.ts).
+      acceptLanguage: req.headers.get("accept-language"),
     }
   );
   const headers: Record<string, string> = { "content-type": r.contentType, "cache-control": r.cacheControl, ...r.headers };
