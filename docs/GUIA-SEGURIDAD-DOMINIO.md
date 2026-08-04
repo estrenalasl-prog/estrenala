@@ -104,6 +104,21 @@ que no tenerlo, pero además creyendo que estás cubierto.
 - [ ] Comprueba que **llega a tu bandeja** — mira también en «no deseados»
 - [ ] Repite con `abuso@estrenala.com`
 
+⚠️ **Van a caer en Spam, y hay que arreglarlo.** Pasó en la primera prueba
+(2026-08-04) y es lo normal: Gmail desconfía del correo **reenviado**, porque le
+llega un mensaje que dice venir de una dirección pero entregado por los
+servidores de Cloudflare. **No se arregla desde el DNS**: quien firma el correo
+es quien lo escribe, no nosotros. Y para estos dos buzones da igual que lleguen
+si no se ven — todo esto es para enterarnos ANTES que Google.
+
+### A.6 · Que no acaben en Spam
+
+- [ ] Gmail → **Ajustes → Ver todos los ajustes → Filtros y direcciones
+      bloqueadas → Crear un filtro nuevo**
+- [ ] En **Para**: `seguridad@estrenala.com OR abuso@estrenala.com`
+- [ ] Crear filtro → **«No enviar nunca a Spam»** y también **«Destacarlo»**
+- [ ] Saca de Spam los correos de prueba, para que Gmail aprenda
+
 ✅ **Bloque A terminado.** Ya hay alguien al otro lado cuando avisen.
 
 ---
@@ -207,21 +222,26 @@ si el certificado no está bien, así que hay que mirarlo enseguida.
 >
 > 1. **El dominio caduca demasiado pronto.** Piden más de 2 años desde el envío;
 >    `estrenala.com` caduca el **2027-07-24** y harían falta más allá de
->    2028-08-04. Esto sí se arregla hoy: es el C.0.
+>    2028-08-04. Renovar un año no basta: se quedaría a **once días**.
 > 2. **Somos demasiado pequeños.** «*Projects not serving more than thousands of
 >    users are quite likely to be declined*». Hoy hay cero clientes.
->
-> Se envía cuando los haya, y para entonces el C.0 ya estará hecho.
 
-### C.0 · Lo único de hoy: alargar el dominio
+### C.0 · El dominio: hoy solo la renovación automática
 
-- [ ] Entra en **Hostinger** (ahí está registrado) y **renueva `estrenala.com`
-      tres años más**
+- [ ] Entra en **Hostinger** (ahí está registrado) y comprueba que
+      `estrenala.com` tiene la **renovación automática activada**, con una
+      tarjeta que no caduque antes de julio de 2027
 
-> Hay que hacerlo aunque la lista no existiera: un dominio de negocio a un año
-> vista es un despiste de tarjeta caducada de perder la empresa entera. Y de paso
-> resuelve el único requisito que depende solo de nosotros — la propia lista
-> avisa de que un registro corto puede hacer que te saquen de ella más adelante.
+⚠️ **Esto es gratis y no se salta.** Un dominio caducado no es «se apaga la
+web»: es que **cualquiera puede comprarlo** y quedarse con la marca, el correo y
+las webs de todos los clientes. El riesgo no es el dinero, es el despiste.
+
+> **Comprar años por adelantado, NO todavía** (decisión de Sebas, 2026-08-04).
+> Con la solicitud aparcada, renovar hoy sería pagar por un requisito de algo que
+> no se va a enviar. Y peor: comprar dos años ahora —hasta 2029-07-24— y enviar
+> dentro de uno **volvería a quedarse corto por días**. Cuando llegue el momento
+> se compran tres de golpe. Ese dinero, mientras tanto, en captar los primeros
+> clientes: que son justo lo que falta para poder entrar en la lista.
 
 ---
 
@@ -377,10 +397,10 @@ subdominio al dominio entero.**
 
 - [ ] **A** — `seguridad@` y `abuso@` llegan a mi correo (lo he probado)
 - [ ] **B** — Las tres nubecitas naranjas y las webs cargan con candado
-- [ ] **C** — `estrenala.com` renovado tres años más
+- [ ] **C** — La renovación automática del dominio, activada
 
-Con A y B hechos ya estás muchísimo mejor que esta mañana. **Del C hoy solo toca
-alargar el dominio**: la solicitud se envía cuando haya clientes de verdad.
+Con A y B hechos ya estás muchísimo mejor que esta mañana.
 
-**Pendiente para entonces:** enviar la solicitud a la Public Suffix List. Los
-pasos están arriba y comprobados; no hay que volver a investigarlo.
+**Pendiente para cuando haya clientes:** comprar tres años de dominio y enviar la
+solicitud a la Public Suffix List. Los pasos están arriba y comprobados; no hay
+que volver a investigarlo.
