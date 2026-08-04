@@ -1,7 +1,8 @@
 # Reanudación tras formateo — léeme primero
 
-Actualizado: 2026-08-01 (prueba humana terminada). Este documento es la fuente de verdad para
-retomar: la memoria de Claude en `C:\Users\Sebas\.claude` NO sobrevive a los formateos.
+Actualizado: 2026-08-04 (SEO, velocidad y dominio protegido, todo en producción). Este documento
+es la fuente de verdad para retomar: la memoria de Claude en `C:\Users\Sebas\.claude` NO
+sobrevive a los formateos.
 
 **Los otros dos documentos que hay que leer:**
 
@@ -215,6 +216,72 @@ El cortafuegos de Hostinger se deja activado igualmente: sí manda sobre lo que 
 en la máquina y no en Docker. Reglas: `Accept TCP 22/80/443` + el `Drop Any` de
 serie. **Es lista de permitidos**: activarlo sin las reglas de aceptación deja el
 servidor incomunicado en el acto.
+
+## 🛡️ 2026-08-04 — SEO, velocidad y el dominio protegido (todo en producción)
+
+Día largo. Lo desplegado y **verificado desde fuera**, no desde el panel:
+
+- **Examen de SEO al subir la web** (`src/seo/`): 17 comprobaciones con pesos, nota
+  sobre 100 y arreglo automático de lo que se puede arreglar sin cambiar cómo se ve.
+  La web real de Quantiva saca 91/100 (27 páginas); nuestra landing, 100/100 en los
+  cinco idiomas. Lo pendiente de su web está en `docs/SEO-WEB-QUANTIVA.md`.
+- **Ficha para buscadores y tarjeta al compartir**, puestas AL SERVIR (`src/seo/ficha.ts`).
+  Solo en la portada y solo si la web declara su nombre: dos `Organization` con el
+  mismo `@id` y nombres distintos es peor que ninguna.
+- **Comprimir y ETag** (`src/publish/entrega.ts`). Producción servía las webs de
+  clientes SIN comprimir: Next comprime lo que pinta él, no lo que devuelve un
+  manejador de ruta con un Buffer.
+- **Las tres cachés** (`src/publish/cache-servir.ts`): archivos y listados para
+  siempre (la clave lleva el id de la instantánea, que es inmutable —comprobado una
+  a una que ninguna escritura sobrescribe), la búsqueda del sitio con caducidad de
+  1 min **e invalidación a mano** al publicar, y lo ya comprimido por ETag.
+- **`scripts/medir-entrega.mjs`**: mide todo lo anterior sobre `next start`, no en
+  dev. 21/21. HTML 35,3 KB → 1,6 KB; página en frío 281 ms → 8,2 ms caliente.
+- **Suplantación de marcas** (`src/publish/suplantacion.ts`) y **`security.txt`**.
+
+### Lo que Sebas montó a mano ese día (queda hecho, no repetir)
+
+| | qué | dónde |
+|---|---|---|
+| ✅ | `seguridad@` y `abuso@estrenala.com` por **Cloudflare Email Routing**, más un filtro en Gmail («No enviar nunca a Spam» + Destacar) | los avisos reenviados CAEN en Spam sin ese filtro |
+| ✅ | **Cloudflare por delante**: `*`, `@` y `www` en naranja | la IP del VPS ya no se ve en el DNS público |
+| ✅ | Cifrado **Completo (estricto)** y TTL de caché del navegador en **Respetar encabezados existentes** | |
+| ✅ | Renovación automática del dominio activada | |
+
+**Medido después:** la landing pasó de 73 350 B a **13 541 B** por visita (82%).
+Cloudflare añade brotli, que Next no hacía, y aprieta más el gzip.
+
+### La Public Suffix List: APLAZADA, y con motivo
+
+No se envía todavía. Dos requisitos que el 2026-08-04 no cumplimos:
+
+1. El dominio debe caducar a **más de 2 años** del envío. `estrenala.com` caduca el
+   **2027-07-24**. Renovar un año lo deja a once días de llegar.
+2. «*Projects not serving more than thousands of users are quite likely to be
+   declined*». Hoy hay **cero clientes**.
+
+Un rechazo no es neutro: gasta la primera impresión y devuelve a la cola. Se envía
+cuando haya clientes, y entonces se compran **tres años de golpe** (comprar dos
+ahora volvería a quedarse corto). Los pasos están en `docs/GUIA-SEGURIDAD-DOMINIO.md`,
+ya comprobados: no hay que volver a investigarlo.
+
+**Mientras tanto cubren**: la cookie `__Host-`, el rechazo de subdominios que
+suplantan marcas, el `security.txt` con `abuso@` y el plan de incidente.
+
+**Y NO se compra un segundo dominio** (tipo `netlify.app`). Controlamos la entrega:
+si algún día hay que mover las webs, podemos servir los dos a la vez y redirigir el
+viejo al nuevo para siempre. Mudarse más tarde no sale más caro.
+
+### GOTCHAs nuevos
+
+- **Un 404 no se comprime ni lleva ETag**, por diseño (`conCuerpo = status === 200`).
+  Probar la compresión contra la 404 pública da un falso negativo.
+- **Medir la caché con la portada no vale**: cuando se llega ahí ya lleva quince
+  peticiones encima y está caliente. Hacen falta rutas que no haya tocado nadie.
+- **El texto de prueba tiene que ser VARIADO.** Un párrafo repetido 240 veces da un
+  98% de ahorro que no se parece a ninguna web real.
+- **Sin web publicada no se puede medir el camino público en producción.** El
+  2026-08-04 no había ninguna: todos los subdominios daban 404.
 
 ## ⏭️ En qué punto estamos y qué sigue
 
