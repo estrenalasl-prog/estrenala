@@ -76,7 +76,22 @@ export async function examinarProyecto(
     if (f) paginas.push({ ruta: rel, html: f.body.toString("utf-8") });
   }
 
-  const examen = examinarSitio({ paginas, totales: todas.length, portada: input.entryPath });
+  // Cuánto ocupa cada archivo, para poder decirle lo que pesa su web. Va en
+  // rutas RELATIVAS al snapshot, que es como las escribe él dentro del HTML.
+  //
+  // Es opcional en el adaptador (ver storage/types.ts): si el driver no sabe
+  // medir, el examen sencillamente no habla del peso. Mejor callar que estimar.
+  let bytes: Map<string, number> | undefined;
+  if (storage.tamanos) {
+    try {
+      const crudos = await storage.tamanos(input.storagePrefix);
+      bytes = new Map([...crudos].map(([k, n]) => [k.slice(input.storagePrefix.length), n]));
+    } catch {
+      // Medir es un extra. Que falle no puede dejar sin examen todo lo demás.
+    }
+  }
+
+  const examen = examinarSitio({ paginas, totales: todas.length, portada: input.entryPath, bytes });
   cache.set(input.snapshotId, examen);
   return examen;
 }

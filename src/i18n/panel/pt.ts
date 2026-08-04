@@ -169,6 +169,14 @@ export const pt: TextosPanel = {
           que: "Ligações que não dizem para onde levam",
           porque: "«Ler mais» ou «aqui» não dizem nada ao Google nem a quem navega às cegas.",
         },
+        paginaPesada: {
+          que: "Esta página pesa demasiado",
+          porque: "Quem entra pelo telemóvel com má cobertura vai-se embora antes de a ver. O Google mede isto com o cronómetro do visitante e conta para a posição.",
+        },
+        imagenPesada: {
+          que: "Imagens sem otimizar",
+          porque: "Uma foto com mais de meio mega quase nunca é precisa: guardada como WebP costuma ficar num quinto, e vê-se igual.",
+        },
         sinFavicon: {
           que: "Sem ícone de separador",
           porque: "É o quadradinho do separador e dos favoritos. Sem ele aparece uma folha em branco.",

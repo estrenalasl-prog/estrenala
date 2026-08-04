@@ -199,6 +199,95 @@ describe("enlaces que no dicen a dónde llevan", () => {
   });
 });
 
+/**
+ * El peso es de lo poco de la lista que Google mide DIRECTAMENTE, con el
+ * cronómetro del visitante. Y a diferencia del resto, al dueño le duele aunque
+ * Google no existiera: quien entra desde el móvil con mala cobertura se va antes
+ * de ver nada.
+ */
+describe("cuánto pesa la página", () => {
+  const KB = 1024;
+  const MB = 1024 * KB;
+  const CON_FOTOS = `<html lang="es"><head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inicio — Mi Negocio</title>
+<meta name="description" content="Una descripción normal y corriente de la página.">
+<link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="css/app.css">
+<meta property="og:image" content="/a.jpg">
+<script type="application/ld+json">{}</script>
+</head><body><h1>Hola</h1>
+<img src="fotos/portada.jpg" alt="a" width="1" height="1">
+<img src="/logo.png" alt="b" width="1" height="1">
+<script src="main.js"></script>
+</body></html>`;
+
+  const pesos = (extra: Record<string, number> = {}) =>
+    new Map(Object.entries({
+      "index.html": 30 * KB, "css/app.css": 40 * KB, "main.js": 25 * KB,
+      "fotos/portada.jpg": 100 * KB, "logo.png": 50 * KB, ...extra,
+    }));
+
+  it("sin los tamaños, sencillamente no habla del peso", () => {
+    const c = examinarPagina(CON_FOTOS, "index.html", true).fallos.map((f) => f.clave);
+    expect(c).not.toContain("paginaPesada");
+    expect(c).not.toContain("imagenPesada");
+  });
+
+  it("una página ligera no se avisa", () => {
+    const c = examinarPagina(CON_FOTOS, "index.html", true, pesos()).fallos.map((f) => f.clave);
+    expect(c).not.toContain("paginaPesada");
+    expect(c).not.toContain("imagenPesada");
+  });
+
+  it("suma la página y TODO lo que hay que bajarse para verla", () => {
+    // 30 KB de HTML + 40 de CSS + 25 de JS + una foto de 2 MB = pasa de 2 MB.
+    const f = examinarPagina(CON_FOTOS, "index.html", true, pesos({ "fotos/portada.jpg": 2 * MB }))
+      .fallos.find((x) => x.clave === "paginaPesada");
+    expect(f).toBeDefined();
+    // Primero cuánto pesa ESTA página —con su nombre delante, porque al juntar
+    // varias en un aviso un «2.1 MB» suelto no se sabe de quién es— y luego los
+    // archivos que más ocupan, que es donde está el arreglo.
+    expect(f!.ejemplos[0]).toBe("index.html → 2.1 MB");
+    expect(f!.ejemplos[1]).toBe("portada.jpg (2.0 MB)");
+  });
+
+  it("una foto de más de medio mega se avisa aparte, aunque la página quepa", () => {
+    const ex = examinarPagina(CON_FOTOS, "index.html", true, pesos({ "fotos/portada.jpg": 800 * KB }));
+    const c = ex.fallos.map((f) => f.clave);
+    expect(c).toContain("imagenPesada");
+    expect(c).not.toContain("paginaPesada"); // 30+40+25+800+50 KB no llega a 2 MB
+    expect(ex.fallos.find((f) => f.clave === "imagenPesada")!.ejemplos).toEqual(["portada.jpg (800 KB)"]);
+  });
+
+  /**
+   * Un CSS o un JS gordo es un problema, pero no es el MISMO problema: no se
+   * arregla con un conversor de imágenes. Solo las fotos entran aquí.
+   */
+  it("un CSS gordo no es una «imagen pesada»", () => {
+    const c = examinarPagina(CON_FOTOS, "index.html", true, pesos({ "css/app.css": 900 * KB }))
+      .fallos.map((f) => f.clave);
+    expect(c).not.toContain("imagenPesada");
+  });
+
+  it("resuelve las rutas relativas contra la página, no contra la raíz", () => {
+    const html = CON_FOTOS.replace('src="fotos/portada.jpg"', 'src="../fotos/portada.jpg"');
+    const f = examinarPagina(html, "blog/uno.html", false, pesos({ "fotos/portada.jpg": 900 * KB }))
+      .fallos.find((x) => x.clave === "imagenPesada");
+    expect(f?.ejemplos).toEqual(["portada.jpg (900 KB)"]);
+  });
+
+  /**
+   * Una imagen en un CDN ajeno no la podemos medir, y tampoco la arregla nuestro
+   * cliente. Contarla como cero es correcto; inventarle un peso, no.
+   */
+  it("lo que está en otro dominio no se cuenta", () => {
+    const html = CON_FOTOS.replace('src="fotos/portada.jpg"', 'src="https://cdn.ajeno.com/enorme.jpg"');
+    const c = examinarPagina(html, "index.html", true, pesos()).fallos.map((f) => f.clave);
+    expect(c).not.toContain("paginaPesada");
+    expect(c).not.toContain("imagenPesada");
+  });
+});
+
 describe("examen del sitio entero", () => {
   const con = (titulo: string, extra = "") =>
     PERFECTA.replace(/<title>[^<]*<\/title>/, `<title>${titulo}</title>`).replace("</body>", extra + "</body>");

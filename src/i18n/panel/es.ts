@@ -184,6 +184,14 @@ export const es = {
           que: "Enlaces que no dicen a dónde llevan",
           porque: "«Leer más» o «aquí» no le dicen nada ni a Google ni a quien navega a ciegas.",
         },
+        paginaPesada: {
+          que: "Esta página pesa demasiado",
+          porque: "Quien entra desde el móvil con mala cobertura se va antes de verla. Google lo mide con el cronómetro del visitante y cuenta para el puesto.",
+        },
+        imagenPesada: {
+          que: "Imágenes sin optimizar",
+          porque: "Una foto de más de medio mega casi nunca hace falta: guardada como WebP suele quedarse en la quinta parte, y se ve igual.",
+        },
         sinFavicon: {
           que: "Sin icono de pestaña",
           porque: "Es el cuadradito de la pestaña y de los favoritos. Sin él sale un folio en blanco.",

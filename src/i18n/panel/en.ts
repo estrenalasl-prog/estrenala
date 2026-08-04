@@ -169,6 +169,14 @@ export const en: TextosPanel = {
           que: "Links that don't say where they go",
           porque: "«Read more» or «here» tells nothing to Google, nor to anyone browsing without sight.",
         },
+        paginaPesada: {
+          que: "This page is too heavy",
+          porque: "Somebody arriving on a phone with poor signal leaves before they see it. Google times this on the visitor's own clock and it counts towards your ranking.",
+        },
+        imagenPesada: {
+          que: "Unoptimised images",
+          porque: "A photo over half a megabyte is almost never necessary: saved as WebP it usually drops to a fifth, and looks the same.",
+        },
         sinFavicon: {
           que: "No tab icon",
           porque: "It's the little square in the browser tab and in bookmarks. Without it, you get a blank sheet of paper.",

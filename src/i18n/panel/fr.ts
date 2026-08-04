@@ -169,6 +169,14 @@ export const fr: TextosPanel = {
           que: "Des liens qui ne disent pas où ils mènent",
           porque: "« En savoir plus » ou « ici » ne disent rien, ni à Google ni à celui qui navigue à l'aveugle.",
         },
+        paginaPesada: {
+          que: "Cette page est trop lourde",
+          porque: "Qui arrive depuis un mobile mal couvert repart avant de l'avoir vue. Google le chronomètre chez le visiteur et ça compte pour ton classement.",
+        },
+        imagenPesada: {
+          que: "Des images non optimisées",
+          porque: "Une photo de plus d'un demi-méga n'est presque jamais nécessaire : enregistrée en WebP elle tombe souvent au cinquième, et se voit pareil.",
+        },
         sinFavicon: {
           que: "Aucune icône d'onglet",
           porque: "C'est le petit carré de l'onglet et des favoris. Sans lui, on voit une feuille blanche.",

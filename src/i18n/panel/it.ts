@@ -169,6 +169,14 @@ export const it: TextosPanel = {
           que: "Link che non dicono dove portano",
           porque: "«Leggi di più» o «qui» non dicono niente né a Google né a chi naviga alla cieca.",
         },
+        paginaPesada: {
+          que: "Questa pagina pesa troppo",
+          porque: "Chi entra dal cellulare con poco campo se ne va prima di vederla. Google lo cronometra a casa del visitatore e conta per la posizione.",
+        },
+        imagenPesada: {
+          que: "Immagini non ottimizzate",
+          porque: "Una foto da più di mezzo mega non serve quasi mai: salvata in WebP di solito scende a un quinto, e si vede uguale.",
+        },
         sinFavicon: {
           que: "Senza icona della scheda",
           porque: "È il quadratino della scheda del browser e dei preferiti. Senza, esce un foglio bianco.",

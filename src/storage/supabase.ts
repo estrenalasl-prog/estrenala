@@ -2,7 +2,10 @@ import { createClient } from "@supabase/supabase-js";
 import { contentTypeFor } from "./content-type";
 import type { StorageAdapter } from "./types";
 
-type ListEntry = { name: string; id: string | null };
+// `metadata` es opcional porque Supabase no lo manda para las carpetas virtuales
+// (las que vienen con `id: null`), y porque un doble de test que solo pruebe
+// `list` no tiene por qué inventárselo.
+type ListEntry = { name: string; id: string | null; metadata?: { size?: number } | null };
 
 // Subconjunto del cliente de supabase-js que usamos (inyectable en tests).
 export type SupabaseLikeClient = {
@@ -55,6 +58,30 @@ export class SupabaseStorage implements StorageAdapter {
           const ruta = carpeta ? `${carpeta}/${e.name}` : e.name;
           if (e.id === null) pendientes.push(ruta); // carpeta virtual
           else if (ruta.startsWith(prefix)) out.push(ruta);
+        }
+        if (!data || data.length < PAGINA) break;
+      }
+    }
+    return out;
+  }
+
+  /**
+   * Igual que `list`, pero quedándose con el tamaño que ya viene en la respuesta.
+   * Recorrer dos veces sería pagar dos veces por lo mismo.
+   */
+  async tamanos(prefix: string): Promise<Map<string, number>> {
+    const out = new Map<string, number>();
+    const pendientes = [prefix.replace(/\/+$/, "")];
+    while (pendientes.length > 0) {
+      const carpeta = pendientes.pop()!;
+      for (let offset = 0; ; offset += PAGINA) {
+        const { data, error } = await this.from().list(carpeta, { limit: PAGINA, offset });
+        if (error) throw new Error(`Supabase list(${carpeta}): ${error.message}`);
+        for (const e of data ?? []) {
+          const ruta = carpeta ? `${carpeta}/${e.name}` : e.name;
+          if (e.id === null) { pendientes.push(ruta); continue; } // carpeta virtual
+          if (!ruta.startsWith(prefix)) continue;
+          if (typeof e.metadata?.size === "number") out.set(ruta, e.metadata.size);
         }
         if (!data || data.length < PAGINA) break;
       }

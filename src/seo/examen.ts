@@ -44,7 +44,9 @@ export type ClaveFallo =
   | "sinOgImage"
   | "sinDatosEstructurados"
   | "enlacesGenericos"
-  | "sinFavicon";
+  | "sinFavicon"
+  | "paginaPesada"
+  | "imagenPesada";
 
 /**
  * Cuánto pesa cada fallo sobre 100, y si sabemos arreglarlo solos.
@@ -68,6 +70,12 @@ const PESOS: Record<ClaveFallo, { peso: number; gravedad: Gravedad; arreglable: 
   imagenesSinAlt:         { peso: 10, gravedad: "grave", arreglable: false },
   titulosRepetidos:       { peso: 10, gravedad: "grave", arreglable: false },
   sinDatosEstructurados:  { peso:  8, gravedad: "aviso", arreglable: true  },
+  // El peso es de lo poco de esta lista que Google mide DIRECTAMENTE, con el
+  // cronómetro del visitante (LCP). Y a diferencia de todo lo demás, al dueño le
+  // duele aunque Google no existiera: quien entra desde el móvil con mala
+  // cobertura se va antes de ver nada.
+  paginaPesada:           { peso:  8, gravedad: "aviso", arreglable: false },
+  imagenPesada:           { peso:  5, gravedad: "aviso", arreglable: false },
   sinOgImage:             { peso:  6, gravedad: "aviso", arreglable: true  },
   sinLang:                { peso:  5, gravedad: "aviso", arreglable: false },
   variosH1:               { peso:  4, gravedad: "aviso", arreglable: false },
@@ -154,11 +162,60 @@ function nombreDe(src: string): string {
 }
 
 /**
+ * Cuánto puede pesar una página entera antes de avisar.
+ *
+ * Dos megas es la mediana de una web cualquiera hoy, así que no es un listón
+ * exigente: es el punto a partir del cual quien entra desde el móvil con mala
+ * cobertura se va antes de ver nada. Avisar por debajo sería avisar por todo.
+ */
+const MAX_PESO_PAGINA = 2 * 1024 * 1024;
+/** Una foto de más de medio mega casi nunca está optimizada; suele sobrar el 80%. */
+const MAX_PESO_IMAGEN = 500 * 1024;
+
+function enKB(bytes: number): string {
+  return bytes >= 1024 * 1024
+    ? `${(bytes / 1024 / 1024).toFixed(1)} MB`
+    : `${Math.round(bytes / 1024)} KB`;
+}
+
+/**
+ * A qué archivo del sitio apunta una dirección escrita dentro de una página.
+ *
+ * `fotos/x.jpg` en `blog/uno.html` es `blog/fotos/x.jpg`; `/fotos/x.jpg` es
+ * `fotos/x.jpg` esté donde esté la página. Lo de fuera —otro dominio, `data:`—
+ * devuelve null: no está en nuestro almacenamiento y no lo vamos a medir.
+ */
+export function rutaDelRecurso(src: string, rutaPagina: string): string | null {
+  const s = src.trim().split(/[?#]/)[0];
+  if (s === "" || /^(?:[a-z]+:|\/\/)/i.test(s)) return null;
+  if (s.startsWith("/")) return s.slice(1);
+  const carpeta = rutaPagina.includes("/") ? rutaPagina.slice(0, rutaPagina.lastIndexOf("/") + 1) : "";
+  // Se resuelven los `../` a mano: `new URL` exigiría inventarse un dominio.
+  const partes: string[] = [];
+  for (const t of (carpeta + s).split("/")) {
+    if (t === "" || t === ".") continue;
+    if (t === "..") partes.pop();
+    else partes.push(t);
+  }
+  return partes.join("/");
+}
+
+/**
  * Examina UNA página.
  *
  * `ruta` solo se guarda para poder decir dónde estaba el fallo.
  */
-export function examinarPagina(html: string, ruta: string, esPortada = false): ExamenPagina {
+export function examinarPagina(
+  html: string,
+  ruta: string,
+  esPortada = false,
+  /**
+   * Cuánto ocupa cada archivo del sitio, por su ruta relativa. Sin esto, el peso
+   * sencillamente no se mira — que es lo correcto: es mejor no decir nada que
+   * inventarse un número.
+   */
+  bytes?: Map<string, number>
+): ExamenPagina {
   const els = walkElementsInOrder(html);
   const fallos: Fallo[] = [];
   const añadir = (clave: ClaveFallo, cuantos = 1, ejemplos: string[] = []) => {
@@ -269,6 +326,54 @@ export function examinarPagina(html: string, ruta: string, esPortada = false): E
     añadir("enlacesGenericos", vacios.length, [...new Set(vacios.map((e) => e.deepText.trim()))].slice(0, 5));
   }
 
+  // — Cuánto pesa —
+  // Se suma la propia página más TODO lo suyo que hay que bajarse para verla:
+  // hojas de estilo, scripts e imágenes. Lo de otros dominios no se cuenta: no
+  // podemos medirlo y tampoco es nuestro cliente quien lo arregla.
+  if (bytes) {
+    const referencias: { nombre: string; peso: number; esImagen: boolean }[] = [];
+    for (const e of els) {
+      const src =
+        e.tagName === "img" || e.tagName === "script" ? e.attrs.src
+        : e.tagName === "link" && (e.attrs.rel ?? "").toLowerCase().split(/\s+/).includes("stylesheet") ? e.attrs.href
+        : undefined;
+      if (typeof src !== "string") continue;
+      const rel = rutaDelRecurso(src, ruta);
+      const peso = rel === null ? undefined : bytes.get(rel);
+      if (peso === undefined) continue;
+      referencias.push({ nombre: nombreDe(src), peso, esImagen: e.tagName === "img" });
+    }
+
+    // La propia página cuenta: el HTML también viaja.
+    const total = (bytes.get(ruta) ?? Buffer.byteLength(html, "utf-8")) +
+      referencias.reduce((n, r) => n + r.peso, 0);
+
+    if (total > MAX_PESO_PAGINA) {
+      // Primero cuánto pesa ESTA página, y luego los tres archivos que más
+      // ocupan, que es donde está el arreglo: en una web así, tres fotos suelen
+      // ser el 80% del total.
+      //
+      // El total lleva delante el nombre de la página, y no va suelto: al juntar
+      // varias páginas en un solo aviso, un «3.6 MB» a secas en medio de una
+      // lista de nombres de archivo no se sabe de quién es. La flecha se entiende
+      // en cualquier idioma, que es más de lo que se puede decir de un «total:».
+      const gordos = [...referencias].sort((a, b) => b.peso - a.peso).slice(0, 3);
+      añadir("paginaPesada", 1, [
+        `${ruta} → ${enKB(total)}`,
+        ...gordos.map((r) => `${r.nombre} (${enKB(r.peso)})`),
+      ]);
+    }
+
+    const fotos = referencias.filter((r) => r.esImagen && r.peso > MAX_PESO_IMAGEN);
+    if (fotos.length > 0) {
+      añadir(
+        "imagenPesada",
+        fotos.length,
+        [...fotos].sort((a, b) => b.peso - a.peso).slice(0, 5).map((r) => `${r.nombre} (${enKB(r.peso)})`)
+      );
+    }
+  }
+
   return { ruta, fallos, titulo, descripcion };
 }
 
@@ -291,9 +396,11 @@ export function examinarSitio(input: {
    * entrega `paginasAExaminar`, y así nunca se queda sin mirar.
    */
   portada?: string;
+  /** Cuánto ocupa cada archivo del sitio. Sin esto no se mira el peso. */
+  bytes?: Map<string, number>;
 }): ExamenSitio {
   const portada = input.portada ?? input.paginas[0]?.ruta;
-  const paginas = input.paginas.map((p) => examinarPagina(p.html, p.ruta, p.ruta === portada));
+  const paginas = input.paginas.map((p) => examinarPagina(p.html, p.ruta, p.ruta === portada, input.bytes));
   const examinadas = paginas.length;
   if (examinadas === 0) {
     return { nota: 0, fallos: [], paginas: [], examinadas: 0, totales: input.totales ?? 0 };

@@ -50,6 +50,19 @@ export class LocalFsStorage implements StorageAdapter {
     return out;
   }
 
+  async tamanos(prefix: string): Promise<Map<string, number>> {
+    const out = new Map<string, number>();
+    for (const key of await this.list(prefix)) {
+      try {
+        out.set(key, (await fs.stat(path.join(this.rootDir, key))).size);
+      } catch {
+        // Un archivo que desaparece entre el listado y el `stat` no es motivo
+        // para dejar sin medir a los demás.
+      }
+    }
+    return out;
+  }
+
   async delete(key: string): Promise<void> {
     await fs.rm(this.full(key), { force: true });
   }
