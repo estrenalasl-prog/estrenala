@@ -14,7 +14,9 @@ import {
 const RUTAS_PUBLICAS = ["/login", "/api/login", "/registro", "/api/registro",
   "/verificar", "/recuperar", "/restablecer", "/api/auth/recuperar", "/api/auth/restablecer",
   "/api/auth/google", "/invitacion", "/cambiar-email", "/api/cuenta/email/confirmar",
-  "/api/health", "/api/cron/publicar", "/api/cron/piloto", "/brand", "/legal",
+  // `/api/health` dice si el proceso vive; `/api/salud` mira además la base de
+  // datos, y la llama el vigilante externo, que no tiene sesión.
+  "/api/health", "/api/salud", "/api/cron/publicar", "/api/cron/piloto", "/brand", "/legal",
   // Lo llama Stripe (sin cookie); su candado es la firma HMAC del cuerpo.
   "/api/stripe/webhook"];
 
