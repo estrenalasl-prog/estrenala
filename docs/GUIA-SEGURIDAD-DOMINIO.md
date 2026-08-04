@@ -201,6 +201,33 @@ si el certificado no está bien, así que hay que mirarlo enseguida.
 
 # BLOQUE C · La Public Suffix List
 
+> ⛔ **ESTE BLOQUE NO SE ENVÍA TODAVÍA.** Leyendo sus requisitos el 2026-08-04
+> salen **dos que hoy no cumplimos**, y enviarlo igualmente es un rechazo casi
+> seguro — que no es neutro: gastas la primera impresión y vuelves a la cola.
+>
+> 1. **El dominio caduca demasiado pronto.** Piden más de 2 años desde el envío;
+>    `estrenala.com` caduca el **2027-07-24** y harían falta más allá de
+>    2028-08-04. Esto sí se arregla hoy: es el C.0.
+> 2. **Somos demasiado pequeños.** «*Projects not serving more than thousands of
+>    users are quite likely to be declined*». Hoy hay cero clientes.
+>
+> Se envía cuando los haya, y para entonces el C.0 ya estará hecho.
+
+### C.0 · Lo único de hoy: alargar el dominio
+
+- [ ] Entra en **Hostinger** (ahí está registrado) y **renueva `estrenala.com`
+      tres años más**
+
+> Hay que hacerlo aunque la lista no existiera: un dominio de negocio a un año
+> vista es un despiste de tarjeta caducada de perder la empresa entera. Y de paso
+> resuelve el único requisito que depende solo de nosotros — la propia lista
+> avisa de que un registro corto puede hacer que te saquen de ella más adelante.
+
+---
+
+**Lo de aquí abajo queda aparcado hasta que haya clientes.** Está escrito y
+comprobado para cuando llegue el día.
+
 **Esto es lo que de verdad protege a los demás clientes**, y es lo único que
 tienen Netlify (`netlify.app`) y Vercel (`vercel.app`) que nosotros no.
 
@@ -281,6 +308,15 @@ Piden un registro DNS especial. Es como enseñar el DNI del dominio.
       tuya del proyecto automáticamente — es normal, dile que sí
 - [ ] Busca la sección **PRIVATE DOMAINS** y, dentro, el sitio que le toque por
       orden alfabético
+
+> **El fallo número uno, dicho por ellos:** «*The most common time loss comes
+> from not following the sorting guidelines*». La entrada va ordenada
+> alfabéticamente **por el nombre de la organización** de la primera línea de
+> comentario, y **NO al final del archivo**.
+>
+> **El segundo:** «*Insufficient or incomplete rationale (be verbose!)*». Hay que
+> contar qué es la plataforma, con un ejemplo real de dos clientes distintos y
+> por qué cada subdominio debe contar como sitio independiente.
 - [ ] Añade tus líneas siguiendo **exactamente** el formato que hayas visto en
       `CONTRIBUTING.md` y en las entradas de alrededor. Serán algo así:
 
@@ -340,8 +376,11 @@ subdominio al dominio entero.**
 # Repaso rápido
 
 - [ ] **A** — `seguridad@` y `abuso@` llegan a mi correo (lo he probado)
-- [ ] **B** — La nubecita naranja puesta y las webs cargan con candado
-- [ ] **C** — Solicitud enviada y registro `_psl` apuntando a ella
+- [ ] **B** — Las tres nubecitas naranjas y las webs cargan con candado
+- [ ] **C** — `estrenala.com` renovado tres años más
 
-Con A y B hechos ya estás muchísimo mejor que esta mañana. **C es el que
-tarda**, y por eso es el que hay que dejar puesto cuanto antes.
+Con A y B hechos ya estás muchísimo mejor que esta mañana. **Del C hoy solo toca
+alargar el dominio**: la solicitud se envía cuando haya clientes de verdad.
+
+**Pendiente para entonces:** enviar la solicitud a la Public Suffix List. Los
+pasos están arriba y comprobados; no hay que volver a investigarlo.
