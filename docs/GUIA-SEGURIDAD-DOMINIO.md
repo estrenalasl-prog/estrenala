@@ -34,55 +34,62 @@ es peor que no anunciar nada.
 
 Vamos a hacer que lleguen a tu Gmail de siempre. Es gratis.
 
-### A.1 · Entra en Cloudflare
+> **Cloudflare ha rediseñado esta pantalla** (visto el 2026-08-04). Ya no hay
+> bienvenida con «Get started»: se entra directo a un resumen con pestañas, y el
+> encendido va AL FINAL, no al principio. Lo de abajo es la interfaz nueva.
 
-- [ ] Abre <https://dash.cloudflare.com> y entra con tu cuenta
-- [ ] En la lista de dominios, haz clic en **estrenala.com**
+### A.1 · Llega a la pantalla correcta
 
-> Si no te aparece `estrenala.com` en la lista, para aquí y dímelo: significa
-> que el dominio está en otro sitio y el resto de la guía cambia.
+- [ ] Abre <https://dash.cloudflare.com> → menú de la izquierda → **Cómputo** →
+      **Email Service** → **Email Routing**
+- [ ] Entra en **estrenala.com**. Sabrás que estás donde toca porque ves
+      **Resumen de la configuración** y una fila de pestañas
 
-### A.2 · Activa el reenvío de correo
+> Arriba saldrá **Estado: Desactivado** y **Registros DNS: No configurado**, los
+> dos en rojo. Es lo normal y se arregla en A.4: todavía no los toques.
 
-- [ ] En el menú de la izquierda busca **Email** y haz clic
-- [ ] Entra en **Email Routing**
-- [ ] Te saldrá una pantalla de bienvenida con un botón **Get started**. Púlsalo
-- [ ] Cloudflare te dirá que necesita añadir unos registros DNS (registros MX y
-      un TXT). Acepta: **Add records and enable**
+### A.2 · Primero, tu correo de destino
 
-> Esos registros son los que hacen que el correo dirigido a `@estrenala.com`
-> pase por Cloudflare. No tocan nada de lo que ya tienes.
+Va el primero **a propósito**: una regla que apunte a una dirección sin verificar
+se queda apagada, y luego cuesta entender por qué no llega nada.
 
-⚠️ **Ojo, esto importa:** si en el futuro quieres RECIBIR correo normal en
-`@estrenala.com` con otro proveedor (Google Workspace, por ejemplo), esos MX
-habría que cambiarlos. Enviar seguirá funcionando igual — Resend usa
-`send.estrenala.com`, que es otro subdominio y no se toca.
+- [ ] Pestaña **Direcciones de destino** → añade tu correo de siempre
+- [ ] Cloudflare te manda un correo. **Ábrelo y pulsa «Verify email address»**
+- [ ] Vuelve y comprueba que la dirección aparece verificada
 
-### A.3 · Di a dónde reenviar
+### A.3 · Las dos direcciones
 
-Cloudflare llama «destination address» al correo tuyo de verdad.
-
-- [ ] En **Destination addresses**, pulsa **Add destination address**
-- [ ] Escribe tu correo de siempre (el que miras todos los días)
-- [ ] Cloudflare te manda un correo de confirmación a esa dirección. **Ábrelo y
-      pulsa el enlace.** Sin ese paso no funciona nada de lo siguiente
-- [ ] Vuelve a Cloudflare y comprueba que aparece como **Verified**
-
-### A.4 · Crea las dos direcciones
-
-- [ ] En **Custom addresses**, pulsa **Create address**
-- [ ] Primera:
-      - Custom address: `seguridad`
-      - Action: **Send to an email**
-      - Destination: tu correo
-      - **Save**
+- [ ] Pestaña **Reglas de enrutamiento** → **Crear regla de enrutamiento**
+- [ ] Primera: patrón `seguridad` · acción **Enviar a un correo electrónico** ·
+      destino tu correo ya verificado → guardar
 - [ ] Repite con la segunda: `abuso`
+
+> No crees dos reglas con el mismo patrón: si se repiten, **solo funciona la
+> primera de la lista** y la otra se queda muerta sin avisar.
+
+### A.4 · Ahora sí, enciéndelo
+
+- [ ] Vuelve arriba y pulsa cualquiera de los dos rótulos rojos —**Desactivado**
+      o **No configurado**—, que llevan flechita porque son enlaces
+- [ ] Cloudflare enseña los registros que va a añadir: unos `MX` y dos `TXT`
+      (SPF y DKIM). Acéptalos
+- [ ] Comprueba que arriba ya pone **Activo** y los registros configurados
+
+✅ **Comprobado el 2026-08-04, no pisa nada:** la raíz de `estrenala.com` no
+tiene hoy **ningún MX ni ningún SPF**, así que Cloudflare añade los suyos sobre
+terreno limpio. `send.estrenala.com` —por donde Resend manda los correos de la
+plataforma— tiene los suyos aparte y no se toca: enviar seguirá igual.
+
+⚠️ **Para el futuro:** si algún día quieres RECIBIR correo normal en
+`@estrenala.com` con otro proveedor (Google Workspace, por ejemplo), esos `MX`
+habría que cambiarlos. No es un problema; es que hay que acordarse.
 
 ### A.5 · Compruébalo de verdad
 
 Esto no te lo saltes. Un buzón que crees que funciona y no funciona es lo mismo
 que no tenerlo, pero además creyendo que estás cubierto.
 
+- [ ] Espera unos minutos a que los registros se propaguen
 - [ ] Desde tu móvil (o desde otro correo distinto), manda un correo a
       `seguridad@estrenala.com`
 - [ ] Comprueba que **llega a tu bandeja** — mira también en «no deseados»
