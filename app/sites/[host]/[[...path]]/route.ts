@@ -3,6 +3,7 @@ import { projectStore } from "@/src/repositories/projects";
 import { accountStore } from "@/src/repositories/accounts";
 import { resolvePublicSite } from "@/src/publish/resolve-site";
 import { parseHost } from "@/src/publish/host";
+import { prepararEntrega } from "@/src/publish/entrega";
 import { RUTA_ENVIO } from "@/src/forms/conectar";
 import { leerEnvio, cabeElEnvio, MAX_BYTES } from "@/src/forms/recibir";
 import { avisarDelEnvio } from "@/src/forms/avisar";
@@ -38,7 +39,19 @@ export async function GET(req: Request, ctx: { params: Promise<{ host: string; p
   );
   const headers: Record<string, string> = { "content-type": r.contentType, "cache-control": r.cacheControl, ...r.headers };
   if (r.location) headers.location = r.location;
-  return new Response(new Uint8Array(r.body), { status: r.status, headers });
+
+  // Comprimir y ETag. Va aquí, en el último momento, porque necesita los bytes
+  // definitivos —ya con el sello, la ficha y los formularios dentro— y porque
+  // Next no comprime lo que devuelve un manejador de ruta (ver entrega.ts).
+  const e = prepararEntrega({
+    body: r.body,
+    status: r.status,
+    contentType: r.contentType,
+    headers,
+    acceptEncoding: req.headers.get("accept-encoding"),
+    ifNoneMatch: req.headers.get("if-none-match"),
+  });
+  return new Response(e.body === null ? null : new Uint8Array(e.body), { status: e.status, headers: e.headers });
 }
 
 const html = (cuerpo: string, status = 200) =>
