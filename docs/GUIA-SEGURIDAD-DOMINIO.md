@@ -211,14 +211,36 @@ castigo se queda en él.
 
 **Es gratis pero tarda semanas en aprobarse.** Por eso se empieza hoy.
 
-### ⚠️ Antes de nada: decide el dominio
+### ⚠️ Antes de nada: una decisión, y no es la que parece
 
-El registro es **para un dominio concreto**. Si algún día mueves las webs de
-clientes a otro sitio (`estrenala.app`, por ejemplo), habría que repetirlo entero
-y volver a esperar.
+**No se decide qué dominio es el de la empresa** — ese es `estrenala.com` y
+punto. Lo que se decide es **dónde viven las webs de los clientes**: hoy en
+`su-nombre.estrenala.com`, o sea compartiendo dominio con la plataforma.
 
-- [ ] ¿Las webs de clientes van a seguir en `*.estrenala.com` a largo plazo?
+La alternativa existe y es lo que hicieron los grandes: un segundo dominio
+**solo** para las webs de los usuarios, para que lo que haga un cliente malo no
+toque nunca al dominio de la empresa.
+
+| | la plataforma | las webs de clientes |
+|---|---|---|
+| Nosotros hoy | estrenala.com | `cliente.estrenala.com` |
+| GitHub | github.com | `cliente.github.io` |
+| Vercel | vercel.com | `cliente.vercel.app` |
+| Netlify | netlify.com | `cliente.netlify.app` |
+
+**No hace falta comprar nada:** estar en la lista da casi lo mismo gratis. Pero
+el registro es **de un dominio concreto**, y mudarse después significa repetirlo
+entero y volver a esperar semanas. Por eso se pregunta antes.
+
+- [ ] Decidido: las webs de clientes se quedan en `*.estrenala.com`.
       **Si tienes dudas, páralo aquí y hablamos antes de enviar nada.**
+
+> **Lo único que se pierde, y da igual:** después del registro nunca se podrá
+> compartir la sesión de login entre `estrenala.com` y un `algo.estrenala.com`.
+> Da igual porque el panel vive en `estrenala.com/projects/…`, no en un
+> subdominio, y porque la cookie de sesión ya lleva el prefijo `__Host-`, que
+> impide justamente eso para que el JavaScript de un cliente no pueda tocarla.
+> La lista y la cookie van en la misma dirección.
 
 ### C.1 · Hazte una cuenta de GitHub
 
