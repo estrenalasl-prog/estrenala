@@ -2,12 +2,78 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { TextosPanel } from "@/src/i18n/panel";
+import type { Veredicto } from "@/src/publish/verificar-dominio";
 import { conFormato, conValores } from "@/src/i18n/formato";
 
 /** El TXT alternativo que devuelve la API cuando no ve el dominio apuntando aquí. */
 type RegistroTxt = { nombre: string; valor: string };
 
 type Textos = TextosPanel["proyecto"];
+
+/**
+ * Lo que el DNS del dominio dice AHORA MISMO, contado en cristiano.
+ *
+ * Antes esta pantalla solo sabía decir «todavía no veo que ese dominio apunte
+ * aquí», y con eso el dueño se quedaba mirando un registro A que estaba
+ * perfecto sin entender nada. Los dos casos que lo provocan de verdad son
+ * invisibles desde el panel de cualquier proveedor:
+ *
+ *   · AAAA que se quedaron del hosting anterior. El registro A está bien, pero
+ *     los navegadores prefieren IPv6 y siguen yendo a la web vieja.
+ *   · el `www` sin apuntar, que no rompe el dominio pelado y por eso nadie mira.
+ *
+ * Se decide por el campo `tipo` y NUNCA por el texto del mensaje: al traducirlo
+ * a los otros cuatro idiomas, cualquier comparación de cadenas se rompería sin
+ * hacer ruido.
+ */
+export function Diagnostico({
+  dns, t,
+}: { dns: Veredicto | null; t: Textos["direccion"] }) {
+  // Todo en orden y sin nada que contar: no se dice nada. Una pantalla que
+  // felicita cada vez que algo va bien acaba siendo ruido que no se lee.
+  if (!dns || (dns.ok && dns.estorbos.length === 0)) return null;
+
+  return (
+    <div className="grupo" style={{ marginTop: 10 }}>
+      <p style={{ marginTop: 0, fontWeight: 600 }}>{t.dnsTitulo}</p>
+
+      {dns.proveedor && (
+        <p className="ayuda-campo" style={{ marginTop: 4 }}>
+          {conValores(t.dnsProveedor, { proveedor: <b>{dns.proveedor}</b> })}
+        </p>
+      )}
+
+      {dns.apuntaA.length > 0 ? (
+        <div className="bloque-codigo" style={{ marginTop: 8 }}>
+          <div className="linea">
+            <span className="etiqueta-dns">{t.dnsApuntaA}</span>
+            <span>{dns.apuntaA.join(", ")}</span>
+          </div>
+        </div>
+      ) : (
+        <p className="ayuda-campo" style={{ marginTop: 8 }}>{t.dnsNoApunta}</p>
+      )}
+
+      {dns.estorbos.map((e) => (
+        <div key={e.tipo} style={{ marginTop: 12 }}>
+          <p style={{ margin: "0 0 4px", fontWeight: 600 }}>
+            {conFormato(e.tipo === "ipv6" ? t.dnsIpv6Titulo : t.dnsWwwTitulo)}
+          </p>
+          {e.tipo === "ipv6" && (
+            <div className="bloque-codigo" style={{ marginBottom: 6 }}>
+              {e.valores.map((v) => (
+                <div className="linea" key={v}><span className="etiqueta-dns">AAAA</span><span>{v}</span></div>
+              ))}
+            </div>
+          )}
+          <small style={{ display: "block", color: "var(--color-texto-3)", lineHeight: 1.5 }}>
+            {conFormato(e.tipo === "ipv6" ? t.dnsIpv6Texto : t.dnsWwwTexto)}
+          </small>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 /**
  * El sitemap del cliente manda a Google a otro dominio.
@@ -79,6 +145,7 @@ export function PublishBar({
   const [error, setError] = useState<string | null>(null);
   const [copiado, setCopiado] = useState(false);
   const [txt, setTxt] = useState<RegistroTxt | null>(null);
+  const [diagnostico, setDiagnostico] = useState<Veredicto | null>(null);
   const [proto, setProto] = useState("http:");
   useEffect(() => { setProto(window.location.protocol); }, []);
 
@@ -118,13 +185,18 @@ export function PublishBar({
   }
 
   async function patch(body: unknown): Promise<boolean> {
-    setOcupado(true); setError(null); setTxt(null);
+    setOcupado(true); setError(null); setTxt(null); setDiagnostico(null);
     try {
       const res = await fetch(`/api/projects/${projectId}`, {
         method: "PATCH", headers: { "content-type": "application/json" },
         body: JSON.stringify(body),
       });
-      const d = (await res.json().catch(() => ({}))) as { error?: string; txt?: RegistroTxt };
+      const d = (await res.json().catch(() => ({}))) as {
+        error?: string; txt?: RegistroTxt; dns?: Veredicto;
+      };
+      // El diagnóstico se guarda pase lo que pase: al fallar explica por qué, y
+      // al conectar bien es lo único que avisa de que el `www` se quedó suelto.
+      if (d.dns) setDiagnostico(d.dns);
       if (!res.ok) {
         setError(d.error ?? t.errores.generico);
         // Solo llega cuando falla la comprobación de propiedad del dominio.
@@ -322,6 +394,12 @@ export function PublishBar({
       </details>
 
       {error && <p className="error-campo" style={{ marginTop: 10 }}>{error}</p>}
+
+      {/* Lo que el DNS dice AHORA MISMO. Sale tanto cuando falla como cuando se
+          conecta bien: se puede haber conectado y seguir faltando el `www`. Es
+          la diferencia entre «no puedo conectarlo» y «esto es lo que le falta y
+          dónde tocarlo». */}
+      <Diagnostico dns={diagnostico} t={t.direccion} />
 
       {/* Salida para quien tenga el dominio detrás de un proxy (Cloudflare en
           naranja): ahí el registro A resuelve al proxy y nunca a nosotros, así

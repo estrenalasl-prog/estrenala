@@ -291,6 +291,20 @@ export const es = {
         "por un proxy (por ejemplo Cloudflare), añade además este registro **TXT**:",
       txtNombre: "Nombre",
       txtValor: "Valor",
+
+      dnsTitulo: "Esto es lo que veo en tu DNS ahora mismo",
+      dnsProveedor: "Tus DNS los lleva {proveedor}: es ahí donde tienes que entrar a cambiarlos.",
+      dnsApuntaA: "Tu dominio apunta a:",
+      dnsNoApunta: "Tu dominio todavía no apunta a ninguna parte.",
+      dnsIpv6Titulo: "Te sobran estos registros AAAA",
+      dnsIpv6Texto:
+        "Son direcciones IPv6 que llevan a tu web anterior. **Bórralos, no los cambies por otros**: " +
+        "mientras estén, casi todos los navegadores irán por ahí y seguirán viendo la web vieja, aunque " +
+        "el registro A esté perfecto. Es lo que hace que la veas bien desde un sitio y mal desde otro.",
+      dnsWwwTitulo: "Al `www` le falta su registro",
+      dnsWwwTexto:
+        "Añade un registro **A** con nombre `www` apuntando a la misma dirección. Sin él, quien teclee " +
+        "tu dominio con `www.` delante no llegará a ninguna parte.",
     },
 
     asistente: {

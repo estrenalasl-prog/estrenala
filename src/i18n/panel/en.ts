@@ -267,6 +267,20 @@ export const en: TextosPanel = {
         "goes through a proxy (Cloudflare, for instance), add this **TXT** record too:",
       txtNombre: "Name",
       txtValor: "Value",
+
+      dnsTitulo: "Here's what your DNS looks like right now",
+      dnsProveedor: "Your DNS is handled by {proveedor} — that's where you need to go to change it.",
+      dnsApuntaA: "Your domain points to:",
+      dnsNoApunta: "Your domain doesn't point anywhere yet.",
+      dnsIpv6Titulo: "These AAAA records need to go",
+      dnsIpv6Texto:
+        "They're IPv6 addresses pointing at your previous site. **Delete them, don't replace them**: " +
+        "while they're there, almost every browser will follow them and keep showing the old site, even " +
+        "with a perfect A record. It's why the site looks right from one place and wrong from another.",
+      dnsWwwTitulo: "Your `www` is missing its record",
+      dnsWwwTexto:
+        "Add an **A** record named `www` pointing to the same address. Without it, anyone typing your " +
+        "domain with `www.` in front won't get anywhere.",
     },
 
     asistente: {

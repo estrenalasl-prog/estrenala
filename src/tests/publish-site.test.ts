@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   publishSite, unpublishSite, cambiarSubdominio, conectarDominio,
-  MSG_DOMINIO_SIN_VERIFICAR,
+  MSG_DOMINIO_SIN_VERIFICAR, MSG_DOMINIO_IPV6,
 } from "@/src/publish/publish-site";
 import { MSG_CUPO_DIRECCIONES } from "@/src/publish/cupo-direcciones";
 import { PublishError } from "@/src/publish/errors";
@@ -213,8 +213,19 @@ describe("conectarDominio: hay que demostrar que el dominio es tuyo", () => {
     orgId: "org1", projectId: "p1", dominio: "sucafeteria.com",
     platformHost: "estrenala.com", sitesBaseDomain: "estrenala.com",
   };
-  const siEsSuyo = async () => ({ ok: true as const, via: "a" as const });
-  const noEsSuyo = async () => ({ ok: false as const, motivo: "no-apunta" as const, apuntaA: ["1.2.3.4"] });
+  const IP = "72.61.176.214";
+  const siEsSuyo = async () => ({
+    ok: true as const, via: "a" as const, apuntaA: [IP], estorbos: [], proveedor: null,
+  });
+  const noEsSuyo = async () => ({
+    ok: false as const, motivo: "no-apunta" as const, apuntaA: ["1.2.3.4"], estorbos: [], proveedor: null,
+  });
+  // Apunta bien pero arrastra un AAAA del hosting anterior: es el caso que se
+  // bloquea aparte, con su propio mensaje.
+  const conIpv6Viejo = async () => ({
+    ok: false as const, motivo: "ipv6" as const, apuntaA: [IP], proveedor: "Hostinger",
+    estorbos: [{ tipo: "ipv6" as const, valores: ["2a02:4780:2a::1"] }],
+  });
 
   it("si el DNS no apunta aquí → 409 y NO se registra ni se guarda", async () => {
     const store = new FakeStore(); const deploy = new FakeDeploy();
@@ -255,5 +266,43 @@ describe("conectarDominio: hay que demostrar que el dominio es tuyo", () => {
       .rejects.toMatchObject({ status: 429 });
     expect(conectados).toBe(0);
     expect(store.dominio).toBeNull();
+  });
+
+  /**
+   * Con AAAA viejos el registro A ya apunta bien, así que el mensaje de «todavía
+   * no apunta» sería mentira y dejaría al dueño mirando el registro correcto sin
+   * entender nada. Además Let's Encrypt también prefiere IPv6: dejarlo pasar
+   * gastaría cupo en un certificado que va a fallar.
+   */
+  it("con AAAA de otro sitio → 409 con SU mensaje, no el de «no apunta»", async () => {
+    const store = new FakeStore(); const deploy = new FakeDeploy();
+    let conectados = 0;
+    deploy.connectDomain = async () => { conectados++; };
+    await expect(conectarDominio({ store, deploy, verificar: conIpv6Viejo }, entrada))
+      .rejects.toMatchObject({ status: 409, message: MSG_DOMINIO_IPV6 });
+    expect(conectados).toBe(0);
+    expect(store.dominio).toBeNull();
+  });
+
+  it("el error lleva el diagnóstico dentro, para que la pantalla no lea el texto", async () => {
+    await expect(conectarDominio({ store: new FakeStore(), deploy: new FakeDeploy(), verificar: conIpv6Viejo }, entrada))
+      .rejects.toMatchObject({
+        datos: { dns: { motivo: "ipv6", proveedor: "Hostinger", estorbos: [{ tipo: "ipv6", valores: ["2a02:4780:2a::1"] }] } },
+      });
+  });
+
+  it("al conectar bien devuelve el diagnóstico: se puede ir todo bien y faltar el www", async () => {
+    const conWwwSuelto = async () => ({
+      ok: true as const, via: "a" as const, apuntaA: [IP], proveedor: "Hostinger",
+      estorbos: [{ tipo: "www" as const, apuntaA: [] }],
+    });
+    const r = await conectarDominio({ store: new FakeStore(), deploy: new FakeDeploy(), verificar: conWwwSuelto }, entrada);
+    expect(r.dominio).toBe("sucafeteria.com");
+    expect(r.dns?.estorbos).toEqual([{ tipo: "www", apuntaA: [] }]);
+  });
+
+  it("sin verificador no hay diagnóstico que dar, y no se inventa", async () => {
+    const r = await conectarDominio({ store: new FakeStore(), deploy: new FakeDeploy() }, entrada);
+    expect(r.dns).toBeNull();
   });
 });

@@ -267,6 +267,21 @@ export const fr: TextosPanel = {
         "passe par un proxy (Cloudflare par exemple), ajoute aussi cet enregistrement **TXT** :",
       txtNombre: "Nom",
       txtValor: "Valeur",
+
+      dnsTitulo: "Voici ce que je vois dans votre DNS en ce moment",
+      dnsProveedor: "Votre DNS est géré par {proveedor} : c'est là qu'il faut aller pour le modifier.",
+      dnsApuntaA: "Votre domaine pointe vers :",
+      dnsNoApunta: "Votre domaine ne pointe encore nulle part.",
+      dnsIpv6Titulo: "Ces enregistrements AAAA sont en trop",
+      dnsIpv6Texto:
+        "Ce sont des adresses IPv6 qui mènent à votre ancien site. **Supprimez-les, ne les remplacez pas** : " +
+        "tant qu'elles sont là, presque tous les navigateurs les suivront et continueront d'afficher " +
+        "l'ancien site, même avec un enregistrement A parfait. C'est ce qui fait qu'il s'affiche bien " +
+        "depuis un endroit et mal depuis un autre.",
+      dnsWwwTitulo: "Il manque l'enregistrement du `www`",
+      dnsWwwTexto:
+        "Ajoutez un enregistrement **A** nommé `www` pointant vers la même adresse. Sans lui, ceux qui " +
+        "tapent votre domaine précédé de `www.` n'arriveront nulle part.",
     },
 
     asistente: {

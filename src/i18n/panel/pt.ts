@@ -267,6 +267,20 @@ export const pt: TextosPanel = {
         "passa por um proxy (por exemplo a Cloudflare), acrescenta também este registo **TXT**:",
       txtNombre: "Nome",
       txtValor: "Valor",
+
+      dnsTitulo: "Isto é o que vejo no teu DNS neste momento",
+      dnsProveedor: "O teu DNS está na {proveedor}: é aí que tens de entrar para o alterar.",
+      dnsApuntaA: "O teu domínio aponta para:",
+      dnsNoApunta: "O teu domínio ainda não aponta para lado nenhum.",
+      dnsIpv6Titulo: "Estes registos AAAA estão a mais",
+      dnsIpv6Texto:
+        "São endereços IPv6 que levam ao teu site anterior. **Apaga-os, não os substituas**: " +
+        "enquanto lá estiverem, quase todos os navegadores vão por aí e continuam a ver o site antigo, " +
+        "mesmo com o registo A perfeito. É por isso que o vês bem num sítio e mal noutro.",
+      dnsWwwTitulo: "Falta o registo do `www`",
+      dnsWwwTexto:
+        "Acrescenta um registo **A** com o nome `www` a apontar para o mesmo endereço. Sem ele, quem " +
+        "escrever o teu domínio com `www.` à frente não chega a lado nenhum.",
     },
 
     asistente: {

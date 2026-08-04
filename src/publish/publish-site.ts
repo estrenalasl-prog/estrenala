@@ -46,9 +46,18 @@ export const MSG_SUBDOMINIO_SUPLANTA =
   "engañar a la gente, los navegadores marcarían como peligrosas las webs de todos " +
   "nuestros clientes. Elige otro nombre, o escríbenos si la marca es tuya.";
 
-// Fijado literalmente: la pantalla lo reconoce para enseñar el TXT de respaldo.
 export const MSG_DOMINIO_SIN_VERIFICAR =
   "Todavía no veo que ese dominio apunte aquí. Añade los registros DNS y vuelve a intentarlo en unos minutos.";
+
+/**
+ * Los AAAA se dicen aparte porque el problema es el CONTRARIO del anterior: ahí
+ * falta un registro, aquí sobra uno. Con un mensaje genérico —«revisa tu DNS»—
+ * el dueño mira su registro A, lo ve correcto, y se queda atascado sin entender
+ * nada, que es exactamente lo que pasa cuando se muda un dominio con AAAA viejos.
+ */
+export const MSG_DOMINIO_IPV6 =
+  "Ese dominio tiene registros AAAA (IPv6) que llevan a otro sitio. Bórralos y vuelve a intentarlo: " +
+  "mientras estén, la mayoría de navegadores seguirán viendo tu web anterior.";
 
 export async function generarSubdominio(store: ProjectStore, nombre: string): Promise<string> {
   // El nombre del PROYECTO lo escribe el usuario, así que por aquí se colaba
@@ -163,23 +172,32 @@ export async function conectarDominio(
   input: {
     orgId: string; projectId: string; dominio: string; platformHost: string; sitesBaseDomain: string;
   }
-): Promise<{ dominio: string }> {
+): Promise<{ dominio: string; dns: Veredicto | null }> {
   const project = await deps.store.getProject(input.orgId, input.projectId);
   if (!project) throw new PublishError("Proyecto no encontrado", 404);
   const dom = normalizarDominio(input.dominio);
   if (!formatoDominioValido(dom) || dominioProhibido(dom, input.platformHost, input.sitesBaseDomain)) {
     throw new PublishError("Dominio no válido (ejemplo: miempresa.com)", 400);
   }
-  if (project.dominio === dom) return { dominio: dom };
+  if (project.dominio === dom) return { dominio: dom, dns: null };
   if (!(await deps.store.dominioLibre(dom))) {
     throw new PublishError("Ese dominio ya está conectado a otro proyecto", 409);
   }
   // La prueba de que el dominio es suyo va ANTES de reservarlo y antes de pedir
   // su certificado: es lo que impide bloquear dominios ajenos y quemar el cupo
   // de Let's Encrypt, que es compartido por todos los clientes.
+  // Lo que el DNS dice de este dominio viaja con el error y también con el éxito:
+  // se puede conectar bien y tener el `www` sin apuntar, y eso hay que contarlo.
+  let dns: Veredicto | null = null;
   if (deps.verificar) {
-    const v = await deps.verificar(dom);
-    if (!v.ok) throw new PublishError(MSG_DOMINIO_SIN_VERIFICAR, 409);
+    dns = await deps.verificar(dom);
+    if (!dns.ok) {
+      throw new PublishError(
+        dns.motivo === "ipv6" ? MSG_DOMINIO_IPV6 : MSG_DOMINIO_SIN_VERIFICAR,
+        409,
+        { dns }
+      );
+    }
   }
   if (deps.cupo && !(await deps.cupo())) throw new PublishError(MSG_CUPO_DIRECCIONES, 429);
   try {
@@ -200,7 +218,7 @@ export async function conectarDominio(
   // El nuevo, y el anterior si lo habia: los dos han cambiado de significado.
   deps.alCambiar?.({ dominio: dom });
   if (project.dominio) deps.alCambiar?.({ dominio: project.dominio });
-  return { dominio: dom };
+  return { dominio: dom, dns };
 }
 
 export async function quitarDominio(

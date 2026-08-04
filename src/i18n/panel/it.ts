@@ -267,6 +267,20 @@ export const it: TextosPanel = {
         "per un proxy (per esempio Cloudflare), aggiungi anche questo record **TXT**:",
       txtNombre: "Nome",
       txtValor: "Valore",
+
+      dnsTitulo: "Ecco cosa vedo nel tuo DNS in questo momento",
+      dnsProveedor: "Il tuo DNS è gestito da {proveedor}: è lì che devi entrare per modificarlo.",
+      dnsApuntaA: "Il tuo dominio punta a:",
+      dnsNoApunta: "Il tuo dominio non punta ancora da nessuna parte.",
+      dnsIpv6Titulo: "Questi record AAAA sono di troppo",
+      dnsIpv6Texto:
+        "Sono indirizzi IPv6 che portano al tuo sito precedente. **Cancellali, non sostituirli**: " +
+        "finché ci sono, quasi tutti i browser passeranno di lì e continueranno a vedere il sito vecchio, " +
+        "anche con il record A perfetto. È il motivo per cui lo vedi bene da un posto e male da un altro.",
+      dnsWwwTitulo: "Al `www` manca il suo record",
+      dnsWwwTexto:
+        "Aggiungi un record **A** con nome `www` che punti allo stesso indirizzo. Senza, chi digita il " +
+        "tuo dominio con `www.` davanti non arriva da nessuna parte.",
     },
 
     asistente: {

@@ -37,7 +37,7 @@ describe("conectarDominio", () => {
     const { store, estado } = fakeStore();
     const { deploy, llamadas } = fakeDeploy();
     const r = await conectarDominio({ store, deploy }, { orgId: "o1", projectId: "p1", dominio: "WWW.Cliente.COM/", ...HOSTS });
-    expect(r).toEqual({ dominio: "cliente.com" });
+    expect(r).toMatchObject({ dominio: "cliente.com" });
     expect(llamadas).toEqual(["connect:cliente.com"]);
     expect(estado.setLlamadas).toEqual(["cliente.com"]);
   });
@@ -97,7 +97,7 @@ describe("conectarDominio", () => {
     });
     const { deploy, llamadas } = fakeDeploy();
     const r = await conectarDominio({ store, deploy }, { orgId: "o1", projectId: "p1", dominio: "cliente.com", ...HOSTS });
-    expect(r).toEqual({ dominio: "cliente.com" });
+    expect(r).toMatchObject({ dominio: "cliente.com" });
     expect(llamadas).toEqual([]);
   });
 });

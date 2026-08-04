@@ -13,6 +13,9 @@ import type { VerificarDominio } from "./publish-site";
 export function getVerificarDominio(env: NodeJS.ProcessEnv = process.env): VerificarDominio | undefined {
   const ipDestino = (env.DNS_TARGET_IP ?? "").trim();
   const secreto = (env.SECRETS_KEY ?? "").trim();
+  // Vacía mientras la plataforma solo se sirva por IPv4. En cuanto se declare,
+  // los AAAA que apunten ahí dejan de contarse como estorbo.
+  const ipv6Destino = (env.DNS_TARGET_IPV6 ?? "").trim() || undefined;
   if (!ipDestino) return undefined;
-  return (dominio: string) => verificarDominio(dns as Resolutor, { dominio, ipDestino, secreto });
+  return (dominio: string) => verificarDominio(dns as Resolutor, { dominio, ipDestino, secreto, ipv6Destino });
 }
