@@ -5,6 +5,7 @@ import { getStorage } from "@/src/storage/factory";
 import { projectStore } from "@/src/repositories/projects";
 import { listPages, setEntryPath } from "@/src/projects/entry";
 import { cambiarSubdominio, conectarDominio, quitarDominio, MSG_DOMINIO_SIN_VERIFICAR } from "@/src/publish/publish-site";
+import { olvidarSitio } from "@/src/publish/cache-servir";
 import { getVerificarDominio } from "@/src/publish/verificar-factory";
 import { registroTxtEsperado } from "@/src/publish/verificar-dominio";
 import { normalizarDominio } from "@/src/publish/domain";
@@ -71,14 +72,14 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     const sitesBaseDomain = process.env.SITES_BASE_DOMAIN ?? platformHost;
     try {
       if (body.dominio === null) {
-        await quitarDominio({ store: projectStore, deploy: getDeploy() }, { orgId, projectId: id });
+        await quitarDominio({ store: projectStore, deploy: getDeploy(), alCambiar: olvidarSitio }, { orgId, projectId: id });
         return NextResponse.json({ dominio: null });
       }
       // Conectar dominio propio es la palanca de los planes de pago (desconectarlo
       // se permite siempre, para no atrapar a quien baje de plan).
       exigirCapacidad(await accountStore.getPlan(orgId), "dominioPropio");
       const r = await conectarDominio(
-        { store: projectStore, deploy: getDeploy(), verificar: getVerificarDominio(), cupo },
+        { store: projectStore, deploy: getDeploy(), verificar: getVerificarDominio(), cupo, alCambiar: olvidarSitio },
         { orgId, projectId: id, dominio: body.dominio, platformHost, sitesBaseDomain }
       );
       return NextResponse.json(r);
@@ -99,7 +100,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   if (typeof body.subdominio === "string") {
     try {
       const r = await cambiarSubdominio(
-        { store: projectStore, deploy: getDeploy(), cupo },
+        { store: projectStore, deploy: getDeploy(), cupo, alCambiar: olvidarSitio },
         { orgId, projectId: id, subdominio: body.subdominio }
       );
       return NextResponse.json(r);

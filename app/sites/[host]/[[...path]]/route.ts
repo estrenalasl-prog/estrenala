@@ -4,6 +4,9 @@ import { accountStore } from "@/src/repositories/accounts";
 import { resolvePublicSite } from "@/src/publish/resolve-site";
 import { parseHost } from "@/src/publish/host";
 import { prepararEntrega } from "@/src/publish/entrega";
+import {
+  almacenConMemoria, storeConMemoria, comprimidoGuardado, guardarComprimido,
+} from "@/src/publish/cache-servir";
 import { RUTA_ENVIO } from "@/src/forms/conectar";
 import { leerEnvio, cabeElEnvio, MAX_BYTES } from "@/src/forms/recibir";
 import { avisarDelEnvio } from "@/src/forms/avisar";
@@ -22,8 +25,11 @@ export async function GET(req: Request, ctx: { params: Promise<{ host: string; p
   // La barra final se lee de la URL, NO de `path`: el catch-all de Next se come
   // el segmento vacío y entrega ["blog"] tanto para /blog como para /blog/.
   const url = new URL(req.url);
+  // Con memoria: sin esto, cada archivo de cada visita cuesta una consulta a
+  // Postgres y una descarga de Supabase. Diez archivos por página son veinte
+  // viajes de red para enseñar algo que no ha cambiado en una semana.
   const r = await resolvePublicSite(
-    { store: projectStore, storage: getStorage() },
+    { store: storeConMemoria(projectStore), storage: almacenConMemoria(getStorage()) },
     {
       host: decodeURIComponent(host),
       ...entorno(),
@@ -50,6 +56,8 @@ export async function GET(req: Request, ctx: { params: Promise<{ host: string; p
     headers,
     acceptEncoding: req.headers.get("accept-encoding"),
     ifNoneMatch: req.headers.get("if-none-match"),
+    guardado: comprimidoGuardado,
+    guardar: guardarComprimido,
   });
   return new Response(e.body === null ? null : new Uint8Array(e.body), { status: e.status, headers: e.headers });
 }

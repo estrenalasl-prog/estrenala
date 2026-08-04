@@ -18,6 +18,22 @@ export type VerificarDominio = (dominio: string) => Promise<Veredicto>;
 export type Cupo = () => Promise<boolean>;
 
 /**
+ * Aviso de que una direccion ha dejado de significar lo que significaba.
+ *
+ * Lo usa la cache de la ruta publica para olvidarla al instante: sin esto,
+ * alguien publicaria su web y estaria hasta un minuto viendo el «esta web
+ * todavia no esta publicada», justo en el momento que mas ilusion le hace.
+ *
+ * Se recibe como dependencia en vez de importar la cache aqui porque este
+ * modulo no tiene que saber que existe ninguna cache: quien las conecta es la
+ * ruta publica, y los tests siguen llamando a esto sin estado compartido.
+ *
+ * Se avisa de la direccion VIEJA y de la NUEVA. La vieja importa igual: si se
+ * queda cacheada, sigue sirviendo la web despues de haberla cambiado de sitio.
+ */
+export type AlCambiarDireccion = (h: { subdominio?: string | null; dominio?: string | null }) => void;
+
+/**
  * Se explica el porqué y se ofrece salida, en vez de un «no» a secas.
  *
  * Quien se lo encuentra casi siempre es alguien legítimo —una tienda que vende
@@ -53,7 +69,7 @@ export async function generarSubdominio(store: ProjectStore, nombre: string): Pr
 }
 
 export async function publishSite(
-  deps: { store: ProjectStore; deploy: DeployTarget },
+  deps: { store: ProjectStore; deploy: DeployTarget; alCambiar?: AlCambiarDireccion },
   input: { orgId: string; projectId: string }
 ): Promise<{ subdominio: string; publishedSnapshotId: string }> {
   const project = await deps.store.getProject(input.orgId, input.projectId);
@@ -73,23 +89,25 @@ export async function publishSite(
     projectId: input.projectId, snapshotId: current.id,
     storagePrefix: current.storagePrefix, subdominio: sub,
   });
+  deps.alCambiar?.({ subdominio: sub, dominio: project.dominio });
   return { subdominio: sub, publishedSnapshotId: current.id };
 }
 
 export async function unpublishSite(
-  deps: { store: ProjectStore; deploy: DeployTarget },
+  deps: { store: ProjectStore; deploy: DeployTarget; alCambiar?: AlCambiarDireccion },
   input: { orgId: string; projectId: string }
 ): Promise<void> {
   const project = await deps.store.getProject(input.orgId, input.projectId);
   if (!project) throw new PublishError("Proyecto no encontrado", 404);
   await deps.store.setPublished(input.orgId, input.projectId, null);
+  deps.alCambiar?.({ subdominio: project.subdominio, dominio: project.dominio });
   if (project.subdominio) {
     await deps.deploy.unpublish({ projectId: input.projectId, subdominio: project.subdominio });
   }
 }
 
 export async function cambiarSubdominio(
-  deps: { store: ProjectStore; deploy: DeployTarget; cupo?: Cupo },
+  deps: { store: ProjectStore; deploy: DeployTarget; cupo?: Cupo; alCambiar?: AlCambiarDireccion },
   input: { orgId: string; projectId: string; subdominio: string }
 ): Promise<{ subdominio: string }> {
   const project = await deps.store.getProject(input.orgId, input.projectId);
@@ -116,6 +134,10 @@ export async function cambiarSubdominio(
   const anterior = project.subdominio;
   const ok = await deps.store.setSubdominio(input.orgId, input.projectId, sub);
   if (!ok) throw new PublishError("Ese subdominio ya está en uso", 409);
+  // La vieja tambien: si se queda cacheada, la direccion de antes seguiria
+  // sirviendo la web despues de haberla movido.
+  deps.alCambiar?.({ subdominio: anterior });
+  deps.alCambiar?.({ subdominio: sub });
 
   // Si la web estaba publicada, hay que MOVER su ruta en el servidor: dar de alta
   // la dirección nueva (que además necesita su certificado) y retirar la vieja.
@@ -134,7 +156,10 @@ export async function cambiarSubdominio(
 }
 
 export async function conectarDominio(
-  deps: { store: ProjectStore; deploy: DeployTarget; verificar?: VerificarDominio; cupo?: Cupo },
+  deps: {
+    store: ProjectStore; deploy: DeployTarget; verificar?: VerificarDominio; cupo?: Cupo;
+    alCambiar?: AlCambiarDireccion;
+  },
   input: {
     orgId: string; projectId: string; dominio: string; platformHost: string; sitesBaseDomain: string;
   }
@@ -172,17 +197,21 @@ export async function conectarDominio(
     // Cambio de dominio: liberar el anterior en el deploy (best-effort).
     try { await deps.deploy.disconnectDomain({ dominio: project.dominio }); } catch { /* best-effort */ }
   }
+  // El nuevo, y el anterior si lo habia: los dos han cambiado de significado.
+  deps.alCambiar?.({ dominio: dom });
+  if (project.dominio) deps.alCambiar?.({ dominio: project.dominio });
   return { dominio: dom };
 }
 
 export async function quitarDominio(
-  deps: { store: ProjectStore; deploy: DeployTarget },
+  deps: { store: ProjectStore; deploy: DeployTarget; alCambiar?: AlCambiarDireccion },
   input: { orgId: string; projectId: string }
 ): Promise<void> {
   const project = await deps.store.getProject(input.orgId, input.projectId);
   if (!project) throw new PublishError("Proyecto no encontrado", 404);
   if (!project.dominio) return;
   await deps.store.setDominio(input.orgId, input.projectId, null);
+  deps.alCambiar?.({ dominio: project.dominio });
   try {
     await deps.deploy.disconnectDomain({ dominio: project.dominio });
   } catch (e) {

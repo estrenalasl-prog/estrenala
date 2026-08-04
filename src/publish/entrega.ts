@@ -120,6 +120,16 @@ export function prepararEntrega(input: {
   headers: Record<string, string>;
   acceptEncoding: string | null;
   ifNoneMatch: string | null;
+  /**
+   * Dónde mirar y dónde dejar lo ya comprimido, si hay caché.
+   *
+   * Se inyectan en vez de importarlas aquí para que este módulo siga sin estado:
+   * los tests lo prueban sin caché, y quien la pone es la ruta pública (ver
+   * cache-servir.ts). Sin ellas todo funciona igual, solo que comprimiendo cada
+   * vez.
+   */
+  guardado?: (etag: string, codificacion: string) => Buffer | undefined;
+  guardar?: (etag: string, codificacion: string, body: Buffer) => void;
 }): Entregable {
   const headers = { ...input.headers };
 
@@ -146,6 +156,15 @@ export function prepararEntrega(input: {
   const como = codificacionParaEl(input.acceptEncoding);
   if (!como) return { body: input.body, status: input.status, headers };
 
+  // Lo mismo comprimido ya lo tenemos. La clave es el ETag —que ES el contenido
+  // resumido— más la codificación, así que no puede devolver lo que no es.
+  const yaHecho = etag ? input.guardado?.(etag, como) : undefined;
+  if (yaHecho) {
+    headers["content-encoding"] = como;
+    headers.vary = [headers.vary, "Accept-Encoding"].filter(Boolean).join(", ");
+    return { body: yaHecho, status: input.status, headers };
+  }
+
   const comprimido =
     como === "br"
       ? brotliCompressSync(input.body, {
@@ -164,6 +183,7 @@ export function prepararEntrega(input: {
     return { body: input.body, status: input.status, headers };
   }
 
+  if (etag) input.guardar?.(etag, como, comprimido);
   headers["content-encoding"] = como;
   headers.vary = [headers.vary, "Accept-Encoding"].filter(Boolean).join(", ");
   return { body: comprimido, status: input.status, headers };
