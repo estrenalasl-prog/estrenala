@@ -110,29 +110,52 @@ tu VPS, y cada imagen que se descarga la pagas tú en la factura de Supabase.
 Poniendo Cloudflare por delante, las imágenes se sirven desde sus servidores y tu
 servidor ni se entera.
 
-### B.1 · Comprueba cómo está ahora
+**Comprobado en el código antes de tocar nada (2026-08-04):**
 
-- [ ] En Cloudflare, con `estrenala.com` abierto, ve a **DNS → Records**
-- [ ] Busca las filas de tipo `A` o `CNAME`. Cada una tiene una nubecita a la
-      derecha, en la columna **Proxy status**
+- El freno anti-abuso lee `x-forwarded-for` y coge la primera IP
+  (`src/auth/rate-limit.ts:30`), que es justo donde Cloudflare pone la del
+  visitante. Si leyéramos la IP de la conexión, detrás del proxy **todos los
+  visitantes parecerían la misma persona** y el freno se dispararía solo.
+- El tope de ZIP son 50 MB (`src/import/unzip.ts:8`) y Cloudflare gratis corta
+  en 100 MB. Cabe.
 
-La nubecita puede estar de dos formas:
+### B.1 · Primero el cifrado, antes de tocar nada
+
+- [ ] **SSL/TLS → Overview** y comprueba que pone **Full (strict)**. Si pone otra
+      cosa, cámbialo ahora
+
+> Va el primero a propósito. Con el modo **Flexible**, Cloudflare habla con el
+> servidor sin cifrar, el servidor contesta «vete a la versión segura», y se
+> quedan los dos dando vueltas para siempre. No da un error claro: **la web se
+> queda cargando**. Mirarlo antes cuesta diez segundos.
+
+### B.2 · Mira cómo están tus registros
+
+- [ ] **DNS → Registros**, y busca las filas de tipo `A` y `CNAME`: cada una
+      tiene una nubecita en la columna **Estado de proxy**
 
 | | qué significa |
 |---|---|
 | ☁️ **naranja** (Proxied) | el tráfico pasa por Cloudflare — **esto es lo que queremos** |
-| ☁️ **gris** (DNS only) | Cloudflare solo dice dónde está tu servidor, y el tráfico va directo |
+| ☁️ **gris** (Solo DNS) | Cloudflare solo dice dónde está tu servidor, y el tráfico va directo |
 
-- [ ] Apunta cuáles están en gris. Sobre todo mira el registro `*` (el comodín)
-      y el `@` (el dominio pelado)
+> Los `MX` y los `TXT` **no tienen nubecita, y es correcto**: el correo no puede
+> pasar por el proxy. Los tres con candadito son los del bloque A. No se tocan.
 
-### B.2 · Ponlas en naranja
+### B.3 · Pon en naranja las tres
 
-- [ ] Haz clic en la nubecita gris del registro `*` → se pone naranja
-- [ ] **Save**
-- [ ] Lo mismo con `@`
+- [ ] `*.estrenala.com` (`A`) — el comodín, por donde van las webs de clientes
+- [ ] `estrenala.com` (`A`) — el dominio pelado
+- [ ] `www.estrenala.com` (`CNAME`)
 
-### B.3 · Comprueba que las webs siguen vivas
+> **Las tres, no dos.** Si la raíz queda naranja y `www` gris, unos visitantes
+> irían por Cloudflare y otros directos al servidor, y luego cuesta entender por
+> qué a unos les pasa una cosa y a otros otra.
+
+> De regalo: hoy la IP del servidor se lee en el panel de DNS. En naranja, deja
+> de verse.
+
+### B.4 · Comprueba que las webs siguen vivas
 
 **Esto es lo más importante del bloque.** Un cambio de estos puede tirar las webs
 si el certificado no está bien, así que hay que mirarlo enseguida.
@@ -142,11 +165,10 @@ si el certificado no está bien, así que hay que mirarlo enseguida.
       el candado** de HTTPS
 - [ ] Abre `https://estrenala.com` y comprueba lo mismo
 
-> **Si algo falla**, vuelve a poner la nubecita en gris (se deshace al instante) y
-> avísame. No te quedes peleándote: el error típico es del modo de cifrado, y se
-> arregla en **SSL/TLS → Overview** poniéndolo en **Full (strict)**.
+> **Si algo falla**, vuelve a poner las nubecitas en gris (se deshace al
+> instante) y avísame. No te quedes peleándote.
 
-### B.4 · Dile qué guardar
+### B.5 · Dile qué guardar
 
 - [ ] Ve a **Caching → Configuration**
 - [ ] En **Browser Cache TTL**, déjalo en **Respect Existing Headers**
