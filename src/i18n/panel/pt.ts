@@ -322,6 +322,10 @@ export const pt: TextosPanel = {
       boton: "↻ Carregar ZIP e atualizar",
       actualizando: "A atualizar…",
       hecho: "✓ Site atualizado. Vê-o na pré-visualização em baixo.",
+      descargarTexto:
+        "E o contrário também: **o teu site é teu**. Descarrega-o inteiro quando quiseres — com " +
+        "o que editaste aqui, imagens e artigos do blogue incluídos.",
+      descargarBoton: "⬇ Descarregar o meu site (.zip)",
       confirmarTitulo: "Vais substituir o conteúdo deste site",
       confirmarCuerpo:
         "Fica substituído pelo do ZIP novo. A tua versão atual fica no Histórico, por isso podes " +

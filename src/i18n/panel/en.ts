@@ -323,6 +323,10 @@ export const en: TextosPanel = {
       boton: "↻ Upload a ZIP and update",
       actualizando: "Updating…",
       hecho: "✓ Site updated. Check it in the preview below.",
+      descargarTexto:
+        "And the other way round too: **your site is yours**. Download the whole thing whenever " +
+        "you want — including what you've edited here, images and blog posts and all.",
+      descargarBoton: "⬇ Download my site (.zip)",
       confirmarTitulo: "You're about to replace this site's content",
       confirmarCuerpo:
         "It gets replaced with the new ZIP's. Your current version stays in the History, so you " +

@@ -349,6 +349,10 @@ export const es = {
       boton: "↻ Subir ZIP y actualizar",
       actualizando: "Actualizando…",
       hecho: "✓ Web actualizada. Revísala en la vista previa de abajo.",
+      descargarTexto:
+        "Y al revés también: **tu web es tuya**. Descárgala entera cuando quieras — con lo que " +
+        "hayas editado aquí, las imágenes y los artículos del blog incluidos.",
+      descargarBoton: "⬇ Descargar mi web (.zip)",
       // Tono normal y no «peligro» a propósito: esto SÍ se puede deshacer.
       confirmarTitulo: "Vas a reemplazar el contenido de esta web",
       confirmarCuerpo:

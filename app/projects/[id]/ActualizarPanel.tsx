@@ -66,6 +66,15 @@ export function ActualizarPanel({ projectId, textos }: { projectId: string; text
         </button>
         {ok && <p style={{ marginTop: 10, fontSize: 14 }}>{t.hecho}</p>}
         {error && <p className="error-campo" style={{ marginTop: 10 }}>{error}</p>}
+        {/* La otra mitad de «no te encierra»: llevarte la versión al día. Un <a>
+            normal a propósito: el navegador ve el attachment y descarga sin
+            salir de la pantalla, sin JS y sin estados de carga que mantener. */}
+        <p style={{ fontSize: 13, color: "var(--color-texto-2)", margin: "16px 0 8px" }}>
+          {conFormato(t.descargarTexto)}
+        </p>
+        <a className="btn btn-sec btn-sm" href={`/api/projects/${projectId}/descargar`}>
+          {t.descargarBoton}
+        </a>
       </div>
     </details>
   );

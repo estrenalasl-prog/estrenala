@@ -325,6 +325,10 @@ export const fr: TextosPanel = {
       boton: "↻ Envoyer un ZIP et mettre à jour",
       actualizando: "Mise à jour…",
       hecho: "✓ Site mis à jour. Regarde-le dans l'aperçu en dessous.",
+      descargarTexto:
+        "Et dans l'autre sens aussi : **ton site est à toi**. Télécharge-le en entier quand tu " +
+        "veux — avec ce que tu as modifié ici, images et articles du blog compris.",
+      descargarBoton: "⬇ Télécharger mon site (.zip)",
       confirmarTitulo: "Tu vas remplacer le contenu de ce site",
       confirmarCuerpo:
         "Il est remplacé par celui du nouveau ZIP. Ta version actuelle reste dans l'Historique, " +
