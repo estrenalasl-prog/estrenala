@@ -75,11 +75,22 @@ export const ZONAS_PRIVADAS = [
   "/cambiar-email",
 ];
 
-export type ReglasRobots = { rules: { userAgent: string; allow?: string; disallow?: string | string[] } };
+export type ReglasRobots = {
+  rules: { userAgent: string; allow?: string; disallow?: string | string[] };
+  sitemap?: string;
+};
 
-/** El robots.txt de la plataforma, según esté oculta o abierta. */
-export function reglasRobots(oculta: boolean): ReglasRobots {
-  return oculta
-    ? { rules: { userAgent: "*", disallow: "/" } }
-    : { rules: { userAgent: "*", allow: "/", disallow: ZONAS_PRIVADAS } };
+/**
+ * El robots.txt de la plataforma, según esté oculta o abierta.
+ *
+ * El `Sitemap:` SOLO cuando está abierta: mientras el candado de pre-lanzamiento
+ * esté puesto, este archivo dice «no rastrees nada», y anunciarle además un mapa
+ * de lo que no debe mirar es contradecirse en el mismo archivo.
+ */
+export function reglasRobots(oculta: boolean, sitemap?: string): ReglasRobots {
+  if (oculta) return { rules: { userAgent: "*", disallow: "/" } };
+  return {
+    rules: { userAgent: "*", allow: "/", disallow: ZONAS_PRIVADAS },
+    ...(sitemap ? { sitemap } : {}),
+  };
 }

@@ -40,6 +40,7 @@ if (!listo) { console.error("no arrancó"); hijo.kill(); process.exit(1); }
 
 const health = await fetch("http://localhost:3000/api/health");
 const salud = await fetch("http://localhost:3000/api/salud");
+const saludHead = await fetch("http://localhost:3000/api/salud", { method: "HEAD" });
 const cuerpo = await salud.json().catch(() => ({}));
 
 console.log(`  /api/health → HTTP ${health.status}  (el proceso vive: NO debe caerse por esto)`);
@@ -51,6 +52,11 @@ check("/api/health sigue en 200 con la base caída", health.status === 200);
 check("/api/salud pasa a 503", salud.status === 503);
 check("y dice ok:false", cuerpo.ok === false);
 check("sin filtrar nada del error", JSON.stringify(cuerpo) === '{"ok":false}');
+// UptimeRobot pregunta con HEAD por defecto, no con GET. Next fabrica el HEAD a
+// partir del GET; si por el camino se perdiera el codigo, el vigilante estaria
+// preguntando de una forma que SIEMPRE dice que si.
+console.log(`  /api/salud (HEAD) → HTTP ${saludHead.status}`);
+check("y por HEAD tambien da 503, que es como pregunta el vigilante", saludHead.status === 503);
 
 hijo.kill();
 console.log(`\n${fallos === 0 ? "TODO BIEN" : fallos + " MAL"}\n`);
