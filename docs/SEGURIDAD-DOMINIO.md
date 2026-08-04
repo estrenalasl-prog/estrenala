@@ -36,6 +36,10 @@ la puerta no estaba abierta de par en par.
 
 ## Lo que falta, y lo tienes que hacer tú
 
+> 👉 **Los pasos concretos, uno a uno, están en
+> [GUIA-SEGURIDAD-DOMINIO.md](GUIA-SEGURIDAD-DOMINIO.md).** Este documento es el
+> porqué; aquel es el cómo.
+
 ### 1. Meter `estrenala.com` en la Public Suffix List ← **lo más importante**
 
 Es lo que tienen `netlify.app` y `vercel.app` y nosotros no. Hace que el
