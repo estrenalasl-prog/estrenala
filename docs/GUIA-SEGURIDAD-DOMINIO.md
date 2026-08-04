@@ -9,6 +9,10 @@ y luego esperar semanas a que te contesten.
 Ve marcando las casillas. Si algo no coincide con lo que ves en pantalla, para y
 pregúntame antes de seguir.
 
+> **Los nombres de menú van en español**, que es como está el panel de
+> Cloudflare de Sebas. El bloque C es la excepción y no por gusto: GitHub y la
+> Public Suffix List están en inglés y no hay versión traducida.
+
 ---
 
 ## Antes de empezar: por qué haces esto
@@ -41,7 +45,7 @@ Vamos a hacer que lleguen a tu Gmail de siempre. Es gratis.
 ### A.1 · Llega a la pantalla correcta
 
 - [ ] Abre <https://dash.cloudflare.com> → menú de la izquierda → **Cómputo** →
-      **Email Service** → **Email Routing**
+      **Servicio de correo electrónico** → **Enrutamiento de correo electrónico**
 - [ ] Entra en **estrenala.com**. Sabrás que estás donde toca porque ves
       **Resumen de la configuración** y una fila de pestañas
 
@@ -54,7 +58,8 @@ Va el primero **a propósito**: una regla que apunte a una dirección sin verifi
 se queda apagada, y luego cuesta entender por qué no llega nada.
 
 - [ ] Pestaña **Direcciones de destino** → añade tu correo de siempre
-- [ ] Cloudflare te manda un correo. **Ábrelo y pulsa «Verify email address»**
+- [ ] Cloudflare te manda un correo. **Ábrelo y pulsa el botón de verificar**
+      («Verify email address» — ese correo llega en inglés)
 - [ ] Vuelve y comprueba que la dirección aparece verificada
 
 ### A.3 · Las dos direcciones
@@ -121,8 +126,19 @@ servidor ni se entera.
 
 ### B.1 · Primero el cifrado, antes de tocar nada
 
-- [ ] **SSL/TLS → Overview** y comprueba que pone **Full (strict)**. Si pone otra
-      cosa, cámbialo ahora
+- [ ] **SSL/TLS → Información general** y mira el **Modo de encriptación actual**
+- [ ] Si no pone **Completo (estricto)**, pulsa **Configurar** y cámbialo
+
+| modo | qué hace |
+|---|---|
+| Flexible | habla con tu servidor **sin cifrar** — la web se queda dando vueltas |
+| Completo | cifra, pero **no mira de quién es** el certificado del servidor |
+| **Completo (estricto)** | cifra **y comprueba** que el certificado es tuyo — **este** |
+
+> Al elegirlo a mano se apaga el «Modo automático», y está bien: el automático
+> elige por prudencia porque no sabe qué hay detrás. Los certificados de
+> `estrenala.com`, `www` y el comodín son de Let's Encrypt y están en vigor
+> (comprobado contra el servidor el 2026-08-04).
 
 > Va el primero a propósito. Con el modo **Flexible**, Cloudflare habla con el
 > servidor sin cifrar, el servidor contesta «vete a la versión segura», y se
@@ -170,8 +186,10 @@ si el certificado no está bien, así que hay que mirarlo enseguida.
 
 ### B.5 · Dile qué guardar
 
-- [ ] Ve a **Caching → Configuration**
-- [ ] En **Browser Cache TTL**, déjalo en **Respect Existing Headers**
+- [ ] Ve a **Almacenamiento en caché → Configuración** (en el menú de la
+      izquierda sale cortado como «Almacenamiento en cac…»)
+- [ ] En **TTL de caché del navegador**, déjalo en **Respetar encabezados
+      existentes**
 
 > Es importante que sea eso y no otra cosa: las cabeceras se las ponemos nosotros
 > desde el código, con el ETag y todo pensado. Si Cloudflare las pisa, se rompe
@@ -224,14 +242,15 @@ cuando, y lo que vale es lo que diga hoy su documentación.
 
 Piden un registro DNS especial. Es como enseñar el DNI del dominio.
 
-- [ ] Vuelve a Cloudflare → `estrenala.com` → **DNS → Records** → **Add record**
+- [ ] Vuelve a Cloudflare → `estrenala.com` → **DNS → Registros** →
+      **Agregar registro**
 - [ ] Rellena:
-      - **Type:** `TXT`
-      - **Name:** `_psl`
-      - **Content:** aquí va la dirección de tu solicitud, que **todavía no
+      - **Tipo:** `TXT`
+      - **Nombre:** `_psl`
+      - **Contenido:** aquí va la dirección de tu solicitud, que **todavía no
         tienes**. Pon de momento `pendiente` y lo cambias en el paso C.5
-      - **TTL:** Auto
-- [ ] **Save**
+      - **TTL:** Automático
+- [ ] **Guardar**
 
 ### C.4 · Envía la solicitud
 
