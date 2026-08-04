@@ -22,7 +22,13 @@ const RUTAS_PUBLICAS = ["/login", "/api/login", "/registro", "/api/registro",
 // navegador y los buscadores SIN sesión, así que van por coincidencia EXACTA
 // (no por prefijo como RUTAS_PUBLICAS: no queremos abrir "/icon.png/loquesea").
 // Sin esto acababan en el 307 a /login y el icono no se veía en la landing.
-const ARCHIVOS_PUBLICOS = new Set(["/robots.txt", "/sitemap.xml", "/icon.png", "/apple-icon.png"]);
+// `security.txt` está aquí por lo mismo y con más razón: existe para que alguien
+// de FUERA nos avise de un problema —un banco, un investigador, el equipo de
+// Safe Browsing de Google—, y pedirle sesión a esa gente es cerrarle la puerta
+// justo a quien queremos que llame. Redirigía a /login hasta que se probó.
+const ARCHIVOS_PUBLICOS = new Set([
+  "/robots.txt", "/sitemap.xml", "/icon.png", "/apple-icon.png", "/.well-known/security.txt",
+]);
 
 // La landing en los otros idiomas: /en, /pt, /fr, /it. Sale de la MISMA lista que
 // las rutas (ver src/i18n/idiomas.ts) para que no puedan discrepar: un idioma que

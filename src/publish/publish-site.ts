@@ -1,4 +1,5 @@
 import { slugify, esSlugValido, formatoSlugValido, esReservado } from "./slug";
+import { suplanta, sinMarcas } from "./suplantacion";
 import { normalizarDominio, formatoDominioValido, dominioProhibido } from "./domain";
 import { PublishError } from "./errors";
 import { MSG_CUPO_DIRECCIONES } from "./cupo-direcciones";
@@ -16,12 +17,33 @@ export type VerificarDominio = (dominio: string) => Promise<Veredicto>;
  */
 export type Cupo = () => Promise<boolean>;
 
+/**
+ * Se explica el porqué y se ofrece salida, en vez de un «no» a secas.
+ *
+ * Quien se lo encuentra casi siempre es alguien legítimo —una tienda que vende
+ * productos Apple, una gestoría que tramita cosas de Hacienda— y no un estafador:
+ * al estafador le da igual el mensaje, se cambia el nombre y sigue. Así que el
+ * texto está escrito para el primero.
+ */
+export const MSG_SUBDOMINIO_SUPLANTA =
+  "Ese nombre lleva una marca registrada y no podemos darlo: si alguien la usara para " +
+  "engañar a la gente, los navegadores marcarían como peligrosas las webs de todos " +
+  "nuestros clientes. Elige otro nombre, o escríbenos si la marca es tuya.";
+
 // Fijado literalmente: la pantalla lo reconoce para enseñar el TXT de respaldo.
 export const MSG_DOMINIO_SIN_VERIFICAR =
   "Todavía no veo que ese dominio apunte aquí. Añade los registros DNS y vuelve a intentarlo en unos minutos.";
 
 export async function generarSubdominio(store: ProjectStore, nombre: string): Promise<string> {
-  const base = slugify(nombre);
+  // El nombre del PROYECTO lo escribe el usuario, así que por aquí se colaba
+  // entero: llamarlo «BBVA Clientes» daba `bbva-clientes` sin pasar por ninguna
+  // comprobación, porque esta rama no es la de elegir subdominio a mano.
+  //
+  // Se le quitan los trozos de marca en vez de rechazarlo: aquí no hay nadie a
+  // quien avisar —esto corre solo, al publicar—, y fallar dejaría sin publicar a
+  // una «Clínica Apple» que no ha hecho nada malo. `slugify` ya devuelve "sitio"
+  // si no queda nada.
+  const base = slugify(sinMarcas(nombre));
   for (let i = 1; i <= 20; i++) {
     const sufijo = i === 1 ? "" : `-${i}`;
     const cand = base.slice(0, 63 - sufijo.length).replace(/-+$/g, "") + sufijo;
@@ -77,6 +99,16 @@ export async function cambiarSubdominio(
     throw new PublishError("Subdominio no válido (minúsculas, números y guiones)", 400);
   }
   if (esReservado(sub)) throw new PublishError("Ese subdominio está reservado", 400);
+  // Suplantar una marca aquí no le hace daño solo a quien lo hace: si Google
+  // marca `estrenala.com` por una web de phishing, la pantalla roja de «sitio
+  // peligroso» sale en las webs de TODOS los clientes (ver suplantacion.ts).
+  const imita = suplanta(sub);
+  if (imita) {
+    console.warn("[seguridad] subdominio de suplantacion rechazado", JSON.stringify({
+      orgId: input.orgId, projectId: input.projectId, sub, marca: imita.marca, cebo: imita.cebo,
+    }));
+    throw new PublishError(MSG_SUBDOMINIO_SUPLANTA, 400);
+  }
   if (project.subdominio === sub) return { subdominio: sub };
   if (!(await deps.store.subdominioLibre(sub))) throw new PublishError("Ese subdominio ya está en uso", 409);
   // A partir de aquí el cambio va a salir adelante y va a pedir certificado.
