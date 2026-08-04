@@ -60,9 +60,13 @@ se queda apagada, y luego cuesta entender por qué no llega nada.
 ### A.3 · Las dos direcciones
 
 - [ ] Pestaña **Reglas de enrutamiento** → **Crear regla de enrutamiento**
-- [ ] Primera: patrón `seguridad` · acción **Enviar a un correo electrónico** ·
-      destino tu correo ya verificado → guardar
+- [ ] Primera: patrón `seguridad` · **@ `estrenala.com`** · acción **Enviar a un
+      correo electrónico** · destino tu correo ya verificado → guardar
 - [ ] Repite con la segunda: `abuso`
+
+> El desplegable del **@** es el dominio, y existe porque una cuenta puede tener
+> varios con reenvío. Aquí solo hay uno: ya viene puesto `estrenala.com` y no hay
+> que tocarlo.
 
 > No crees dos reglas con el mismo patrón: si se repiten, **solo funciona la
 > primera de la lista** y la otra se queda muerta sin avisar.
