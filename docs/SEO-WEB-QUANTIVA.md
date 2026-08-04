@@ -11,6 +11,43 @@ por lo que cuesta, así que si solo haces el primero ya has hecho lo más rentab
 
 ---
 
+## 0. Lo que más te cuesta de todo · las imágenes
+
+Esto se midió después de escribir el resto, y **es lo más caro de la lista**, más
+que los títulos y los encabezados juntos.
+
+```
+index.html        →  3,6 MB
+blog/index.html   →  5,3 MB
+```
+
+Ocho imágenes pasan de medio mega, y cinco pasan de mega y medio:
+
+```
+5ccd4f92-654e-49b4-8ed4-ad4cf86f9e86.jpg   1,6 MB
+431f9f9a-3f42-4718-b603-cb48ea243403.jpg   1,6 MB
+flor.jpg                                   1,6 MB
+47a064cf-9890-4b28-9cc8-9bd8c66f6b44.jpg   1,5 MB
+e8477fab-4abb-447d-a6d0-3400378588a7.jpg   1,4 MB
+```
+
+En un móvil con 4G normal, 3,6 MB son varios segundos mirando una pantalla en
+blanco. Y no lo ves nunca desde tu ordenador con fibra.
+
+**Arreglo:** guardarlas como **WebP** con calidad 80. Una foto así suele quedarse
+en la quinta parte —de 1,6 MB a unos 300 KB— y **se ve igual**. Con Squoosh
+(squoosh.app, gratis y sin subir nada a ningún sitio) o con cualquier conversor.
+
+Y de paso, ponles el `width` y el `height` (punto 6): las mismas fotos salen en
+los dos avisos.
+
+**Por qué importa más que el resto:** es lo único de esta lista que Google mide
+directamente con el cronómetro del visitante, y lo único que le duele a tu
+cliente aunque Google no existiera. Quien entra desde el móvil y espera cuatro
+segundos, se va.
+
+---
+
 ## 1. Un arreglo que vale por 23 páginas · el pie de página
 
 **23 de 27 páginas** avisan de que los apartados se saltan niveles. Las 23 por lo
@@ -165,5 +202,6 @@ del cliente sin tocarla: dos fichas que se contradicen son peores que una.
 Sube la web arreglada y abre su pantalla en Estrénala. Arriba del todo, la sección
 **«Cómo te ve Google»**. La nota se recalcula sola con cada publicación o edición.
 
-Cuenta hecha, si haces del 1 al 5 la nota debería subir a **97-98**. El punto 6
-vale los 2-3 que faltan.
+Cuenta hecha: con el **0** (las imágenes) y el **1** (el pie) ya recuperas la
+mayor parte. Del 2 al 5 son detalles de escritura, y el 6 sale gratis si haces
+el 0, porque son las mismas fotos.
