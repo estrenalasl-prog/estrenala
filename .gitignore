@@ -28,3 +28,8 @@ next-env.d.ts
 .DS_Store
 Thumbs.db
 *.log
+
+# Las copias de seguridad viven FUERA del repo (ver scripts/db/copia-seguridad.mjs).
+# Esta línea es un cinturón por si alguien las genera dentro por error: son datos
+# de produccion —cuentas, correos, claves cifradas— y en git no pintan nada.
+Copias-Estrenala/
