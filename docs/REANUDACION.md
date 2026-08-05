@@ -189,6 +189,10 @@ este orden y no en otro:
    token**, que se había pegado en el chat esa mañana. Verificado con *Redeliver* en
    GitHub → 200.
 4. Cerrar el 3000. Ver el gotcha de abajo, que es el importante.
+5. ~~`DOKPLOY_URL`~~ — **ESTO SE OLVIDÓ, y costó cuatro días** (ver 2026-08-05).
+   La variable siguió apuntando a `panel.estrenala.com`, que desde el paso 2 la
+   contesta la propia plataforma. Al mudar el panel hay que cambiarla y
+   **Deploy**, no Restart.
 
 ### ⚠️ GOTCHA grande: Docker se salta el cortafuegos. TODOS los cortafuegos.
 

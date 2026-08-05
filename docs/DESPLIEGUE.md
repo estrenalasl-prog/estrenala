@@ -200,7 +200,9 @@ STRIPE_PRICE_AGENCIA_ANUAL=price_...
 
 # --- Despliegue de dominios de clientes ---
 DEPLOY_TARGET=dokploy
-DOKPLOY_URL=https://panel.estrenala.com
+# La dirección del panel de DOKPLOY, no la de la plataforma. Si el panel se muda
+# (se hizo el 2026-08-01), HAY QUE CAMBIARLA AQUÍ TAMBIÉN. Ver el aviso de abajo.
+DOKPLOY_URL=https://dk-8f24.quantivatechnology.com
 DOKPLOY_API_KEY=...                  # Dokploy → Settings → API/CLI
 DOKPLOY_APPLICATION_ID=...           # está en la URL de tu aplicación
 
@@ -210,6 +212,27 @@ CRON_SECRET=...
 
 > ⚠️ `SESSION_SECRET` nuevo = todas las sesiones abiertas se caen. Es lo que
 > quieres: la clave de desarrollo ha pasado por tu disco y por copias.
+
+> ⚠️ **`DOKPLOY_URL` apuntando a un sitio que ya no es Dokploy no falla: MIENTE.**
+> Al mover el panel el 2026-08-01, la vieja (`panel.estrenala.com`) pasó a caer en
+> la regla comodín, o sea que la contesta **la propia plataforma** con su 404 de
+> «esta web no está publicada». La llamada a la API recibe entonces un 404 con una
+> página HTML en vez de un error de red, y lo que se ve arriba es que conectar un
+> dominio no funciona, sin más pistas.
+>
+> Tardó **cuatro días** en salir a la luz porque con `DOKPLOY_COMODIN=1` publicar
+> ya no llama a Dokploy: los subdominios los cubre la regla comodín. Los únicos
+> que aún le llaman son `connectDomain` y `disconnectDomain`, y hasta el
+> 2026-08-05 nadie había conectado un dominio propio desde la mudanza.
+>
+> Para comprobarlo sin desplegar nada, desde cualquier sitio:
+>
+> ```
+> curl -s "$DOKPLOY_URL/api/domain.byApplicationId?applicationId=x"
+> ```
+>
+> Tiene que contestar `{"message":"Unauthorized"}`. Si contesta HTML, la variable
+> apunta a la plataforma y **ningún dominio de cliente se va a poder conectar**.
 
 ---
 
