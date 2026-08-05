@@ -28,8 +28,13 @@ const RUTAS_PUBLICAS = ["/login", "/api/login", "/registro", "/api/registro",
 // de FUERA nos avise de un problema —un banco, un investigador, el equipo de
 // Safe Browsing de Google—, y pedirle sesión a esa gente es cerrarle la puerta
 // justo a quien queremos que llame. Redirigía a /login hasta que se probó.
+// `favicon.ico` está aquí desde que dejó de excluirse en el `matcher` (ver el
+// final del archivo). La plataforma no tiene ninguno —usa `icon.png`—, así que
+// seguirá dando 404; pero un 404 es la respuesta correcta a un archivo que no
+// existe, y un 307 al login por pedir un icono, no.
 const ARCHIVOS_PUBLICOS = new Set([
-  "/robots.txt", "/sitemap.xml", "/icon.png", "/apple-icon.png", "/.well-known/security.txt",
+  "/robots.txt", "/sitemap.xml", "/icon.png", "/apple-icon.png", "/favicon.ico",
+  "/.well-known/security.txt",
 ]);
 
 // La landing en los otros idiomas: /en, /pt, /fr, /it. Sale de la MISMA lista que
@@ -182,6 +187,19 @@ export async function middleware(req: NextRequest) {
   return sellar(NextResponse.redirect(url, 307));
 }
 
+// `favicon.ico` NO se excluye, aunque sea lo que trae de serie cualquier Next.
+//
+// En una aplicación normal esa exclusión no molesta: hay un solo sitio y su
+// icono lo sirve el propio `app/`. Aquí cada web publicada es un sitio distinto,
+// y su icono está en SU almacenamiento. Excluyéndolo, `/favicon.ico` no pasaba
+// por aquí, nadie lo reescribía a `/sites/<host>/…` y caía en la plataforma, que
+// no tiene ninguno: TODAS las webs de clientes se quedaban sin icono de pestaña
+// aunque lo trajeran en su ZIP. Se vio con la web de Quantiva el 2026-08-05,
+// pidiéndola desde fuera; desde dentro no se nota, porque el navegador enseña el
+// icono en blanco sin quejarse y `resolve-site.ts` ni se entera de la petición.
+//
+// El coste de quitarlo es una vuelta por el middleware en cada visita. A cambio,
+// las webs de los clientes tienen su icono.
 export const config = {
-  matcher: ["/((?!_next/|favicon\\.ico).*)"],
+  matcher: ["/((?!_next/).*)"],
 };
