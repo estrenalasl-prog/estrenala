@@ -3,7 +3,9 @@ import { DokployDeploy } from "@/src/publish/dokploy";
 
 type Llamada = { url: string; init?: RequestInit };
 
-function fetchMock(respuestas: Array<{ ok: boolean; status?: number; json?: unknown }>) {
+function fetchMock(
+  respuestas: Array<{ ok: boolean; status?: number; json?: unknown; texto?: string }>
+) {
   const llamadas: Llamada[] = [];
   const f = (async (url: string | URL | Request, init?: RequestInit) => {
     llamadas.push({ url: String(url), init });
@@ -11,10 +13,22 @@ function fetchMock(respuestas: Array<{ ok: boolean; status?: number; json?: unkn
     return {
       ok: r.ok, status: r.status ?? (r.ok ? 200 : 500),
       json: async () => r.json ?? {},
+      // El cuerpo de un error de Dokploy dice qué falta de verdad («clave no
+      // válida», «no existe esa aplicación»), y es lo que se guarda en el
+      // registro. Un doble sin `text` estaría probando otra cosa que la real.
+      text: async () => r.texto ?? "",
     } as Response;
   }) as typeof fetch;
   return { f, llamadas };
 }
+
+/** Una API que acepta la conexión y luego no contesta jamás. */
+const fetchQueSeCuelga = (async (_url: unknown, init?: RequestInit) =>
+  new Promise<Response>((_, rechazar) => {
+    init?.signal?.addEventListener("abort", () =>
+      rechazar(Object.assign(new Error("The operation was aborted"), { name: "TimeoutError" }))
+    );
+  })) as typeof fetch;
 
 const cfg = {
   url: "https://dok.example", apiKey: "k123", applicationId: "app-1",
@@ -191,5 +205,33 @@ describe("getDeploy", () => {
   it("default self-hosted; dokploy exige sus envs", async () => {
     const { getDeploy } = await import("@/src/publish/deploy-factory");
     expect(getDeploy().connectDomain).toBeTypeOf("function"); // no lanza sin envs (self)
+  });
+});
+
+/**
+ * Una API que no contesta es MUCHO peor que una que dice que no.
+ *
+ * Sin reloj, la petición del usuario se queda colgada hasta que la corta algún
+ * proxy de por medio, y lo que llega al navegador es la página de error del
+ * proxy —HTML, sin nuestro JSON—, o sea «Algo ha fallado» y a adivinar. Pasó el
+ * 2026-08-05 conectando quantivatechnology.com: el dominio no se registró y no
+ * quedó rastro de por qué en ninguna parte.
+ */
+describe("cuando Dokploy no contesta", () => {
+  it("se rinde y dice que fue por tiempo, en vez de colgarse", async () => {
+    const d = new DokployDeploy({ ...cfg, fetchImpl: fetchQueSeCuelga, limiteMs: 50 });
+    await expect(d.connectDomain({ dominio: "cliente.com" })).rejects.toThrow(/no contestó en 0.05s/);
+  });
+
+  it("el error dice QUÉ llamada fue", async () => {
+    const d = new DokployDeploy({ ...cfg, fetchImpl: fetchQueSeCuelga, limiteMs: 50 });
+    await expect(d.connectDomain({ dominio: "cliente.com" })).rejects.toThrow(/byApplicationId/);
+  });
+
+  it("un 401 se distingue de un cuelgue, y arrastra lo que dijo Dokploy", async () => {
+    const { f } = fetchMock([{ ok: false, status: 401, texto: '{"message":"Invalid API key"}' }]);
+    const d = new DokployDeploy({ ...cfg, fetchImpl: f });
+    await expect(d.connectDomain({ dominio: "cliente.com" }))
+      .rejects.toThrow(/401.*Invalid API key/);
   });
 });

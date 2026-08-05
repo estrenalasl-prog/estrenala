@@ -198,7 +198,11 @@ export function PublishBar({
       // al conectar bien es lo único que avisa de que el `www` se quedó suelto.
       if (d.dns) setDiagnostico(d.dns);
       if (!res.ok) {
-        setError(d.error ?? t.errores.generico);
+        // Sin mensaje nuestro, la respuesta NO viene de la aplicación: la ha
+        // fabricado algo de por medio (un proxy que cortó por tiempo, una pasarela
+        // caída). Sale el código, que es lo único que distingue un caso del otro.
+        // Un «Algo ha fallado» a secas no se puede ni contar por teléfono.
+        setError(d.error ?? `${t.errores.generico} (${res.status})`);
         // Solo llega cuando falla la comprobación de propiedad del dominio.
         if (d.txt) setTxt(d.txt);
         return false;

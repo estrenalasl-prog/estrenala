@@ -114,18 +114,39 @@ export function registroTxtEsperado(dominio: string, secreto: string): { nombre:
   return { nombre: `${SUBDOMINIO_TXT}.${dominio}`, valor: PREFIJO_TXT + tokenDominio(dominio, secreto) };
 }
 
+/**
+ * Techo de espera de CADA consulta. Node reintenta por su cuenta (5 s × 4
+ * intentos por defecto), así que un tipo de registro que el resolutor no
+ * conteste —AAAA y NS son los típicos dentro de un contenedor— se puede comer
+ * 20 segundos él solo, y son cuatro consultas.
+ */
+const LIMITE_DNS_MS = 3_000;
+
 // Un fallo de DNS (NXDOMAIN, sin registros, timeout) NO es un error del
 // programa: es la respuesta «todavía no». Se trata como lista vacía.
 //
 // Recibe una FUNCIÓN, no una promesa ya empezada, por dos razones: así también
 // se traga un resolutor que reviente en el acto en vez de devolver una promesa
 // rechazada, y así `resolve6?.()` puede no existir sin tener que preguntarlo
-// fuera. Una consulta de DNS no puede tumbar la pantalla de conectar el dominio.
+// fuera.
+//
+// Y va con reloj. Que reviente no era el único peligro: un resolutor que NO
+// CONTESTA deja la promesa colgando para siempre, y con ella la petición del
+// usuario, hasta que un proxy la corta por su cuenta y devuelve una página de
+// error que ya no es nuestra —o sea, un fallo sin mensaje, que es el peor que
+// hay—. Quedarse sin diagnóstico es un mal menor: lo que no puede pasar es que
+// una consulta de DNS decida cuánto dura conectar un dominio.
 async function sinRuido<T>(f: () => Promise<T[]> | undefined): Promise<T[]> {
+  let reloj: NodeJS.Timeout | undefined;
   try {
-    return (await f()) ?? [];
+    const vacio = new Promise<T[]>((resolver) => {
+      reloj = setTimeout(() => resolver([]), LIMITE_DNS_MS);
+    });
+    return (await Promise.race([f() ?? Promise.resolve([]), vacio])) ?? [];
   } catch {
     return [];
+  } finally {
+    clearTimeout(reloj);
   }
 }
 

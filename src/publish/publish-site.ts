@@ -202,7 +202,13 @@ export async function conectarDominio(
   if (deps.cupo && !(await deps.cupo())) throw new PublishError(MSG_CUPO_DIRECCIONES, 429);
   try {
     await deps.deploy.connectDomain({ dominio: dom });
-  } catch {
+  } catch (e) {
+    // Al usuario se le dice lo mismo de siempre —no puede hacer nada con «401 de
+    // la API»—, pero la causa queda escrita. Sin esto, un dominio que no conecta
+    // no deja NINGÚN rastro en ninguna parte: ni en la pantalla, ni en el
+    // registro, ni en la base. Y entonces solo queda adivinar.
+    console.error("[dominio] no se pudo registrar en el servidor:",
+      JSON.stringify({ dominio: dom, causa: e instanceof Error ? e.message : String(e) }));
     throw new PublishError("No se pudo activar el dominio en el servidor. Vuelve a intentarlo en unos minutos.", 502);
   }
   const ok = await deps.store.setDominio(input.orgId, input.projectId, dom);

@@ -9,10 +9,16 @@ type DokployConfig = {
   appPort?: number;        // puerto interno de la app (default 3000)
   /** Hay un certificado comodín + regla comodín cubriendo los subdominios. */
   comodinSubdominios?: boolean;
+  /** Techo por llamada. Se puede bajar en los tests para no esperar de verdad. */
+  limiteMs?: number;
   fetchImpl?: typeof fetch;
 };
 
 type DokployDomain = { domainId: string; host: string };
+
+/** Techo por llamada. Registrar un dominio es escribir un archivo y recargar
+ *  Traefik: si en 15 segundos no ha contestado, no va a contestar. */
+const LIMITE_MS = 15_000;
 
 // Registra en el Traefik del VPS, vía la API REST de Dokploy, TODOS los hosts que
 // tiene que atender la plataforma: el subdominio de cada web publicada y los
@@ -42,21 +48,57 @@ export class DokployDeploy implements DeployTarget {
     this.f = cfg.fetchImpl ?? fetch;
   }
 
+  /**
+   * Toda llamada a Dokploy va con reloj.
+   *
+   * Sin él, una API que acepta la conexión y luego no contesta deja colgada la
+   * petición del usuario hasta que la corta un proxy de por medio — y entonces
+   * lo que le llega al navegador es la página de error del proxy, en HTML, sin
+   * el JSON con el mensaje. O sea: «Algo ha fallado» y a adivinar. Pasó el
+   * 2026-08-05 conectando quantivatechnology.com.
+   *
+   * Mejor rendirse en 15 segundos y DECIR por qué.
+   */
+  private async pedir(url: string, init: RequestInit, que: string): Promise<Response> {
+    let res: Response;
+    try {
+      const limite = this.cfg.limiteMs ?? LIMITE_MS;
+      res = await this.f(url, { ...init, signal: AbortSignal.timeout(limite) });
+    } catch (e) {
+      // Se distingue «no contesta» de «contesta que no»: el arreglo no es el mismo.
+      const causa = e instanceof Error && e.name === "TimeoutError"
+        ? `no contestó en ${(this.cfg.limiteMs ?? LIMITE_MS) / 1000}s`
+        : e instanceof Error ? e.message : "error de red";
+      throw new Error(`Dokploy ${que}: ${causa}`);
+    }
+    if (!res.ok) {
+      // El cuerpo del error de Dokploy suele decir exactamente qué falta (clave
+      // caducada, id de aplicación que no existe). Tirarlo era quedarse solo con
+      // un número.
+      const detalle = (await res.text().catch(() => "")).slice(0, 200);
+      throw new Error(`Dokploy ${que} → ${res.status}${detalle ? ` · ${detalle}` : ""}`);
+    }
+    return res;
+  }
+
   private async post(ruta: string, body: unknown): Promise<void> {
-    const res = await this.f(`${this.cfg.url}/api/${ruta}`, {
-      method: "POST",
-      headers: { "content-type": "application/json", "x-api-key": this.cfg.apiKey },
-      body: JSON.stringify(body),
-    });
-    if (!res.ok) throw new Error(`Dokploy ${ruta} → ${res.status}`);
+    await this.pedir(
+      `${this.cfg.url}/api/${ruta}`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-api-key": this.cfg.apiKey },
+        body: JSON.stringify(body),
+      },
+      ruta
+    );
   }
 
   private async listar(): Promise<DokployDomain[]> {
-    const res = await this.f(
+    const res = await this.pedir(
       `${this.cfg.url}/api/domain.byApplicationId?applicationId=${encodeURIComponent(this.cfg.applicationId)}`,
-      { headers: { "x-api-key": this.cfg.apiKey } }
+      { headers: { "x-api-key": this.cfg.apiKey } },
+      "domain.byApplicationId"
     );
-    if (!res.ok) throw new Error(`Dokploy domain.byApplicationId → ${res.status}`);
     return (await res.json()) as DokployDomain[];
   }
 
