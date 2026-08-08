@@ -63,6 +63,51 @@ describe("eliminarProyecto", () => {
     await expect(eliminarProyecto({ store, storage }, { orgId: "o1", projectId: "p1" })).resolves.toBeUndefined();
     expect(orden).toEqual(["bd", "storage"]);
   });
+
+  /**
+   * De uno en uno, una web con 19 snapshots eran más de mil peticiones seguidas:
+   * ~100 s, que es donde Cloudflare corta. La base ya estaba limpia, pero la
+   * respuesta no llegaba y en pantalla salía «No se pudo borrar».
+   */
+  it("borra por lotes cuando el storage sabe, en UNA sola llamada", async () => {
+    const borradosUnoAUno: string[] = [];
+    const lotes: string[][] = [];
+    const claves = Array.from({ length: 300 }, (_, i) => `projects/p1/s/f${i}.txt`);
+    const storage: StorageAdapter = {
+      async put() {}, async get() { return null; },
+      async list() { return claves; },
+      async delete(k) { borradosUnoAUno.push(k); },
+      async deleteMany(ks) { lotes.push(ks); },
+    };
+    const { store } = fakeStore(true);
+
+    await eliminarProyecto({ store, storage }, { orgId: "o1", projectId: "p1" });
+
+    expect(lotes).toHaveLength(1);
+    expect(lotes[0]).toHaveLength(300);
+    expect(borradosUnoAUno, "no debe caer al camino lento").toEqual([]);
+  });
+
+  it("si el storage no sabe borrar por lotes, sigue yendo de uno en uno", async () => {
+    const storage = new FakeStorage(); // sin deleteMany
+    storage.files.set("projects/p1/a.txt", Buffer.from("a"));
+    storage.files.set("projects/p1/b.txt", Buffer.from("b"));
+    const { store } = fakeStore(true);
+    await eliminarProyecto({ store, storage }, { orgId: "o1", projectId: "p1" });
+    expect(storage.files.size).toBe(0);
+  });
+
+  it("sin archivos que borrar no llama al storage para nada", async () => {
+    let llamado = false;
+    const storage: StorageAdapter = {
+      async put() {}, async get() { return null; },
+      async list() { return []; },
+      async delete() { llamado = true; },
+      async deleteMany() { llamado = true; },
+    };
+    await eliminarProyecto({ store: fakeStore(true).store, storage }, { orgId: "o1", projectId: "p1" });
+    expect(llamado).toBe(false);
+  });
 });
 
 /**

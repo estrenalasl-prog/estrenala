@@ -20,6 +20,7 @@ export type SupabaseLikeClient = {
 };
 
 const PAGINA = 100;
+const LOTE_BORRADO = 100;
 
 // StorageAdapter sobre un bucket privado de Supabase Storage. Los prefijos que usa
 // la app son "carpetas" completas terminadas en "/" (storagePrefix de snapshots);
@@ -92,6 +93,19 @@ export class SupabaseStorage implements StorageAdapter {
   async delete(key: string): Promise<void> {
     const { error } = await this.from().remove([key]);
     if (error) throw new Error(`Supabase remove(${key}): ${error.message}`);
+  }
+
+  /**
+   * `remove` ya acepta una lista; lo que faltaba era usarla. Se trocea porque el
+   * tope de Supabase son 1.000 claves por petición, y con 100 el cuerpo se queda
+   * en un tamaño razonable.
+   */
+  async deleteMany(keys: string[]): Promise<void> {
+    for (let i = 0; i < keys.length; i += LOTE_BORRADO) {
+      const lote = keys.slice(i, i + LOTE_BORRADO);
+      const { error } = await this.from().remove(lote);
+      if (error) throw new Error(`Supabase remove(${lote.length} archivos): ${error.message}`);
+    }
   }
 }
 

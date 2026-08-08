@@ -66,6 +66,14 @@ export class LocalFsStorage implements StorageAdapter {
   async delete(key: string): Promise<void> {
     await fs.rm(this.full(key), { force: true });
   }
+
+  // En disco no hay viaje de red que ahorrar, pero se implementa igual para que
+  // el borrado recorra el mismo camino en local que en producción: si solo
+  // existiera en Supabase, el único sitio donde se prueba a mano sería el que
+  // no se ejecuta.
+  async deleteMany(keys: string[]): Promise<void> {
+    for (const k of keys) await this.delete(k);
+  }
 }
 
 export async function listHtmlPages(

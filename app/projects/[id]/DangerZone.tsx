@@ -24,7 +24,10 @@ export function DangerZone({ projectId, nombre, textos }: { projectId: string; n
       const res = await fetch(`/api/projects/${projectId}`, { method: "DELETE" });
       if (!res.ok) {
         const d = (await res.json().catch(() => ({}))) as { error?: string };
-        setError(d.error ?? textos.errores.borrar); return;
+        // Con el código de estado: si el que contesta es Cloudflare y no nosotros
+        // (524 por pasarse de 100 s), la respuesta no trae cuerpo y sin el número
+        // el mensaje no distingue «ha fallado» de «ha tardado demasiado».
+        setError(d.error ?? `${textos.errores.borrar} (${res.status})`); return;
       }
       router.push("/");
     } catch {

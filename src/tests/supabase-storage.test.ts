@@ -5,6 +5,8 @@ import { SupabaseStorage, type SupabaseLikeClient } from "@/src/storage/supabase
 // por carpeta (una sola profundidad, paginado, carpetas con id=null) como el real.
 function fakeClient() {
   const archivos = new Map<string, Buffer>();
+  /** Cuántas claves llevaba cada llamada a remove(). Es lo que se mide abajo. */
+  const removes: number[] = [];
   const client: SupabaseLikeClient = {
     storage: {
       from(_bucket: string) {
@@ -32,6 +34,7 @@ function fakeClient() {
             return { data: orden.slice(offset, offset + limit), error: null };
           },
           async remove(keys) {
+            removes.push(keys.length);
             for (const k of keys) archivos.delete(k);
             return { error: null };
           },
@@ -39,7 +42,7 @@ function fakeClient() {
       },
     },
   };
-  return { client, archivos };
+  return { client, archivos, removes };
 }
 
 describe("SupabaseStorage", () => {
@@ -80,5 +83,41 @@ describe("SupabaseStorage", () => {
     await s.put("p/1/x.txt", "x");
     await s.delete("p/1/x.txt");
     expect(await s.get("p/1/x.txt")).toBeNull();
+  });
+
+  /**
+   * Lo que se mide aquí no es que borre —eso ya lo hacía—, sino CUÁNTAS
+   * peticiones cuesta. El 08/08 borrar una web de 1.100 archivos eran 1.100
+   * viajes: unos 100 segundos, justo el tope de Cloudflare. La respuesta moría
+   * y en pantalla ponía «No se pudo borrar» sobre una web ya borrada.
+   */
+  describe("deleteMany", () => {
+    it("1.100 archivos son 11 peticiones, no 1.100", async () => {
+      const { client, archivos, removes } = fakeClient();
+      const s = new SupabaseStorage(client, "sites");
+      const claves = Array.from({ length: 1100 }, (_, i) => `p/1/f${i}.txt`);
+      for (const k of claves) archivos.set(k, Buffer.from("x"));
+
+      await s.deleteMany(claves);
+
+      expect(archivos.size).toBe(0);
+      expect(removes).toHaveLength(11);
+      expect(Math.max(...removes), "ningún lote pasa de 100").toBeLessThanOrEqual(100);
+    });
+
+    it("no manda una petición vacía cuando no hay nada que borrar", async () => {
+      const { client, removes } = fakeClient();
+      await new SupabaseStorage(client, "sites").deleteMany([]);
+      expect(removes).toEqual([]);
+    });
+
+    it("un lote que falla se cuenta y no se traga", async () => {
+      const { client } = fakeClient();
+      const roto: SupabaseLikeClient = {
+        storage: { from: (b) => ({ ...client.storage.from(b), async remove() { return { error: { message: "403" } }; } }) },
+      };
+      await expect(new SupabaseStorage(roto, "sites").deleteMany(["a", "b"]))
+        .rejects.toThrow("Supabase remove(2 archivos): 403");
+    });
   });
 });

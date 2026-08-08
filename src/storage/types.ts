@@ -16,4 +16,17 @@ export interface StorageAdapter {
    * que no esté (ver seo/sitio.ts).
    */
   tamanos?(prefix: string): Promise<Map<string, number>>;
+  /**
+   * Borrar muchos de una vez.
+   *
+   * Existe porque borrar una web con 19 snapshots son más de mil archivos, y de
+   * uno en uno eso son mil viajes de ida y vuelta: unos 100 segundos, que es
+   * exactamente el tope de Cloudflare. El 08/08 el borrado funcionó pero la
+   * respuesta murió por el camino, y en pantalla puso «No se pudo borrar» sobre
+   * una web que ya no existía.
+   *
+   * Opcional como `tamanos`: quien lo use tiene que saber caer al `delete` de uno
+   * en uno si el driver no lo trae.
+   */
+  deleteMany?(keys: string[]): Promise<void>;
 }

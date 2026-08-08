@@ -24,6 +24,15 @@ export async function eliminarProyecto(
   const prefijo = `projects/${input.projectId}/`;
   try {
     const claves = await deps.storage.list(prefijo);
+    if (claves.length === 0) return;
+    // Por lotes cuando el driver sabe: una web con 19 snapshots pasa de más de
+    // mil peticiones a una docena. De uno en uno tardaba ~100 s, que es justo
+    // donde Cloudflare corta la respuesta, y el dueño veía «No se pudo borrar»
+    // sobre una web que ya estaba borrada.
+    if (deps.storage.deleteMany) {
+      await deps.storage.deleteMany(claves);
+      return;
+    }
     for (const k of claves) {
       try { await deps.storage.delete(k); } catch { /* huérfano inerte */ }
     }
