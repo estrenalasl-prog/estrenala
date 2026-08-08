@@ -206,6 +206,12 @@ DOKPLOY_URL=https://dk-8f24.quantivatechnology.com
 DOKPLOY_API_KEY=...                  # Dokploy → Settings → API/CLI
 DOKPLOY_APPLICATION_ID=...           # está en la URL de tu aplicación
 
+# --- Avisos al operador (opcional) ---
+# Copia de los avisos de certificado a punto de caducar. El dueño de cada web
+# recibe el suyo siempre; esto es para enterarse TÚ, que eres quien lo arregla.
+# Sin esta variable, los avisos solo van al dueño.
+ALERTAS_EMAIL=...
+
 # --- Cron externo (opcional; el servidor ya publica solo cada 60 s) ---
 CRON_SECRET=...
 ```

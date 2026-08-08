@@ -33,6 +33,14 @@ export async function register() {
       if (r.publicados || r.errores) {
         console.log(`[programados] publicados: ${r.publicados} · errores: ${r.errores}`);
       }
+      // Los certificados van UNA vez al día, no en cada tick: son 90 días de
+      // vida y mirarlos cada minuto sería abrir 1.440 conexiones TLS diarias
+      // contra las webs de los clientes para nada.
+      try {
+        await revisarCertificadosUnaVezAlDia();
+      } catch (e) {
+        console.error("[certificados] revisión fallida:", e instanceof Error ? e.message : e);
+      }
     } catch (e) {
       // Un tick roto (BD caída, storage inaccesible) no tumba el servidor.
       console.error("[programados] tick fallido:", e instanceof Error ? e.message : e);
@@ -40,4 +48,43 @@ export async function register() {
   };
   setTimeout(() => void tick(), 15_000);
   setInterval(() => void tick(), 60_000);
+}
+
+/**
+ * La puerta diaria de la revisión de certificados.
+ *
+ * El día se guarda EN MEMORIA, no en la base. Un despliegue reinicia el proceso
+ * y vuelve a revisar ese día: como mucho, un aviso repetido en la jornada en que
+ * un certificado cruza su umbral. Se prefirió eso a añadir una columna y una
+ * migración para no repetir un correo que, si llega dos veces, tampoco molesta.
+ */
+let ultimoDiaRevisado = "";
+
+async function revisarCertificadosUnaVezAlDia() {
+  const hoy = new Date().toISOString().slice(0, 10);
+  if (ultimoDiaRevisado === hoy) return;
+  ultimoDiaRevisado = hoy;
+
+  const [{ revisarCertificados }, { caducidadDelCertificado }, { dominiosPublicados }, { enviarCorreo }] =
+    await Promise.all([
+      import("@/src/certificados/revisar"),
+      import("@/src/certificados/tls"),
+      import("@/src/repositories/dominios"),
+      import("@/src/email/enviar"),
+    ]);
+
+  const r = await revisarCertificados({
+    listar: dominiosPublicados,
+    caducidad: caducidadDelCertificado,
+    enviar: enviarCorreo,
+    copiaA: (process.env.ALERTAS_EMAIL ?? "").trim() || undefined,
+  });
+
+  if (r.revisados === 0) return;
+  // Se escriben SIEMPRE los días que le quedan a cada uno, aunque no haya nada
+  // que avisar: es la única forma de mirar el registro y ver que la vigilancia
+  // está viva. Sin esta línea, «no hay avisos» y «no se está revisando» se ven
+  // exactamente igual.
+  console.log(`[certificados] ${r.revisados} revisado(s) · ${r.avisados} aviso(s) · ${JSON.stringify(r.dias)}`);
+  if (r.ilegibles.length > 0) console.warn(`[certificados] no se pudo leer: ${r.ilegibles.join(", ")}`);
 }
