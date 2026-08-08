@@ -30,6 +30,10 @@ export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string 
     return NextResponse.json({ ok: true });
   } catch (e) {
     if (e instanceof EditorError) return jsonError(e.message, e.status);
+    // Sin esta línea el motivo se perdía entero: el 08/08 una web no se dejaba
+    // borrar por una clave ajena y en el servidor no quedó ni rastro de por qué.
+    console.error("[proyecto] no se pudo borrar:",
+      JSON.stringify({ projectId: id, causa: e instanceof Error ? e.message : String(e) }));
     return jsonError("Error interno", 500);
   }
 }

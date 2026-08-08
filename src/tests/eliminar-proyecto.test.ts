@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
+import { getTableConfig, type PgTable } from "drizzle-orm/pg-core";
 import { eliminarProyecto, type BorradoProyectoStore } from "@/src/projects/eliminar";
+import { TABLAS_HIJAS_DE_PROYECTO } from "@/src/repositories/projects";
+import * as schema from "@/src/db/schema";
 import { EditorError } from "@/src/editor/errors";
 import type { StorageAdapter } from "@/src/storage/types";
 
@@ -59,5 +62,49 @@ describe("eliminarProyecto", () => {
     // El fallo de storage NO propaga: el borrado se considera hecho (BD limpia).
     await expect(eliminarProyecto({ store, storage }, { orgId: "o1", projectId: "p1" })).resolves.toBeUndefined();
     expect(orden).toEqual(["bd", "storage"]);
+  });
+});
+
+/**
+ * Ninguna de estas comprobaciones toca la base: leen el esquema declarado y lo
+ * comparan con la lista que borra el repositorio.
+ *
+ * Existen porque el 08/08 una web publicada no se dejaba borrar y la pantalla
+ * solo decía «Error interno». La causa era `form_submissions`, añadida cinco
+ * días antes con clave ajena a `projects` y sin apuntar en el borrado: un solo
+ * formulario recibido dejaba la web imborrable para siempre.
+ */
+describe("el borrado en cascada cubre todo lo que cuelga del proyecto", () => {
+  const nombre = (t: unknown) => getTableConfig(t as PgTable).name;
+
+  /** Las tablas que el ESQUEMA dice que apuntan a `projects.id`. */
+  function hijasSegunElEsquema(): string[] {
+    const hijas: string[] = [];
+    for (const tabla of Object.values(schema)) {
+      let cfg;
+      try { cfg = getTableConfig(tabla as PgTable); } catch { continue; } // no es una tabla
+      if (!cfg?.columns?.length || cfg.name === "projects") continue;
+      const apunta = cfg.foreignKeys.some((fk) => nombre(fk.reference().foreignTable) === "projects");
+      if (apunta) hijas.push(cfg.name);
+    }
+    return hijas.sort();
+  }
+
+  it("la lista del repositorio es EXACTAMENTE la del esquema", () => {
+    const enElEsquema = hijasSegunElEsquema();
+    // Si esto es 0 el test no está mirando nada, que es como se cuelan los bugs.
+    expect(enElEsquema.length, "no se ha encontrado ninguna tabla hija").toBeGreaterThan(5);
+    expect(
+      TABLAS_HIJAS_DE_PROYECTO.map(nombre).sort(),
+      "añade la tabla que falta a TABLAS_HIJAS_DE_PROYECTO o el borrado dará «Error interno»"
+    ).toEqual(enElEsquema);
+  });
+
+  it("`form_submissions` está: un formulario recibido no puede impedir borrar la web", () => {
+    expect(TABLAS_HIJAS_DE_PROYECTO.map(nombre)).toContain("form_submissions");
+  });
+
+  it("el proyecto se borra el ÚLTIMO, nunca antes que sus hijos", () => {
+    expect(TABLAS_HIJAS_DE_PROYECTO.map(nombre)).not.toContain("projects");
   });
 });

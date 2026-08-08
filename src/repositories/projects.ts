@@ -25,6 +25,24 @@ function toProjectRow(r: typeof projects.$inferSelect): ProjectRow {
   };
 }
 
+/**
+ * Todas las tablas que cuelgan de un proyecto. Se borran antes que él.
+ *
+ * El esquema NO tiene `ON DELETE CASCADE`: si una tabla falta en esta lista,
+ * Postgres rechaza el borrado por clave ajena y el dueño ve «Error interno» sin
+ * ninguna pista. Pasó de verdad con `form_submissions`, que se añadió el 03/08 y
+ * nadie se acordó de apuntarla aquí: cualquier web que hubiera recibido UN solo
+ * formulario ya no se podía borrar.
+ *
+ * `src/tests/eliminar-proyecto.test.ts` cuadra esta lista con las claves ajenas
+ * declaradas en el esquema, así que la próxima tabla no puede olvidarse en
+ * silencio: el test falla al añadirla.
+ */
+export const TABLAS_HIJAS_DE_PROYECTO = [
+  formSubmissions, posts, scheduledPosts, trendsCache, blogKeywords,
+  articleDrafts, blogSettings, blogTemplates, assets, snapshots,
+];
+
 export class DrizzleProjectStore implements ProjectStore {
   async createProjectWithSnapshot(input: CreateProjectInput): Promise<{ projectId: string }> {
     await db.transaction(async (tx) => {
@@ -57,15 +75,9 @@ export class DrizzleProjectStore implements ProjectStore {
   // (quien llama ya validó la pertenencia con getProject).
   async deleteProjectCascade(orgId: string, projectId: string): Promise<void> {
     await db.transaction(async (tx) => {
-      await tx.delete(posts).where(eq(posts.projectId, projectId));
-      await tx.delete(scheduledPosts).where(eq(scheduledPosts.projectId, projectId));
-      await tx.delete(trendsCache).where(eq(trendsCache.projectId, projectId));
-      await tx.delete(blogKeywords).where(eq(blogKeywords.projectId, projectId));
-      await tx.delete(articleDrafts).where(eq(articleDrafts.projectId, projectId));
-      await tx.delete(blogSettings).where(eq(blogSettings.projectId, projectId));
-      await tx.delete(blogTemplates).where(eq(blogTemplates.projectId, projectId));
-      await tx.delete(assets).where(eq(assets.projectId, projectId));
-      await tx.delete(snapshots).where(eq(snapshots.projectId, projectId));
+      for (const tabla of TABLAS_HIJAS_DE_PROYECTO) {
+        await tx.delete(tabla).where(eq(tabla.projectId, projectId));
+      }
       await tx.delete(projects).where(and(eq(projects.id, projectId), eq(projects.orgId, orgId)));
     });
   }
