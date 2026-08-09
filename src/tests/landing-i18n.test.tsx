@@ -5,6 +5,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { conFormato, sinFormato } from "@/src/i18n/formato";
 import { CATALOGO_LANDING, textosLanding } from "@/src/i18n/landing";
 import { IDIOMAS, type Idioma } from "@/src/i18n/idiomas";
+import { Landing } from "@/app/_landing/Landing";
+import { RUTA_BLOG } from "@/src/blog-estrenala/indice";
 
 const pinta = (n: React.ReactNode) => renderToStaticMarkup(<>{n}</>);
 
@@ -187,6 +189,54 @@ describe("los cinco idiomas dicen lo mismo", () => {
       const otro = hojas(CATALOGO_LANDING[idioma]);
       const iguales = es.filter((h, i) => h.valor === otro[i].valor).length;
       expect(iguales / es.length, `${idioma} se parece demasiado al español`).toBeLessThan(0.2);
+    }
+  });
+});
+
+/**
+ * El menú de arriba decía «Blog» y bajaba a `#blog`: la sección que explica el
+ * blog automático que se le pone a la web del cliente. No al blog de Estrénala,
+ * que existe desde el 09/08 y tiene artículos. La etiqueta prometía una cosa y
+ * llevaba a otra — lo vio Sebas.
+ *
+ * Los artículos están solo en español, así que el enlace solo existe ahí; en
+ * los otros cuatro el elemento se quita del menú y la sección se sigue
+ * alcanzando desde el pie. Alargar la etiqueta («Automatic blog») era la otra
+ * salida y se descartó midiendo: el menú del francés ya se sale.
+ *
+ * Se cuentan DOS apariciones a propósito: el menú se pinta dos veces —cabecera
+ * y hamburguesa— y arreglar solo la de escritorio deja el fallo intacto en la
+ * mitad del tráfico.
+ */
+describe("el enlace «Blog» del menú lleva a donde dice", () => {
+  // Solo la cabecera: el pie tiene su propio enlace a `#blog`, y contar sobre
+  // la página entera lo metía en la cuenta.
+  const cabecera = (idioma: Idioma) => {
+    const html = renderToStaticMarkup(<Landing idioma={idioma} />);
+    const trozo = html.slice(html.indexOf("<header"), html.indexOf("</header>"));
+    expect(trozo, `${idioma}: no se encontró la cabecera`).not.toBe("");
+    return trozo;
+  };
+  const veces = (h: string, t: string) => h.split(t).length - 1;
+
+  it("en español, al blog de verdad, en la cabecera y en el menú del móvil", () => {
+    expect(veces(cabecera("es"), `href="${RUTA_BLOG}">Blog</a>`)).toBe(2);
+  });
+
+  it("en los otros cuatro no hay un «Blog» que baje a la sección del blog automático", () => {
+    for (const idioma of IDIOMAS) {
+      if (idioma === "es") continue;
+      expect(veces(cabecera(idioma), 'href="#blog"'), idioma).toBe(0);
+    }
+  });
+
+  // El pie es ahora la única puerta a esa sección fuera del español, así que
+  // dejarlo caer la deja sin ningún enlace en cuatro idiomas.
+  it("la sección del blog automático sigue enlazada desde el pie, en los cinco", () => {
+    for (const idioma of IDIOMAS) {
+      const html = renderToStaticMarkup(<Landing idioma={idioma} />);
+      const pie = html.slice(html.indexOf("<footer"));
+      expect(veces(pie, `href="#blog">${textosLanding(idioma).pie.blogAutomatico}</a>`), idioma).toBe(1);
     }
   });
 });

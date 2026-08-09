@@ -5,6 +5,7 @@ import { conFormato, sinFormato } from "@/src/i18n/formato";
 import { textosLanding } from "@/src/i18n/landing";
 import { fichaLanding } from "./ficha";
 import { IDIOMAS, NOMBRE_IDIOMA, rutaDeIdioma, type Idioma } from "@/src/i18n/idiomas";
+import { RUTA_BLOG } from "@/src/blog-estrenala/indice";
 
 // Landing pública de estrenala.com. Viene del mockup 11-landing.html de la sesión
 // de diseño (Claude Design). Cambios deliberados al integrar, para no prometer
@@ -37,6 +38,18 @@ export function Landing({ idioma = "es" }: { idioma?: Idioma }) {
     </a>
   ));
 
+  // El menú decía «Blog» y bajaba a `#blog`: la sección que explica el blog
+  // automático que se le pone a la web del cliente, no el blog de Estrénala.
+  // La etiqueta prometía una cosa y llevaba a otra.
+  //
+  // Los artículos están solo en español, así que el enlace solo existe ahí. En
+  // los otros cuatro no se pone una etiqueta más larga («Automatic blog»): el
+  // menú del francés YA se sale del contenedor —medido con el TTF, 1107px de
+  // menú para 1080px de sitio— y alargarlo lo empeora. Se quita el elemento, y
+  // la sección se sigue alcanzando desde el pie, donde ya está enlazada.
+  // Cuando los artículos se traduzcan, esto vuelve a ser un enlace en los cinco.
+  const enlaceBlog = idioma === "es" ? RUTA_BLOG : null;
+
   return (
     <div className="landing" lang={idioma}>
       {/* La ficha que le decimos a todo el mundo que hay que tener. La landing
@@ -60,7 +73,7 @@ export function Landing({ idioma = "es" }: { idioma?: Idioma }) {
               <a href="#como">{t.nav.como}</a>
               <a href="#editar">{t.nav.editar}</a>
               <a href="#encontrar">{t.nav.encontrar}</a>
-              <a href="#blog">{t.nav.blog}</a>
+              {enlaceBlog && <a href={enlaceBlog}>{t.nav.blog}</a>}
               <a href="#faq">{t.nav.faq}</a>
             </div>
             <a className="btn btn-primario btn-sm" href={CTA}>{t.nav.cta}</a>
@@ -80,7 +93,7 @@ export function Landing({ idioma = "es" }: { idioma?: Idioma }) {
                 <a href="#como">{t.nav.como}</a>
                 <a href="#editar">{t.nav.editar}</a>
                 <a href="#encontrar">{t.nav.encontrar}</a>
-                <a href="#blog">{t.nav.blog}</a>
+                {enlaceBlog && <a href={enlaceBlog}>{t.nav.blog}</a>}
                 <a href="#equipo">{t.nav.equipos}</a>
                 <a href="#faq">{t.nav.faq}</a>
                 <a className="btn btn-primario btn-sm" href={CTA}>{t.nav.cta}</a>
