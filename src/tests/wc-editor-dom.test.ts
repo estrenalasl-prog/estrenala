@@ -40,6 +40,7 @@ interface Nodo {
   min: string;
   max: string;
   parentNode: Nodo | null;
+  readonly parentElement: Nodo | null;
   offsetHeight: number;
   readonly firstChild: Nodo | null;
   appendChild(h: Nodo): Nodo;
@@ -92,6 +93,7 @@ function crearNodo(tag: string): Nodo {
     _attrs: {},
     _oyentes: {},
     get firstChild() { return nodo.children[0] ?? null; },
+    get parentElement() { return nodo.parentNode; },
     appendChild(h: Nodo) { h.parentNode = nodo; nodo.children.push(h); return h; },
     insertBefore(h: Nodo, ref: Nodo | null) {
       h.parentNode = nodo;
@@ -134,6 +136,20 @@ function botonConTexto(raiz: Nodo, texto: string): Nodo {
   return b!;
 }
 
+/**
+ * El `display` que el navegador le da de serie a cada etiqueta. Es lo ÚNICO que
+ * el script le pregunta al navegador, así que aquí no se puede improvisar: la
+ * primera versión decía que un `<td>` es «block» y el test de las tablas falló
+ * por culpa del DOM falso, no del código. Un harness que miente convierte un
+ * test en verde en una promesa vacía.
+ */
+const DISPLAY_REAL: Record<string, string> = {
+  SPAN: "inline", A: "inline", STRONG: "inline", EM: "inline", B: "inline", I: "inline",
+  SMALL: "inline", "WC-T": "inline",
+  LI: "list-item",
+  TABLE: "table", TR: "table-row", TD: "table-cell", TH: "table-cell",
+};
+
 function montar() {
   const cuerpo = crearNodo("body");
   const guion = crearNodo("script");
@@ -156,10 +172,13 @@ function montar() {
 
   const ventana = {
     parent: { postMessage: (m: Mensaje) => { mensajes.push(m); } },
-    // Un <p> es un bloque y un <span> no: es lo único que el script le pregunta
-    // al navegador para decidir si los controles de bloque surten efecto.
+    // Qué es bloque y qué es en línea: es lo único que el script le pregunta al
+    // navegador para decidir si los controles surten efecto. La lista es la de
+    // verdad —una negrita y el `<wc-t>` que envuelve el texto suelto son en
+    // línea—, porque si aquí mintiera, el test pasaría sobre un caso que en el
+    // navegador se comporta al revés.
     getComputedStyle: (el: Nodo) => ({
-      display: el.tagName === "SPAN" || el.tagName === "A" ? "inline" : "block",
+      display: DISPLAY_REAL[el.tagName] ?? "block",
       color: "rgb(20, 21, 9)",
       marginTop: "12px",
       marginBottom: "4px",
@@ -246,16 +265,112 @@ describe("wc-editor.js · el menú se abre de verdad", () => {
   });
 });
 
-describe("wc-editor.js · dónde NO salen los controles de bloque", () => {
-  // Un `text-align` sobre un <span> en línea y un `margin-top` sobre él no hacen
-  // absolutamente nada: el botón se pulsaría, no pasaría nada y parecería roto.
-  // Es el mismo fallo que ya tuvo la alineación de imágenes.
-  it("un elemento en línea no los trae", () => {
-    const { menu } = abrirMenu("span");
-    const textos = todos(menu).map((n) => n.textContent);
-    expect(textos).not.toContain("Alineación del texto");
+/**
+ * Sebas, el 10/08, enseñando el menú abierto sobre un punto de lista: solo salía
+ * «Añadir una imagen».
+ *
+ * El motivo: un `<li>` que mezcla texto con un enlace no se edita entero — el
+ * texto suelto va envuelto en un `<wc-t>` para poder cambiarlo por su cuenta, y
+ * ese elemento es EN LÍNEA. Sobre él, alineación y márgenes no harían nada, así
+ * que se escondían... y en una lista con enlaces no había forma de llegar a
+ * ellos por ningún lado.
+ *
+ * Ahora los controles apuntan al BLOQUE que contiene lo que se ha pinchado.
+ */
+describe("wc-editor.js · sobre qué actúan los controles de bloque", () => {
+  /** Un hijo dentro de su bloque, como en la web real. */
+  function abrirDentroDe(padre: string, hijo: string) {
+    const ctx = montar();
+    const bloque = crearNodo(padre);
+    bloque.setAttribute("data-wc-id", "3");
+    const dentro = crearNodo(hijo);
+    dentro.setAttribute("data-wc-id", "9");
+    dentro.textContent = "un trozo de texto";
+    bloque.appendChild(dentro);
+    for (const f of ctx.oyentesDoc["click"] ?? []) f({ target: dentro });
+    return { ...ctx, bloque, dentro, menu: ctx.cuerpo.children[0] };
+  }
+
+  it("pinchando una negrita, el recuadro es el del párrafo", () => {
+    const m = abrirDentroDe("p", "strong");
+    expect(todos(m.menu).map((n) => n.textContent)).toContain("Diseño del párrafo");
+    botonConTexto(m.menu, "Con borde")._disparar("click");
+    // El id que viaja es el del PÁRRAFO (3), no el de la negrita (9).
+    expect(m.mensajes.at(-1)?.op).toMatchObject({ kind: "recuadro", value: "borde", nodeId: 3 });
+    expect(m.bloque.style._puestas.length).toBeGreaterThan(0);
+    expect(m.dentro.style._puestas).toEqual([]);
+  });
+
+  it("el trozo de texto de un punto de lista llega al punto entero", () => {
+    const m = abrirDentroDe("li", "span");
+    expect(todos(m.menu).map((n) => n.textContent)).toContain("Diseño del punto de la lista");
+    botonConTexto(m.menu, "Centro")._disparar("click");
+    expect(m.mensajes.at(-1)?.op).toMatchObject({ kind: "textAlign", nodeId: 3 });
+    expect(m.bloque.style.textAlign).toBe("center");
+  });
+
+  /**
+   * El caso EXACTO de la captura del 10/08: un `<li>` que mezcla texto con un
+   * enlace. El texto suelto lo envuelve `annotate.ts` en un `<wc-t
+   * data-wc-tn="3:0">`, que no lleva `data-wc-id` propio y es en línea. Eso es
+   * lo que se resolvía al pasar el ratón, y por eso el menú salía con «Añadir
+   * una imagen» y nada más.
+   */
+  it("el <wc-t> del texto suelto —el de la captura— también llega al punto", () => {
+    const ctx = montar();
+    const li = crearNodo("li");
+    li.setAttribute("data-wc-id", "3");
+    const suelto = crearNodo("wc-t");
+    suelto.setAttribute("data-wc-tn", "3:0"); // sin data-wc-id: no es un nodo del documento
+    suelto.textContent = "Hasta 100 ediciones diarias gratis";
+    li.appendChild(suelto);
+    for (const f of ctx.oyentesDoc["click"] ?? []) f({ target: suelto });
+
+    const menu = ctx.cuerpo.children[0];
+    expect(todos(menu).map((n) => n.textContent)).toContain("Diseño del punto de la lista");
+    botonConTexto(menu, "Barra lateral")._disparar("click");
+    expect(ctx.mensajes.at(-1)?.op).toMatchObject({ kind: "recuadro", value: "lateral", nodeId: 3 });
+  });
+
+  // Y el límite: subir sin freno acabaría poniéndole un recuadro al <section> de
+  // la maqueta. Solo se sube a bloques de TEXTO.
+  it("no se sube hasta la maqueta buscando un bloque", () => {
+    const m = abrirDentroDe("section", "span");
+    const textos = todos(m.menu).map((n) => n.textContent);
     expect(textos).not.toContain("Recuadro");
-    // Pero sigue siendo editable: el menú no se queda vacío.
+    // Pero el elemento sigue siendo editable: el menú no se queda vacío.
     expect(textos).toContain("Añadir una imagen");
+  });
+});
+
+describe("wc-editor.js · los bordes de a qué bloque se sube", () => {
+  function abrirEn(cadena: string[]) {
+    const ctx = montar();
+    const nodos = cadena.map((tag, i) => {
+      const n = crearNodo(tag);
+      n.setAttribute("data-wc-id", String(i + 1));
+      return n;
+    });
+    for (let i = 1; i < nodos.length; i++) nodos[i - 1].appendChild(nodos[i]);
+    const hoja = nodos[nodos.length - 1];
+    hoja.textContent = "texto";
+    for (const f of ctx.oyentesDoc["click"] ?? []) f({ target: hoja });
+    return { ...ctx, nodos, menu: ctx.cuerpo.children[0] };
+  }
+
+  // Las webs hechas con IA meten texto suelto en un <div> constantemente.
+  it("el texto suelto de un div llega al div que lo envuelve", () => {
+    const m = abrirEn(["section", "div", "span"]);
+    expect(todos(m.menu).map((n) => n.textContent)).toContain("Diseño del bloque");
+    botonConTexto(m.menu, "Fondo suave")._disparar("click");
+    // El div (2), no el <section> de la maqueta (1) ni el <span> (3).
+    expect(m.mensajes.at(-1)?.op).toMatchObject({ kind: "recuadro", nodeId: 2 });
+  });
+
+  // Una celda no acepta márgenes, y subir por encima de ella se saltaría la
+  // tabla entera para enmarcar lo que hubiera detrás.
+  it("dentro de una tabla no se sube a nada", () => {
+    const m = abrirEn(["div", "td", "span"]);
+    expect(todos(m.menu).map((n) => n.textContent)).not.toContain("Recuadro");
   });
 });

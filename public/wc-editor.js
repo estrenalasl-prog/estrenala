@@ -308,7 +308,7 @@
     b.style.cssText = "font-size:11px;font-weight:600;color:#141509;background:#C4F000;border-radius:999px;padding:2px 9px";
     var x = document.createElement("button"); x.type = "button"; x.textContent = "✕";
     x.style.cssText = "margin-left:auto;border:0;background:none;cursor:pointer;color:#9A9C8F;font-size:14px;line-height:1;width:22px;height:22px;border-radius:6px";
-    x.addEventListener("click", function () { pop.style.display = "none"; objetivo = null; });
+    x.addEventListener("click", function () { quitarResalte(); pop.style.display = "none"; objetivo = null; });
     h.appendChild(t); h.appendChild(b); h.appendChild(x);
     return h;
   }
@@ -366,6 +366,85 @@
   function esBloque(el) {
     try { return DISPLAY_EN_BLOQUE.indexOf(window.getComputedStyle(el).display) !== -1; }
     catch (_) { return false; }
+  }
+
+  /**
+   * Sobre QUÉ se aplican estos tres controles.
+   *
+   * No siempre es lo que hay debajo del ratón. Un párrafo o un punto de lista que
+   * mezcla texto con un enlace no se edita entero: el texto suelto va envuelto en
+   * un `<wc-t>` (ver annotate.ts) para poder cambiarlo por su cuenta, y ese
+   * elemento es EN LÍNEA. Al pasar por encima, lo que se resolvía era el `<wc-t>`,
+   * no el punto de la lista — así que los tres controles desaparecían y en una
+   * lista con enlaces no había forma de llegar a ellos. Lo vio Sebas el 10/08.
+   *
+   * Igual con una negrita: quien pincha en ella y busca «recuadro» quiere el
+   * recuadro del párrafo, no uno alrededor de dos palabras.
+   *
+   * Así que se sube al bloque de texto que lo contiene. La lista de etiquetas es
+   * cerrada A PROPÓSITO: subiendo sin más se acabaría en el <section> o el <main>
+   * de la maqueta, y un recuadro ahí no es lo que ha pedido nadie.
+   */
+  // `div` entra porque las webs hechas con IA meten texto suelto en uno
+  // constantemente. No se va lejos: se coge el PRIMERO que aparece subiendo, o
+  // sea el que envuelve ese texto de cerca, no la maqueta.
+  var BLOQUES_DE_TEXTO = ["p", "li", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "figcaption", "dd", "dt", "div"];
+  // La frase entera y no solo el nombre: así no hay que adivinar el artículo
+  // («del párrafo» pero «de la cita») a base de reglas que fallarían en cuanto
+  // se añada una etiqueta más.
+  var DE_QUE_BLOQUE = {
+    p: "del párrafo", li: "del punto de la lista", blockquote: "de la cita",
+    figcaption: "del pie de imagen", dd: "de la definición", dt: "de la definición",
+    h1: "del título", h2: "del título", h3: "del título",
+    h4: "del título", h5: "del título", h6: "del título",
+  };
+  function bloqueDe(el) {
+    var n = el;
+    // Un tope de saltos para no recorrer media página buscando: el bloque de un
+    // texto está siempre a un par de niveles.
+    for (var i = 0; n && n.nodeType === 1 && i < 6; i++, n = n.parentElement) {
+      // Dentro de una tabla se para. Una celda no acepta márgenes (es
+      // `table-cell`), y seguir subiendo saltaría la tabla ENTERA para acabar
+      // enmarcando lo que haya detrás, que no es lo que se ha pinchado.
+      if (esDeTabla(n)) return null;
+      if (!tieneId(n)) continue;
+      if (BLOQUES_DE_TEXTO.indexOf(n.tagName.toLowerCase()) === -1) continue;
+      // Y que de verdad se pinte como bloque: sobre algo en línea, ni el margen
+      // ni la alineación harían nada y el botón parecería roto.
+      if (esBloque(n)) return n;
+    }
+    return null;
+  }
+  function esDeTabla(el) {
+    try { return window.getComputedStyle(el).display.indexOf("table") === 0; }
+    catch (_) { return false; }
+  }
+  function nombreDeBloque(el) {
+    var t = el.tagName.toLowerCase();
+    return Object.prototype.hasOwnProperty.call(DE_QUE_BLOQUE, t) ? DE_QUE_BLOQUE[t] : "del bloque";
+  }
+
+  /**
+   * Enseña a qué bloque apuntan los controles mientras el ratón está sobre ellos.
+   *
+   * Sin esto, pinchar una negrita y ver «Recuadro» hace pensar que el recuadro va
+   * alrededor de la negrita. Va alrededor del párrafo, y eso hay que verlo ANTES
+   * de pulsar, no después. Se guarda el contorno anterior y se repone: el que
+   * pone `marcar` al pasar por encima sigue siendo suyo.
+   */
+  var bloqueResaltado = null, contornoPrevio = "";
+  function resaltarBloque(el) {
+    if (bloqueResaltado === el) return;
+    quitarResalte();
+    if (!el) return;
+    bloqueResaltado = el;
+    contornoPrevio = el.style.outline;
+    el.style.outline = "2px solid rgba(196,240,0,.95)";
+  }
+  function quitarResalte() {
+    if (!bloqueResaltado) return;
+    bloqueResaltado.style.outline = contornoPrevio;
+    bloqueResaltado = null; contornoPrevio = "";
   }
 
   // Las MISMAS tablas que el servidor (TEXT_ALIGN, RECUADROS y PROPIEDADES_RECUADRO
@@ -523,43 +602,53 @@
       pop.appendChild(etiqueta("Color")); pop.appendChild(color);
     }
 
-    // Alineación, aire y recuadro. Fuera del `if (hoja)` a propósito: también
-    // valen para un enlace que sea un bloque (un botón-enlace, por ejemplo). Lo
-    // que decide no es la etiqueta HTML sino si el navegador lo pinta como bloque
-    // —lo único que hace que estos tres controles surtan efecto.
-    if (!esImagen(el) && esBloque(el)) {
-      pop.appendChild(etiqueta("Alineación del texto"));
-      pop.appendChild(filaDeBotones([
-        botonAlinearTexto("Izq.", "izquierda", el),
-        botonAlinearTexto("Centro", "centro", el),
-        botonAlinearTexto("Der.", "derecha", el)
+    // Alineación, aire y recuadro. No van sobre lo que hay debajo del ratón sino
+    // sobre el BLOQUE que lo contiene (ver `bloqueDe`): quien pincha una negrita
+    // y busca «recuadro» quiere el del párrafo, y en un punto de lista con un
+    // enlace dentro lo que se resuelve es el trozo de texto, no el punto.
+    var bloque = esImagen(el) ? null : bloqueDe(el);
+    if (bloque) {
+      // Todo junto en una caja para poder resaltar el bloque mientras el ratón
+      // está sobre estos controles, y solo sobre estos.
+      var caja = document.createElement("div");
+      caja.style.cssText = "display:flex;flex-direction:column;gap:8px";
+      caja.addEventListener("mouseenter", function () { resaltarBloque(bloque); });
+      caja.addEventListener("mouseleave", quitarResalte);
+      pop.appendChild(caja);
+
+      caja.appendChild(etiqueta("Diseño " + nombreDeBloque(bloque)));
+      caja.appendChild(etiqueta("Alineación del texto"));
+      caja.appendChild(filaDeBotones([
+        botonAlinearTexto("Izq.", "izquierda", bloque),
+        botonAlinearTexto("Centro", "centro", bloque),
+        botonAlinearTexto("Der.", "derecha", bloque)
       ]));
 
       // Arriba y abajo por separado, y no un solo control como en las imágenes:
       // en un texto el hueco que se quiere abrir está casi siempre a un lado
       // —un título despegado del párrafo de arriba— y moviendo los dos a la vez
       // hay que aceptar un cambio que no se ha pedido para conseguir el que sí.
-      pop.appendChild(deslizador("Aire arriba", "px", 0, 120, margenActualLado(el, "marginTop"), function (n, final) {
-        el.style.marginTop = n + "px";
+      caja.appendChild(deslizador("Aire arriba", "px", 0, 120, margenActualLado(bloque, "marginTop"), function (n, final) {
+        bloque.style.marginTop = n + "px";
         // Recolocar solo al soltar. Subir el aire de arriba empuja el elemento
         // hacia abajo y el menú cuelga de él: si se recolocara en cada píxel del
         // arrastre, el menú iría persiguiendo al ratón mientras se arrastra.
-        if (final) { emitir({ page: PAGE, nodeId: idDe(el), kind: "margen", value: n, lado: "arriba" }); colocarPopSiAbierto(); }
+        if (final) { emitir({ page: PAGE, nodeId: idDe(bloque), kind: "margen", value: n, lado: "arriba" }); colocarPopSiAbierto(); }
       }));
-      pop.appendChild(deslizador("Aire abajo", "px", 0, 120, margenActualLado(el, "marginBottom"), function (n, final) {
-        el.style.marginBottom = n + "px";
-        if (final) { emitir({ page: PAGE, nodeId: idDe(el), kind: "margen", value: n, lado: "abajo" }); colocarPopSiAbierto(); }
+      caja.appendChild(deslizador("Aire abajo", "px", 0, 120, margenActualLado(bloque, "marginBottom"), function (n, final) {
+        bloque.style.marginBottom = n + "px";
+        if (final) { emitir({ page: PAGE, nodeId: idDe(bloque), kind: "margen", value: n, lado: "abajo" }); colocarPopSiAbierto(); }
       }));
 
       // Cuatro y en dos filas: los nombres («Fondo suave», «Barra lateral») no
       // caben en una sola de 280px, y abreviarlos hasta que quepan obliga a
       // probarlos uno por uno para saber cuál es cuál.
-      pop.appendChild(etiqueta("Recuadro"));
-      pop.appendChild(filaDeBotones([
-        botonRecuadro("Ninguno", "ninguno", el),
-        botonRecuadro("Fondo suave", "suave", el),
-        botonRecuadro("Con borde", "borde", el),
-        botonRecuadro("Barra lateral", "lateral", el)
+      caja.appendChild(etiqueta("Recuadro"));
+      caja.appendChild(filaDeBotones([
+        botonRecuadro("Ninguno", "ninguno", bloque),
+        botonRecuadro("Fondo suave", "suave", bloque),
+        botonRecuadro("Con borde", "borde", bloque),
+        botonRecuadro("Barra lateral", "lateral", bloque)
       ], 2));
     }
 
