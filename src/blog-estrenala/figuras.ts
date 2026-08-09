@@ -69,10 +69,68 @@ const QUE_FALTA = `
   </g>
 </svg>`;
 
+/**
+ * Cómo queda una zona DNS bien puesta, y el registro que sobra.
+ *
+ * La fila del AAAA va tachada y en rojo porque es la única que hay que BORRAR, y
+ * es la que nadie borra. El color no es decorativo: es la diferencia entre «esto
+ * se pone» y «esto se quita», y en una tabla de cuatro filas grises eso no se
+ * distingue.
+ */
+const ZONA_DNS = `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 268" width="720" height="268"
+     role="img" aria-labelledby="tit-dns desc-dns">
+  <title id="tit-dns">Cómo queda la zona DNS al conectar un dominio</title>
+  <desc id="desc-dns">Tabla de registros DNS. Un registro A con nombre arroba apuntando a la
+  IP del servidor, y un CNAME con nombre www apuntando al dominio. Debajo, un registro AAAA
+  tachado: es el que hay que borrar, porque apunta a la web anterior.</desc>
+
+  <text x="4" y="14" font-family="Space Grotesk, system-ui, sans-serif" font-size="13"
+        font-weight="700" fill="${TINTA}" letter-spacing="1.2">TU ZONA DNS, BIEN PUESTA</text>
+
+  <g font-family="Space Grotesk, system-ui, sans-serif" font-size="12" font-weight="700"
+     fill="${APAGADO}" letter-spacing="1">
+    <text x="20" y="48">TIPO</text><text x="120" y="48">NOMBRE</text><text x="250" y="48">VALOR</text>
+  </g>
+  <line x1="4" y1="60" x2="716" y2="60" stroke="${BORDE}" stroke-width="2"/>
+
+  <!-- Las dos que se ponen -->
+  <rect x="4" y="70" width="712" height="46" rx="9" fill="#F2FBCB" stroke="#DDF08A" stroke-width="1.5"/>
+  <g font-family="Space Grotesk, system-ui, sans-serif" font-size="15" fill="${TINTA}">
+    <text x="20" y="99" font-weight="700">A</text>
+    <text x="120" y="99">@</text>
+    <text x="250" y="99" font-family="ui-monospace, Consolas, monospace" font-size="14">la IP del servidor</text>
+  </g>
+  <rect x="4" y="124" width="712" height="46" rx="9" fill="#F2FBCB" stroke="#DDF08A" stroke-width="1.5"/>
+  <g font-family="Space Grotesk, system-ui, sans-serif" font-size="15" fill="${TINTA}">
+    <text x="20" y="153" font-weight="700">CNAME</text>
+    <text x="120" y="153">www</text>
+    <text x="250" y="153" font-family="ui-monospace, Consolas, monospace" font-size="14">tunegocio.com</text>
+  </g>
+
+  <!-- La que hay que quitar -->
+  <rect x="4" y="186" width="712" height="46" rx="9" fill="#FEF2F2" stroke="#FCA5A5" stroke-width="1.5"/>
+  <g font-family="Space Grotesk, system-ui, sans-serif" font-size="15" fill="#B91C1C">
+    <text x="20" y="215" font-weight="700">AAAA</text>
+    <text x="120" y="215">@</text>
+    <text x="250" y="215" font-family="ui-monospace, Consolas, monospace" font-size="14">2a02:… (la web anterior)</text>
+  </g>
+  <line x1="14" y1="209" x2="600" y2="209" stroke="#B91C1C" stroke-width="2"/>
+  <text x="620" y="215" font-family="Space Grotesk, system-ui, sans-serif" font-size="13"
+        font-weight="700" fill="#B91C1C">BÓRRALO</text>
+
+  <text x="4" y="256" font-family="Space Grotesk, system-ui, sans-serif" font-size="13" fill="${APAGADO}">
+    Mientras el AAAA siga ahí, media internet verá tu web vieja y no habrá ningún error.</text>
+</svg>`;
+
 export const FIGURAS: Record<string, { svg: string; pie: string }> = {
   "que-falta": {
     svg: QUE_FALTA,
     pie: "El archivo que te da la IA está completo. Lo que no viene dentro es todo lo demás.",
+  },
+  "zona-dns": {
+    svg: ZONA_DNS,
+    pie: "Dos registros que se ponen y uno que se quita. El que se quita es el que nadie quita.",
   },
 };
 

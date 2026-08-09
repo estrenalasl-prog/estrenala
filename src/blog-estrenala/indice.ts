@@ -1,15 +1,21 @@
 import type { Articulo } from "./tipos";
 import { publicarWebHechaConIa } from "./posts/publicar-web-hecha-con-ia";
+import { formularioContactoNoEnvia } from "./posts/formulario-contacto-no-envia";
+import { conectarDominioRegistrosDns } from "./posts/conectar-dominio-registros-dns";
 
 /**
  * Todos los artículos, del más nuevo al más viejo.
  *
  * Se ordena aquí y no en cada página para que el listado, el sitemap y los
- * «siguiente / anterior» no puedan discrepar entre ellos.
+ * «siguiente / anterior» no puedan discrepar entre ellos. Con la misma fecha
+ * manda el orden de esta lista, así que lo primero es lo que queremos que se lea
+ * primero.
  */
-export const ARTICULOS: Articulo[] = [publicarWebHechaConIa].sort((a, b) =>
-  b.fecha.localeCompare(a.fecha)
-);
+export const ARTICULOS: Articulo[] = [
+  publicarWebHechaConIa,
+  formularioContactoNoEnvia,
+  conectarDominioRegistrosDns,
+].sort((a, b) => b.fecha.localeCompare(a.fecha));
 
 export function articuloPorSlug(slug: string): Articulo | undefined {
   return ARTICULOS.find((a) => a.slug === slug);
