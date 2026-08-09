@@ -168,6 +168,40 @@ describe("las figuras", () => {
   it("el dibujo sale como bloque, no dentro de un párrafo", () => {
     const html = cuerpoAHtml("Un párrafo.\n\n{{figura:que-falta}}\n\nOtro párrafo.");
     expect(html).not.toMatch(/<p>\s*<figure/);
+    expect(html, "el marcador deja su <p> vacío detrás").not.toMatch(/<p>\s*<\/p>/);
+  });
+
+  /**
+   * ESTE es el test que faltaba el 09/08.
+   *
+   * El SVG llega ENTERO, byte a byte. Se metía en el Markdown antes de
+   * convertirlo, y como en Markdown una línea en blanco termina un bloque de
+   * HTML, marked cortaba el dibujo por la primera: el `</svg>` no aparecía nunca
+   * y la mitad derecha salía como texto suelto debajo de la caja.
+   *
+   * El test que había entonces —«que no salga dentro de un párrafo»— pasaba en
+   * verde con el dibujo roto: comprobaba el invariante equivocado.
+   */
+  it("el SVG llega entero al HTML, sin que Markdown lo parta", () => {
+    const html = cuerpoAHtml("Antes.\n\n{{figura:que-falta}}\n\nDespués.");
+    expect(html, "el SVG ha llegado troceado").toContain(FIGURAS["que-falta"].svg.trim());
+    expect((html.match(/<svg/g) ?? []).length).toBe((html.match(/<\/svg>/g) ?? []).length);
+  });
+
+  it("las figuras de los artículos publicados también llegan enteras", () => {
+    let comprobadas = 0;
+    for (const a of ARTICULOS) {
+      const html = cuerpoAHtml(a.cuerpo);
+      for (const m of a.cuerpo.matchAll(/\{\{figura:([a-z0-9-]+)\}\}/g)) {
+        const f = FIGURAS[m[1]];
+        expect(f, `${a.slug}: la figura «${m[1]}» no existe`).toBeTruthy();
+        expect(html, `${a.slug}: «${m[1]}» ha llegado troceada`).toContain(f.svg.trim());
+        comprobadas++;
+      }
+    }
+    // Sin esto, el día que ningún artículo lleve figura este test pasaría en
+    // verde sin mirar nada, y eso no es lo mismo que estar bien.
+    expect(comprobadas, "no se ha comprobado ninguna figura").toBeGreaterThan(0);
   });
 });
 

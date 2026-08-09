@@ -17,12 +17,22 @@ export function rutaPortada(slug: string): string {
  * recordarlo al escribir cada artículo.
  */
 export function cuerpoAHtml(md: string): string {
-  // Las figuras ANTES de pasar por Markdown: así el `<figure>` sale como bloque
-  // suelto. Metido después, marked ya habría envuelto el marcador en un <p> y el
-  // dibujo acabaría dentro de un párrafo, que no es válido y descoloca el aire.
-  return mdAHtml(insertarFiguras(md))
+  /*
+   * Las figuras se meten DESPUÉS de pasar por Markdown, nunca antes.
+   *
+   * Antes se hacía al revés y se rompió el 2026-08-09: en Markdown, una LÍNEA EN
+   * BLANCO termina un bloque de HTML. El SVG las tiene entre secciones para que
+   * se pueda leer, así que marked lo cortaba por la primera: el `</svg>` no
+   * llegaba nunca y la mitad del dibujo salía fuera, como texto suelto debajo.
+   *
+   * Metiéndolo después, el SVG no pasa por el conversor y da igual cómo esté
+   * escrito. `insertarFiguras` se come el `<p>` que marked le pone alrededor al
+   * marcador, así que el `<figure>` sigue saliendo como bloque suelto.
+   */
+  const html = mdAHtml(md)
     .replace(/<table>/g, '<div class="tabla-scroll"><table>')
     .replace(/<\/table>/g, "</table></div>");
+  return insertarFiguras(html);
 }
 
 /**

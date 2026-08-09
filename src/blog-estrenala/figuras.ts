@@ -76,11 +76,21 @@ export const FIGURAS: Record<string, { svg: string; pie: string }> = {
   },
 };
 
-/** `{{figura:nombre}}` → el dibujo con su pie. Un nombre que no existe se queda como está. */
-export function insertarFiguras(md: string): string {
-  return md.replace(/\{\{figura:([a-z0-9-]+)\}\}/g, (original, nombre: string) => {
+/**
+ * `{{figura:nombre}}` → el dibujo con su pie. Un nombre que no existe se queda
+ * tal cual, visible: es más fácil de ver que un hueco silencioso.
+ *
+ * Se llama sobre el HTML YA convertido, no sobre el Markdown (el porqué, en
+ * `render.ts`). Por eso se traga también el `<p>` que marked le pone alrededor
+ * al marcador cuando va solo en su línea: un `<figure>` dentro de un `<p>` no es
+ * HTML válido, y el navegador lo saca de ahí descolocando el aire de alrededor.
+ */
+export function insertarFiguras(html: string): string {
+  const dibujo = (nombre: string) => {
     const f = FIGURAS[nombre];
-    if (!f) return original;
-    return `<figure class="figura">${f.svg}<figcaption>${f.pie}</figcaption></figure>`;
-  });
+    return f ? `<figure class="figura">${f.svg}<figcaption>${f.pie}</figcaption></figure>` : null;
+  };
+  return html
+    .replace(/<p>\s*\{\{figura:([a-z0-9-]+)\}\}\s*<\/p>/g, (o, n: string) => dibujo(n) ?? o)
+    .replace(/\{\{figura:([a-z0-9-]+)\}\}/g, (o, n: string) => dibujo(n) ?? o);
 }
