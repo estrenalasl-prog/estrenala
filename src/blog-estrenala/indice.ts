@@ -2,6 +2,8 @@ import type { Articulo } from "./tipos";
 import { publicarWebHechaConIa } from "./posts/publicar-web-hecha-con-ia";
 import { formularioContactoNoEnvia } from "./posts/formulario-contacto-no-envia";
 import { conectarDominioRegistrosDns } from "./posts/conectar-dominio-registros-dns";
+import { webIaPosicionarGoogle } from "./posts/web-ia-posicionar-google";
+import { cambiarTextoSinTocarCodigo } from "./posts/cambiar-texto-sin-tocar-codigo";
 
 /**
  * Todos los artículos, del más nuevo al más viejo.
@@ -14,7 +16,9 @@ import { conectarDominioRegistrosDns } from "./posts/conectar-dominio-registros-
 export const ARTICULOS: Articulo[] = [
   publicarWebHechaConIa,
   formularioContactoNoEnvia,
+  cambiarTextoSinTocarCodigo,
   conectarDominioRegistrosDns,
+  webIaPosicionarGoogle,
 ].sort((a, b) => b.fecha.localeCompare(a.fecha));
 
 export function articuloPorSlug(slug: string): Articulo | undefined {
