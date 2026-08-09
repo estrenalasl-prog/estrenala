@@ -31,7 +31,10 @@ html:has(.landing){scroll-behavior:smooth}
 .landing p{margin:0;text-wrap:pretty}
 .landing a{color:var(--acento-texto);text-decoration:none}
 .landing a:hover{color:var(--texto)}
-.landing img{max-width:100%;display:block}
+/* height:auto va PEGADO a max-width:100%. Sin él, en cuanto la pantalla es más
+   estrecha que la imagen el ancho se recorta, el alto se queda clavado y la
+   imagen sale aplastada. Pasó con el logo del pie en el móvil (09/08). */
+.landing img{max-width:100%;height:auto;display:block}
 .landing ::selection{background:var(--acento);color:var(--texto)}
 .landing :focus-visible{outline:none;box-shadow:var(--anillo-foco)}
 .landing .contenedor{max-width:1120px;margin:0 auto;padding:0 20px}
@@ -223,7 +226,7 @@ html:has(.landing){scroll-behavior:smooth}
 .landing footer.pie{background:var(--texto);color:var(--tinta-txt2);border-top:1px solid var(--tinta-borde);padding:48px 0 40px}
 .landing .pie-int{display:flex;gap:32px;flex-wrap:wrap;align-items:flex-start}
 .landing .pie .marca{flex:1;min-width:220px}
-.landing .pie .logo-pie{height:28px;margin-bottom:14px}
+.landing .pie .logo-pie{height:28px;width:auto;margin-bottom:14px}
 .landing .pie .marca p{font-size:14px;color:var(--tinta-txt3);max-width:34ch}
 .landing .pie-cols{display:flex;gap:52px;flex-wrap:wrap}
 .landing .pie-col h4{font:600 12px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--tinta-txt3);margin-bottom:14px}
