@@ -59,8 +59,12 @@
 
 /* ── Lo que vas a leer ──────────────────────────────────────────────────── */
 
+/* El margen de ABAJO lo pone este recuadro entero, no el texto que va debajo:
+   `.prosa > *:first-child` tiene el margen superior a cero para que la prosa
+   empiece pegada a donde la pongan. Con 6px aquí, el recuadro quedaba comiéndose
+   el primer párrafo. */
 .landing .resumen {
-  margin: 34px 0 6px; padding: 22px 26px;
+  margin: 34px 0 40px; padding: 22px 26px;
   background: var(--acento-suave); border: 1px solid var(--acento-borde);
   border-radius: var(--radio-t);
 }

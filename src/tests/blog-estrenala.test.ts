@@ -117,6 +117,35 @@ describe("lo que vas a leer", () => {
   });
 });
 
+/**
+ * `.prosa > *:first-child` lleva el margen superior a cero, para que la prosa
+ * empiece justo donde la pongan. La consecuencia es que TODO lo que se coloque
+ * encima tiene que traerse su propio aire por debajo: si no, se queda pegado al
+ * primer párrafo. Pasó con el recuadro el 09/08, con 6 px.
+ *
+ * Es un acoplamiento real y nada evidente, y por eso está escrito aquí.
+ */
+describe("el aire alrededor del recuadro", () => {
+  const css = readFileSync(path.resolve(process.cwd(), "app/blog/blog.css"), "utf8");
+
+  it("la prosa empieza sin margen propio", () => {
+    expect(css).toMatch(/\.prosa\s*>\s*\*:first-child\s*\{[^}]*margin-top:\s*0/);
+  });
+
+  it("el recuadro se trae su propio margen de abajo", () => {
+    const regla = css.match(/\.landing \.resumen\s*\{([^}]*)\}/)?.[1] ?? "";
+    // Un cero en CSS va SIN unidad («34px 0 40px»), así que la unidad es
+    // opcional en los tres. Exigiéndola, este test fallaba siempre y por el
+    // motivo equivocado, que es peor que no tenerlo.
+    const m = regla.match(/margin:\s*([\d.]+)(?:px)?\s+([\d.]+)(?:px)?\s+([\d.]+)(?:px)?/);
+    expect(m, "no se encuentra el margen del recuadro").toBeTruthy();
+    expect(
+      Number(m![3]),
+      "poco aire debajo: la prosa no lo compensa porque tiene margin-top:0"
+    ).toBeGreaterThanOrEqual(24);
+  });
+});
+
 describe("los enlaces a una sección", () => {
   it("quita acentos y eñes, que al copiar el enlace salen ilegibles", () => {
     expect(anclaDe("La parte que de verdad se atraganta: el dominio"))
