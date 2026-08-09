@@ -14,7 +14,7 @@ export const pt: TextosLanding = {
     inicio: "Estrénala — início",
     como: "Como funciona",
     editar: "Editar",
-    encontrar: "Que te encontrem",
+    encontrar: "O que não vês",
     blog: "Blogue",
     equipos: "Equipas",
     faq: "Perguntas",
@@ -94,30 +94,31 @@ export const pt: TextosLanding = {
   },
 
   encontrar: {
-    eyebrow: "E fazemos que a encontrem",
-    titulo: "A IA fez-te um site bonito. Por dentro sai partido.",
+    eyebrow: "Confirma-o agora mesmo",
+    titulo: "O teu site tem um formulário de contacto. Não envia nada.",
     texto:
-      "Não se vê a olhar para ele, porque não são falhas de design. Notam-se meses depois, quando não apareces no Google e já não sabes porquê. Nós olhamos por dentro no mesmo dia em que o publicas.",
+      "Abre-o, preenche-o tu e carrega em enviar. Não te vai chegar nada. Acontece em quase todos os sites feitos com IA, e o visitante nunca to vai dizer: escreve, carrega, vê a página recarregar e vai-se embora convencido de que te escreveu.",
+    enlace: "Porque acontece e como confirmá-lo em 30 segundos",
 
-    f1Titulo: "Damos-lhe nota e dizemos-te o que te custa",
+    f1Titulo: "As mensagens começam a chegar-te",
     f1Texto:
-      "Dezassete verificações em todas as tuas páginas, sem linguagem técnica. «Sem descrição» aqui lê-se: «é o texto cinzento por baixo do título no Google, o teu anúncio grátis».",
-    f2Titulo: "A ficha que diz ao Google e ao ChatGPT o que és",
+      "Sem tocar no HTML: o formulário que a IA já escreveu começa a funcionar e as mensagens aparecem-te no painel. Ligas quando quiseres, porque guardar dados dos teus clientes decides tu e não nós.",
+    f2Titulo: "E já agora damos nota ao resto",
     f2Texto:
-      "Um negócio, com o teu telefone, o teu logótipo e as tuas redes. Quase nenhum site feito com IA a traz, e é o que faz que te citem quando alguém pergunta pela tua área.",
-    f3Titulo: "E os formulários que não enviavam a lado nenhum",
+      "Dezassete verificações em todas as tuas páginas, sem linguagem técnica. «Sem descrição» aqui lê-se: «é o texto cinzento por baixo do título no Google, o teu anúncio grátis».",
+    f3Titulo: "A ficha que diz ao Google e ao ChatGPT o que és",
     f3Texto:
-      "O clássico: alguém escreve-te, carrega em «enviar» e não acontece nada. Nem o avisa, nem te chega. Mostramos-te, e se quiseres as mensagens começam a chegar-te.",
+      "Um negócio, com o teu telefone, o teu logótipo e as tuas redes. Quase nenhum site feito com IA a traz, e é o que faz que te citem quando alguém pergunta pela tua área.",
 
     banda:
       "O que se pode corrigir **sem que o teu site fique diferente, corrigimos nós** ao servi-lo. Não tens de voltar a carregar nada, e no dia em que saíres o teu site sai tal como o carregaste.",
 
     panelAria:
-      "Exame de um site acabado de carregar: nota 62 em 100, com três coisas encontradas — sem preparação para telemóvel, sem ficha para motores de busca e imagens sem descrição.",
+      "Exame de um site acabado de carregar: nota 62 em 100, com três coisas encontradas — o formulário de contacto não envia a lado nenhum, sem ficha para motores de busca e imagens sem descrição.",
     notaPie: "em 100",
-    veredicto: "Faltam-lhe coisas importantes para o Google o perceber.",
-    fallo1: "Não está preparada para o telemóvel",
-    fallo1Pie: "em 5 páginas",
+    veredicto: "Faltam-lhe coisas importantes, e uma delas está a custar-te clientes.",
+    fallo1: "O formulário não envia a lado nenhum",
+    fallo1Pie: "em contacto.html",
     fallo1Badge: "Grave",
     fallo2: "Sem ficha para motores de busca",
     fallo2Pie: "na página inicial",

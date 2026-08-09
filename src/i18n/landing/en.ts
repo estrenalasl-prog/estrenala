@@ -15,7 +15,7 @@ export const en: TextosLanding = {
     inicio: "Estrénala — home",
     como: "How it works",
     editar: "Editing",
-    encontrar: "Get found",
+    encontrar: "What you can't see",
     blog: "Blog",
     equipos: "Teams",
     faq: "FAQ",
@@ -95,30 +95,31 @@ export const en: TextosLanding = {
   },
 
   encontrar: {
-    eyebrow: "And we get it found",
-    titulo: "The AI built you a good-looking site. Inside, it comes out broken.",
+    eyebrow: "Check it right now",
+    titulo: "Your site has a contact form. It doesn't send anything.",
     texto:
-      "You can't see it by looking at it, because these aren't design flaws. You notice them months later, when you're nowhere on Google and you no longer know why. We look inside the same day you upload it.",
+      "Open it, fill it in yourself and hit send. Nothing will reach you. It happens to almost every AI-built site, and the visitor will never tell you: they type, they click, they watch the page reload and they leave convinced they've written to you.",
+    enlace: "Why it happens, and how to check it in 30 seconds",
 
-    f1Titulo: "We score it, and tell you what it's costing you",
+    f1Titulo: "The messages start reaching you",
     f1Texto:
-      "Seventeen checks across every one of your pages, no jargon. «No description» reads here as: «it's the grey text under the title in Google, your free ad».",
-    f2Titulo: "The profile that tells Google and ChatGPT what you are",
+      "Without touching the HTML: the form the AI already wrote starts working, and the messages show up in your panel. You switch it on when you want, because storing your customers' data is your call and not ours.",
+    f2Titulo: "And we score the rest while we're at it",
     f2Texto:
-      "A business, with your phone, your logo and your social profiles. Almost no AI-built site has one, and it's what gets you cited when somebody asks about your line of work.",
-    f3Titulo: "And the forms that went nowhere",
+      "Seventeen checks across every one of your pages, no jargon. «No description» reads here as: «it's the grey text under the title in Google, your free ad».",
+    f3Titulo: "The profile that tells Google and ChatGPT what you are",
     f3Texto:
-      "The classic one: somebody writes to you, hits «send» and nothing happens. No warning for them, nothing for you. We show you, and if you want, the messages start arriving.",
+      "A business, with your phone, your logo and your social profiles. Almost no AI-built site has one, and it's what gets you cited when somebody asks about your line of work.",
 
     banda:
       "Whatever can be fixed **without your site looking any different, we fix ourselves** as we serve it. You never re-upload anything, and the day you leave, your site comes out exactly as you uploaded it.",
 
     panelAria:
-      "Exam of a freshly uploaded site: 62 out of 100, with three things found — not set up for mobile, no profile for search engines, and images with no description.",
+      "Exam of a freshly uploaded site: 62 out of 100, with three things found — the contact form sends nowhere, no profile for search engines, and images with no description.",
     notaPie: "out of 100",
-    veredicto: "It's missing important things Google needs to understand it.",
-    fallo1: "Not set up for mobile",
-    fallo1Pie: "on 5 pages",
+    veredicto: "It's missing important things, and one of them is costing you customers.",
+    fallo1: "The form sends nowhere",
+    fallo1Pie: "on contact.html",
     fallo1Badge: "Serious",
     fallo2: "No profile for search engines",
     fallo2Pie: "on the home page",

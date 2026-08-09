@@ -132,6 +132,22 @@ describe("el aire alrededor del recuadro", () => {
     expect(css).toMatch(/\.prosa\s*>\s*\*:first-child\s*\{[^}]*margin-top:\s*0/);
   });
 
+  /**
+   * Las preguntas se separan con el `gap` de la rejilla, NUNCA con un margen en
+   * el `<dt>` anulado por `:first-of-type`. Cada pregunta y su respuesta van en
+   * su propio `<div>`, así que ahí dentro todo `<dt>` es el primero de su tipo y
+   * la excepción se los comía a todos: salían pegados. Pasó el 09/08.
+   */
+  it("las preguntas se separan con gap, no con :first-of-type", () => {
+    const regla = css.match(/\.landing \.faq-art dl\s*\{([^}]*)\}/)?.[1] ?? "";
+    const gap = Number(regla.match(/gap:\s*([\d.]+)px/)?.[1] ?? 0);
+    expect(gap, "sin gap las preguntas se pegan a la respuesta de arriba").toBeGreaterThanOrEqual(18);
+    expect(
+      css,
+      ":first-of-type no vale aquí: cada pareja va envuelta en su propio div"
+    ).not.toMatch(/\.faq-art [^{]*:first-of-type/);
+  });
+
   it("el recuadro se trae su propio margen de abajo", () => {
     const regla = css.match(/\.landing \.resumen\s*\{([^}]*)\}/)?.[1] ?? "";
     // Un cero en CSS va SIN unidad («34px 0 40px»), así que la unidad es

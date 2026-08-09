@@ -15,7 +15,7 @@ export const fr: TextosLanding = {
     inicio: "Estrénala — accueil",
     como: "Comment ça marche",
     editar: "Modifier",
-    encontrar: "Être trouvé",
+    encontrar: "Ce que tu ne vois pas",
     blog: "Blog",
     equipos: "Équipes",
     faq: "Questions",
@@ -95,30 +95,31 @@ export const fr: TextosLanding = {
   },
 
   encontrar: {
-    eyebrow: "Et on fait qu'on le trouve",
-    titulo: "L'IA t'a fait un joli site. À l'intérieur, il sort cassé.",
+    eyebrow: "Vérifie-le tout de suite",
+    titulo: "Ton site a un formulaire de contact. Il n'envoie rien.",
     texto:
-      "Ça ne se voit pas en le regardant, parce que ce ne sont pas des défauts de design. Ça se remarque des mois plus tard, quand tu n'apparais nulle part sur Google et que tu ne sais plus pourquoi. Nous, on regarde dedans le jour même où tu le mets en ligne.",
+      "Ouvre-le, remplis-le toi-même et appuie sur envoyer. Rien ne t'arrivera. Ça arrive à presque tous les sites faits avec l'IA, et le visiteur ne te le dira jamais : il écrit, il clique, il voit la page se recharger et il repart convaincu de t'avoir écrit.",
+    enlace: "Pourquoi ça arrive, et comment le vérifier en 30 secondes",
 
-    f1Titulo: "On lui met une note et on te dit ce que ça te coûte",
+    f1Titulo: "Les messages commencent à te parvenir",
     f1Texto:
-      "Dix-sept vérifications sur toutes tes pages, sans jargon. « Aucune description » se lit ici : « c'est le texte gris sous le titre dans Google, ta publicité gratuite ».",
-    f2Titulo: "La fiche qui dit à Google et à ChatGPT ce que tu es",
+      "Sans toucher au HTML : le formulaire que l'IA a déjà écrit se met à fonctionner et les messages apparaissent dans ton panneau. Tu l'actives quand tu veux, parce que conserver les données de tes clients, c'est toi qui le décides et pas nous.",
+    f2Titulo: "Et tant qu'on y est, on note le reste",
     f2Texto:
-      "Une entreprise, avec ton téléphone, ton logo et tes réseaux. Presque aucun site fait avec l'IA n'en a, et c'est ce qui fait qu'on te cite quand quelqu'un pose une question sur ton métier.",
-    f3Titulo: "Et les formulaires qui n'allaient nulle part",
+      "Dix-sept vérifications sur toutes tes pages, sans jargon. « Aucune description » se lit ici : « c'est le texte gris sous le titre dans Google, ta publicité gratuite ».",
+    f3Titulo: "La fiche qui dit à Google et à ChatGPT ce que tu es",
     f3Texto:
-      "Le grand classique : quelqu'un t'écrit, appuie sur « envoyer » et rien ne se passe. Ni avertissement pour lui, ni message pour toi. On te le montre et, si tu veux, les messages commencent à arriver.",
+      "Une entreprise, avec ton téléphone, ton logo et tes réseaux. Presque aucun site fait avec l'IA n'en a, et c'est ce qui fait qu'on te cite quand quelqu'un pose une question sur ton métier.",
 
     banda:
       "Tout ce qui peut être corrigé **sans que ton site ait l'air différent, on le corrige nous-mêmes** au moment de le servir. Tu n'as jamais rien à renvoyer, et le jour où tu pars, ton site ressort exactement comme tu l'avais envoyé.",
 
     panelAria:
-      "Examen d'un site tout juste mis en ligne : note de 62 sur 100, avec trois choses trouvées — pas prêt pour le mobile, aucune fiche pour les moteurs de recherche et des images sans description.",
+      "Examen d'un site tout juste mis en ligne : note de 62 sur 100, avec trois choses trouvées — le formulaire de contact n'envoie nulle part, aucune fiche pour les moteurs de recherche et des images sans description.",
     notaPie: "sur 100",
-    veredicto: "Il lui manque des choses importantes pour que Google le comprenne.",
-    fallo1: "Pas prête pour le mobile",
-    fallo1Pie: "sur 5 pages",
+    veredicto: "Il lui manque des choses importantes, et l'une d'elles te coûte des clients.",
+    fallo1: "Le formulaire n'envoie nulle part",
+    fallo1Pie: "sur contact.html",
     fallo1Badge: "Grave",
     fallo2: "Aucune fiche pour les moteurs de recherche",
     fallo2Pie: "sur la page d'accueil",

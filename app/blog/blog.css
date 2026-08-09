@@ -131,10 +131,15 @@
    así no hay ningún <li> con dos hijos que se pueda partir en dos columnas. */
 .landing .faq-art { border-top: 1px solid var(--borde); padding: 40px 0 0; margin-top: 20px; }
 .landing .faq-art h2 { font: 700 clamp(21px, 2.8vw, 27px)/1.2 var(--sans); letter-spacing: -.025em; margin-bottom: 22px; }
-.landing .faq-art dl { margin: 0; }
-.landing .faq-art dt { font: 600 17px/1.4 var(--sans); color: var(--texto); margin-top: 22px; }
-.landing .faq-art dt:first-of-type { margin-top: 0; }
-.landing .faq-art dd { margin: 7px 0 0; color: var(--texto-2); font-size: 16.5px; line-height: 1.68; }
+/* El aire ENTRE parejas lo pone el `gap` de la rejilla, no un margen en el <dt>.
+   Antes iba con `dt { margin-top }` + `dt:first-of-type { margin-top: 0 }`, y
+   como cada pregunta y su respuesta van envueltas en su propio <div>, dentro de
+   cada uno el <dt> ES el primero de su tipo: TODOS se quedaban sin margen y las
+   preguntas salían pegadas a la respuesta de arriba. La regla daba por hecha una
+   lista plana y el marcado está anidado. */
+.landing .faq-art dl { margin: 0; display: grid; gap: 26px; }
+.landing .faq-art dt { font: 600 17px/1.4 var(--sans); color: var(--texto); margin: 0; }
+.landing .faq-art dd { margin: 8px 0 0; color: var(--texto-2); font-size: 16.5px; line-height: 1.68; }
 
 /* ── Cierre ─────────────────────────────────────────────────────────────── */
 

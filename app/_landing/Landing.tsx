@@ -230,25 +230,37 @@ export function Landing({ idioma = "es" }: { idioma?: Idioma }) {
               <span className="eyebrow">{t.encontrar.eyebrow}</span>
               <h2>{t.encontrar.titulo}</h2>
               <p>{t.encontrar.texto}</p>
+              {/* El artículo entero, solo en la portada en español: está escrito
+                  solo en español y mandar a un italiano a leerlo es peor que no
+                  ofrecérselo. Y no es relleno — es lo que enlaza la portada con
+                  el blog, que sin esto sería una página huérfana. */}
+              {idioma === "es" && (
+                <a className="enlace-articulo" href="/blog/formulario-contacto-web-ia-no-envia">
+                  {t.encontrar.enlace} →
+                </a>
+              )}
             </div>
             <div className="enc-grid">
               <div className="enc-features">
+                {/* El sobre va PRIMERO, y el examen después: el formulario roto
+                    se puede comprobar en treinta segundos y le duele a quien lo
+                    comprueba. La nota de SEO es un argumento; esto es un susto. */}
                 <div className="enc-feature reveal">
-                  <div className="ic">◐</div>
+                  <div className="ic">✉</div>
                   <div>
                     <h3>{t.encontrar.f1Titulo}</h3>
                     <p>{t.encontrar.f1Texto}</p>
                   </div>
                 </div>
                 <div className="enc-feature reveal d1">
-                  <div className="ic">◈</div>
+                  <div className="ic">◐</div>
                   <div>
                     <h3>{t.encontrar.f2Titulo}</h3>
                     <p>{t.encontrar.f2Texto}</p>
                   </div>
                 </div>
                 <div className="enc-feature reveal d2">
-                  <div className="ic">✉</div>
+                  <div className="ic">◈</div>
                   <div>
                     <h3>{t.encontrar.f3Titulo}</h3>
                     <p>{t.encontrar.f3Texto}</p>

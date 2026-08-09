@@ -15,7 +15,7 @@ export const es = {
     inicio: "Estrénala — inicio",
     como: "Cómo funciona",
     editar: "Editar",
-    encontrar: "Que la encuentren",
+    encontrar: "Lo que no ves",
     blog: "Blog",
     equipos: "Equipos",
     faq: "Preguntas",
@@ -98,30 +98,32 @@ export const es = {
   // puede copiar: para arreglarlo hay que tener el HTML delante al servirlo, y
   // quien solo guarda archivos se ha comprometido a devolverlos tal cual.
   encontrar: {
-    eyebrow: "Y hacemos que la encuentren",
-    titulo: "La IA te hizo una web bonita. Por dentro sale rota.",
+    eyebrow: "Compruébalo ahora mismo",
+    titulo: "Tu web tiene un formulario de contacto. No envía nada.",
     texto:
-      "No lo ves mirándola, porque no son fallos de diseño. Se notan meses después, cuando no apareces en Google y ya no sabes por qué. Nosotros la miramos por dentro el mismo día que la subes.",
+      "Ábrela, rellénalo tú y dale a enviar. No te va a llegar nada. Le pasa a casi todas las webs hechas con IA, y el visitante nunca te lo va a decir: escribe, pulsa, ve que la página se recarga y se va convencido de que te ha escrito.",
+    /** Enlace al artículo. La invitación a comprobarlo es media venta. */
+    enlace: "Por qué pasa y cómo comprobarlo en 30 segundos",
 
-    f1Titulo: "Le ponemos nota y te decimos qué te cuesta",
+    f1Titulo: "Los mensajes empiezan a llegarte",
     f1Texto:
-      "Diecisiete comprobaciones sobre todas tus páginas, sin jerga. «Sin descripción» aquí se lee: «es el texto gris de debajo del título en Google, tu anuncio gratis».",
-    f2Titulo: "La ficha que le dice a Google y a ChatGPT qué eres",
+      "Sin tocar el HTML: el formulario que ya escribió la IA se pone a funcionar y los mensajes te salen en el panel. Lo enciendes tú, cuando quieras, porque guardar datos de tus clientes lo decides tú y no nosotros.",
+    f2Titulo: "Y de paso le ponemos nota a lo demás",
     f2Texto:
-      "Un negocio, con tu teléfono, tu logo y tus redes. Casi ninguna web hecha con IA la trae, y es lo que hace que te citen cuando alguien pregunta por lo tuyo.",
-    f3Titulo: "Y los formularios que no enviaban a ninguna parte",
+      "Diecisiete comprobaciones sobre todas tus páginas, sin jerga. «Sin descripción» aquí se lee: «es el texto gris de debajo del título en Google, tu anuncio gratis».",
+    f3Titulo: "La ficha que le dice a Google y a ChatGPT qué eres",
     f3Texto:
-      "El clásico: alguien te escribe, pulsa «enviar» y no pasa nada. Ni le avisa, ni te llega. Te lo enseñamos y, si quieres, los mensajes empiezan a llegarte.",
+      "Un negocio, con tu teléfono, tu logo y tus redes. Casi ninguna web hecha con IA la trae, y es lo que hace que te citen cuando alguien pregunta por lo tuyo.",
 
     banda:
       "Lo que se puede arreglar **sin que tu web se vea distinta, lo arreglamos solos** al servirla. No tienes que volver a subir nada, y el día que te vayas tu web sale tal y como la subiste.",
 
     panelAria:
-      "Examen de una web recién subida: nota 62 sobre 100, con tres cosas encontradas — sin preparar para el móvil, sin ficha para buscadores e imágenes sin describir.",
+      "Examen de una web recién subida: nota 62 sobre 100, con tres cosas encontradas — el formulario de contacto no envía a ninguna parte, no hay ficha para buscadores e imágenes sin describir.",
     notaPie: "de 100",
-    veredicto: "Le faltan cosas importantes para que Google la entienda.",
-    fallo1: "No está preparada para el móvil",
-    fallo1Pie: "en 5 páginas",
+    veredicto: "Le faltan cosas importantes, y una la está costando clientes.",
+    fallo1: "El formulario no envía a ninguna parte",
+    fallo1Pie: "en contacto.html",
     fallo1Badge: "Grave",
     fallo2: "Sin ficha para buscadores",
     fallo2Pie: "en la portada",

@@ -15,7 +15,7 @@ export const it: TextosLanding = {
     inicio: "Estrénala — home",
     como: "Come funziona",
     editar: "Modificare",
-    encontrar: "Farti trovare",
+    encontrar: "Quello che non vedi",
     blog: "Blog",
     equipos: "Team",
     faq: "Domande",
@@ -95,30 +95,31 @@ export const it: TextosLanding = {
   },
 
   encontrar: {
-    eyebrow: "E facciamo che lo trovino",
-    titulo: "L'IA ti ha fatto un sito bello. Dentro esce rotto.",
+    eyebrow: "Verificalo adesso",
+    titulo: "Il tuo sito ha un modulo di contatto. Non invia niente.",
     texto:
-      "Non si vede guardandolo, perché non sono difetti di design. Si notano mesi dopo, quando non compari su Google e non sai più perché. Noi guardiamo dentro lo stesso giorno in cui lo carichi.",
+      "Aprilo, compilalo tu e premi invia. Non ti arriverà niente. Succede a quasi tutti i siti fatti con l'IA, e il visitatore non te lo dirà mai: scrive, preme, vede la pagina ricaricarsi e se ne va convinto di averti scritto.",
+    enlace: "Perché succede e come verificarlo in 30 secondi",
 
-    f1Titulo: "Gli diamo un voto e ti diciamo quanto ti costa",
+    f1Titulo: "I messaggi iniziano ad arrivarti",
     f1Texto:
-      "Diciassette controlli su tutte le tue pagine, senza gergo. «Senza descrizione» qui si legge: «è il testo grigio sotto il titolo su Google, la tua pubblicità gratis».",
-    f2Titulo: "La scheda che dice a Google e a ChatGPT cosa sei",
+      "Senza toccare l'HTML: il modulo che l'IA ha già scritto inizia a funzionare e i messaggi ti compaiono nel pannello. Lo accendi tu, quando vuoi, perché conservare i dati dei tuoi clienti lo decidi tu e non noi.",
+    f2Titulo: "E già che ci siamo diamo un voto al resto",
     f2Texto:
-      "Un'attività, con il tuo telefono, il tuo logo e i tuoi social. Quasi nessun sito fatto con l'IA ce l'ha, ed è quello che ti fa citare quando qualcuno chiede del tuo settore.",
-    f3Titulo: "E i moduli che non arrivavano da nessuna parte",
+      "Diciassette controlli su tutte le tue pagine, senza gergo. «Senza descrizione» qui si legge: «è il testo grigio sotto il titolo su Google, la tua pubblicità gratis».",
+    f3Titulo: "La scheda che dice a Google e a ChatGPT cosa sei",
     f3Texto:
-      "Il classico: qualcuno ti scrive, preme «invia» e non succede niente. Né lo avvisa, né ti arriva. Te lo mostriamo e, se vuoi, i messaggi iniziano ad arrivarti.",
+      "Un'attività, con il tuo telefono, il tuo logo e i tuoi social. Quasi nessun sito fatto con l'IA ce l'ha, ed è quello che ti fa citare quando qualcuno chiede del tuo settore.",
 
     banda:
       "Quello che si può sistemare **senza che il tuo sito si veda diverso, lo sistemiamo noi** mentre lo serviamo. Non devi ricaricare niente, e il giorno che te ne vai il tuo sito esce esattamente come l'hai caricato.",
 
     panelAria:
-      "Esame di un sito appena caricato: voto 62 su 100, con tre cose trovate — non pronto per il cellulare, senza scheda per i motori di ricerca e immagini senza descrizione.",
+      "Esame di un sito appena caricato: voto 62 su 100, con tre cose trovate — il modulo di contatto non invia da nessuna parte, senza scheda per i motori di ricerca e immagini senza descrizione.",
     notaPie: "su 100",
-    veredicto: "Gli mancano cose importanti perché Google lo capisca.",
-    fallo1: "Non è pronta per il cellulare",
-    fallo1Pie: "in 5 pagine",
+    veredicto: "Gli mancano cose importanti, e una ti sta costando clienti.",
+    fallo1: "Il modulo non invia da nessuna parte",
+    fallo1Pie: "in contatto.html",
     fallo1Badge: "Grave",
     fallo2: "Senza scheda per i motori di ricerca",
     fallo2Pie: "nella home page",
