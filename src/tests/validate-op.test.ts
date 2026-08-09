@@ -148,3 +148,47 @@ describe("isValidOp · tamano y margen (numeros)", () => {
     }
   });
 });
+
+describe("isValidOp · las herramientas de bloque", () => {
+  const base = { page: "index.html", nodeId: 0 };
+
+  it("la alineación del texto admite las tres, y solo las tres", () => {
+    for (const value of ["izquierda", "centro", "derecha"] as const) {
+      expect(isValidOp({ ...base, kind: "textAlign", value })).toBe(true);
+    }
+    // CSS crudo NO: el cliente manda la intención y el servidor decide el CSS.
+    // Si aquí entrara una cadena libre, entraría en el atributo `style` de la
+    // página publicada de un cliente.
+    for (const value of ["left", "center", "justify", "red; color: red", ""]) {
+      expect(isValidOp({ ...base, kind: "textAlign", value } as never), value).toBe(false);
+    }
+  });
+
+  it("el recuadro admite los cuatro nombres, y solo esos", () => {
+    for (const value of ["ninguno", "suave", "borde", "lateral"] as const) {
+      expect(isValidOp({ ...base, kind: "recuadro", value })).toBe(true);
+    }
+    for (const value of ["azul", "", "padding: 40px"]) {
+      expect(isValidOp({ ...base, kind: "recuadro", value } as never), value).toBe(false);
+    }
+  });
+
+  // `Object.hasOwn` y no una búsqueda directa: con `RECUADROS["constructor"]`
+  // saldría la función Object —que es «truthy»— y un recuadro llamado así
+  // pasaría la validación. Es el mismo fallo que ya mordió en contentTypeFor.
+  it("«constructor» y «toString» no se cuelan como recuadros", () => {
+    for (const value of ["constructor", "toString", "__proto__"]) {
+      expect(isValidOp({ ...base, kind: "recuadro", value } as never), value).toBe(false);
+    }
+  });
+
+  it("el lado del margen admite los tres, o ninguno", () => {
+    expect(isValidOp({ ...base, kind: "margen", value: 20 })).toBe(true);
+    for (const lado of ["ambos", "arriba", "abajo"] as const) {
+      expect(isValidOp({ ...base, kind: "margen", value: 20, lado })).toBe(true);
+    }
+    expect(isValidOp({ ...base, kind: "margen", value: 20, lado: "izquierda" } as never)).toBe(false);
+    // Y el rango sigue mandando aunque el lado sea bueno.
+    expect(isValidOp({ ...base, kind: "margen", value: 500, lado: "arriba" })).toBe(false);
+  });
+});

@@ -402,3 +402,137 @@ describe("applyEdits · margen de la imagen", () => {
     expect([...r.matchAll(/width:/g)]).toHaveLength(1);
   });
 });
+
+// Lo que Sebas pedía desde el principio: hasta ahora el editor solo dejaba
+// cambiar el CONTENIDO, y para separar un título de su párrafo o meterlo en un
+// recuadro había que bajarse el ZIP y tocar CSS.
+describe("applyEdits · alineación del TEXTO", () => {
+  const ta = (nodeId: number, value: "izquierda" | "centro" | "derecha") =>
+    ({ nodeId, kind: "textAlign" as const, value });
+
+  it("centrar escribe text-align, no márgenes", () => {
+    const r = applyEdits(`<p>Hola</p>`, [ta(0, "centro")]);
+    expect(r).toContain("text-align: center");
+    expect(r).not.toContain("margin-left");
+  });
+
+  // EL punto por el que `textAlign` es una op distinta de `align`: alinear una
+  // imagen pone `display:block`, y hacer eso con un título lo saca de la fila
+  // donde estaba (una cabecera con logo y menú, por ejemplo).
+  it("no pone display:block, que sacaría el elemento de su fila", () => {
+    expect(applyEdits(`<h1>Hola</h1>`, [ta(0, "derecha")])).not.toContain("display: block");
+  });
+
+  it("los tres valores se traducen al CSS que toca", () => {
+    expect(applyEdits(`<p>x</p>`, [ta(0, "izquierda")])).toContain("text-align: left");
+    expect(applyEdits(`<p>x</p>`, [ta(0, "centro")])).toContain("text-align: center");
+    expect(applyEdits(`<p>x</p>`, [ta(0, "derecha")])).toContain("text-align: right");
+  });
+
+  // Una imagen alineada y un párrafo con el texto centrado son cosas distintas
+  // que pueden convivir en el mismo nodo sin pelearse por una propiedad.
+  it("convive con la alineación de bloque sin pisarla", () => {
+    const r = applyEdits(`<div>x</div>`, [
+      { nodeId: 0, kind: "align", value: "centro" },
+      ta(0, "derecha"),
+    ]);
+    expect([...r.matchAll(/style=/g)]).toHaveLength(1);
+    expect(r).toContain("margin-left: auto");
+    expect(r).toContain("text-align: right");
+  });
+});
+
+describe("applyEdits · aire arriba y abajo por separado", () => {
+  it("«arriba» no toca el de abajo", () => {
+    const r = applyEdits(`<p>x</p>`, [{ nodeId: 0, kind: "margen", value: 32, lado: "arriba" }]);
+    expect(r).toContain("margin-top: 32px");
+    expect(r).not.toContain("margin-bottom");
+  });
+
+  it("«abajo» no toca el de arriba", () => {
+    const r = applyEdits(`<p>x</p>`, [{ nodeId: 0, kind: "margen", value: 18, lado: "abajo" }]);
+    expect(r).toContain("margin-bottom: 18px");
+    expect(r).not.toContain("margin-top");
+  });
+
+  // Sin el lado en la clave de deduplicación, la segunda op borraba a la primera
+  // —misma op, mismo nodo— y el usuario veía que solo le hacía caso a una barra.
+  it("las dos barras a la vez sobreviven las dos", () => {
+    const r = applyEdits(`<p>x</p>`, [
+      { nodeId: 0, kind: "margen", value: 40, lado: "arriba" },
+      { nodeId: 0, kind: "margen", value: 8, lado: "abajo" },
+    ]);
+    expect(r).toContain("margin-top: 40px");
+    expect(r).toContain("margin-bottom: 8px");
+    expect([...r.matchAll(/style=/g)]).toHaveLength(1);
+  });
+
+  // Las imágenes siguen mandando la op sin `lado`, y tienen que seguir moviendo
+  // los dos: es lo que hacía antes de que existieran los lados.
+  it("sin lado sigue siendo «los dos», como antes", () => {
+    const r = applyEdits(`<img src="/a.png">`, [{ nodeId: 0, kind: "margen", value: 24 }]);
+    expect(r).toContain("margin-top: 24px");
+    expect(r).toContain("margin-bottom: 24px");
+  });
+});
+
+describe("applyEdits · recuadros", () => {
+  const rc = (nodeId: number, value: "ninguno" | "suave" | "borde" | "lateral") =>
+    ({ nodeId, kind: "recuadro" as const, value });
+
+  it("«fondo suave» escribe fondo, redondeo y relleno", () => {
+    const r = applyEdits(`<p>x</p>`, [rc(0, "suave")]);
+    expect(r).toContain("background-color: rgba(128,128,128,.10)");
+    expect(r).toContain("border-radius: 12px");
+    expect(r).toContain("padding: 18px 20px");
+  });
+
+  it("la barra lateral usa el color del propio texto, no el nuestro", () => {
+    // Un recuadro con el lima de Estrénala se vería fuera de sitio en la web del
+    // cliente, que tiene su paleta. `currentColor` combina sin saber nada de ella.
+    const r = applyEdits(`<p>x</p>`, [rc(0, "lateral")]);
+    expect(r).toContain("border-left: 3px solid currentColor");
+    expect(r).not.toMatch(/C4F000/i);
+  });
+
+  // Cambiar de recuadro no puede dejar restos del anterior: un borde olvidado
+  // más una barra lateral da un marco con barra que nadie ha pedido.
+  it("cambiar de recuadro no deja restos del anterior", () => {
+    const conBorde = applyEdits(`<p>x</p>`, [rc(0, "borde")]);
+    expect(conBorde).toContain("border: 1px solid");
+    const aLateral = applyEdits(conBorde, [rc(0, "lateral")]);
+    expect(aLateral).not.toContain("border: 1px solid");
+    expect(aLateral).not.toContain("border-radius");
+    expect(aLateral).toContain("border-left: 3px solid currentColor");
+  });
+
+  // «Ninguno» BORRA las propiedades en vez de ponerlas a cero: un `padding: 0`
+  // no es «sin recuadro», es un cero pisando el relleno que la hoja de estilos
+  // de la web ya le daba a ese elemento.
+  it("«ninguno» borra las propiedades en vez de ponerlas a cero", () => {
+    const conRecuadro = applyEdits(`<p>x</p>`, [rc(0, "suave")]);
+    const sin = applyEdits(conRecuadro, [rc(0, "ninguno")]);
+    expect(sin).not.toContain("padding");
+    expect(sin).not.toContain("background");
+    expect(sin).not.toContain("border-radius");
+    expect(sin).not.toContain("padding: 0");
+  });
+
+  it("respeta lo que no es suyo", () => {
+    const r = applyEdits(`<p style="color: red; padding: 4px">x</p>`, [rc(0, "ninguno")]);
+    expect(r).toContain("color: red");
+    expect(r).not.toContain("padding");
+  });
+
+  it("convive con el aire y la alineación en un solo atributo", () => {
+    const r = applyEdits(`<p>x</p>`, [
+      rc(0, "borde"),
+      { nodeId: 0, kind: "margen", value: 30, lado: "arriba" },
+      { nodeId: 0, kind: "textAlign", value: "centro" },
+    ]);
+    expect([...r.matchAll(/style=/g)]).toHaveLength(1);
+    expect(r).toContain("border: 1px solid");
+    expect(r).toContain("margin-top: 30px");
+    expect(r).toContain("text-align: center");
+  });
+});

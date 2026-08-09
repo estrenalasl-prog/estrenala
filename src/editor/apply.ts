@@ -1,5 +1,5 @@
 import { walkElementsInOrder, type WalkedElement } from "./walk";
-import { mergeStyleProperty } from "./style";
+import { mergeStyleProperty, quitarStyleProperty } from "./style";
 import { sanitizeInline } from "./sanitize-inline";
 
 /** Dónde va una imagen nueva respecto al elemento elegido. */
@@ -12,8 +12,10 @@ export type EditOp =
   | { page: string; nodeId: number; kind: "src"; value: string; assetId: string }
   | { page: string; nodeId: number; kind: "insertImage"; value: string; assetId: string; alt: string; posicion: PosicionImagen }
   | { page: string; nodeId: number; kind: "align"; value: Alineacion }
+  | { page: string; nodeId: number; kind: "textAlign"; value: Alineacion }
   | { page: string; nodeId: number; kind: "size"; value: number }
-  | { page: string; nodeId: number; kind: "margen"; value: number }
+  | { page: string; nodeId: number; kind: "margen"; value: number; lado?: LadoMargen }
+  | { page: string; nodeId: number; kind: "recuadro"; value: Recuadro }
   | { page: string; nodeId: number; kind: "style"; property: "color"; value: string }
   | { page: string; nodeId: number; kind: "textNode"; index: number; value: string };
 
@@ -25,8 +27,10 @@ export type PageOp =
   | { nodeId: number; kind: "src"; value: string }
   | { nodeId: number; kind: "insertImage"; value: string; alt: string; posicion: PosicionImagen }
   | { nodeId: number; kind: "align"; value: Alineacion }
+  | { nodeId: number; kind: "textAlign"; value: Alineacion }
   | { nodeId: number; kind: "size"; value: number }
-  | { nodeId: number; kind: "margen"; value: number }
+  | { nodeId: number; kind: "margen"; value: number; lado?: LadoMargen }
+  | { nodeId: number; kind: "recuadro"; value: Recuadro }
   | { nodeId: number; kind: "style"; property: "color"; value: string }
   | { nodeId: number; kind: "textNode"; index: number; value: string };
 
@@ -42,10 +46,22 @@ export type PageOp =
  */
 export type Alineacion = "izquierda" | "centro" | "derecha";
 
-const MARGENES: Record<Alineacion, [string, string]> = {
+export const MARGENES: Record<Alineacion, [string, string]> = {
   izquierda: ["0", "auto"],
   centro: ["auto", "auto"],
   derecha: ["auto", "0"],
+};
+
+/**
+ * Alinear el TEXTO de un bloque. Es otra cosa que alinear el bloque: `MARGENES`
+ * mueve la caja dentro de su hueco (lo que quiere una imagen), y esto mueve las
+ * letras dentro de la caja (lo que quiere un párrafo). Se separan porque mezclarlas
+ * hacía que «centrar» un título le pusiera `display:block` y lo sacara de su fila.
+ */
+export const TEXT_ALIGN: Record<Alineacion, string> = {
+  izquierda: "left",
+  centro: "center",
+  derecha: "right",
 };
 
 /**
@@ -71,11 +87,79 @@ export const MARGEN_MIN = 0;
 export const MARGEN_MAX = 120;
 
 /**
- * Solo vertical, a propósito: los márgenes de los lados los usa la alineación
- * (`MARGENES`), y si el margen también los tocara, subirlo descentraría la foto
- * que el usuario acaba de centrar. Dos controles no pueden pelearse por la misma
- * propiedad.
+ * Qué lado del margen toca la op.
+ *
+ * Las imágenes lo mueven con un solo control («ambos»): una foto centrada quiere
+ * el mismo aire arriba que abajo, y dos barras para eso son dos decisiones donde
+ * había una. En los textos no: el hueco que se quiere abrir casi siempre está a
+ * un lado —un título despegado del párrafo de arriba, un párrafo separado de la
+ * foto de abajo— y un control único obliga a mover el otro lado también.
+ *
+ * Sigue sin haber izquierda y derecha: esos los usa la alineación (`MARGENES`), y
+ * si el margen también los tocara, subirlo descentraría la foto que el usuario
+ * acaba de centrar. Dos controles no pueden pelearse por la misma propiedad.
  */
+export type LadoMargen = "ambos" | "arriba" | "abajo";
+
+const PROPIEDADES_MARGEN: Record<LadoMargen, string[]> = {
+  ambos: ["margin-top", "margin-bottom"],
+  arriba: ["margin-top"],
+  abajo: ["margin-bottom"],
+};
+
+/**
+ * Los recuadros.
+ *
+ * Se mandan por NOMBRE, igual que la alineación: el navegador dice «suave» y el
+ * servidor decide qué CSS es eso. Así no hay forma de colar declaraciones en la
+ * página de nadie, y el día que un recuadro se vea mal se arregla en un sitio.
+ *
+ * Los tres colores son grises y `currentColor` a propósito. Un recuadro con el
+ * lima de Estrénala se vería precioso aquí y fuera de sitio en la web del
+ * cliente, que tiene su propia paleta: el editor no le mete a nadie nuestros
+ * colores. Un gris al 10% se ve tanto sobre fondo claro como sobre fondo oscuro,
+ * y `currentColor` toma el color del texto que ya hay, así que la barra lateral
+ * combina siempre, sin saber nada de la web.
+ */
+export type Recuadro = "ninguno" | "suave" | "borde" | "lateral";
+
+/**
+ * Las propiedades que son PROPIEDAD del recuadro. Poner uno las borra todas y
+ * escribe las suyas; «ninguno» las borra y no escribe nada.
+ *
+ * Se borran en vez de ponerse a cero porque un `padding: 0` no es «sin recuadro»:
+ * es un cero pisando el relleno que la hoja de estilos de la web ya le daba a ese
+ * elemento. Al borrarlas, vuelve a mandar el diseño original.
+ *
+ * Van también las formas abreviadas y las largas (`padding` y `padding-top`): si
+ * solo se quitara la abreviada, un `padding-left` que hubiera quedado suelto se
+ * sumaría al recuadro siguiente y nadie entendería de dónde sale.
+ */
+export const PROPIEDADES_RECUADRO = [
+  "padding", "padding-top", "padding-right", "padding-bottom", "padding-left",
+  "background", "background-color",
+  "border", "border-top", "border-right", "border-bottom", "border-left",
+  "border-width", "border-style", "border-color", "border-radius",
+] as const;
+
+export const RECUADROS: Record<Recuadro, ReadonlyArray<readonly [string, string]>> = {
+  ninguno: [],
+  suave: [
+    ["background-color", "rgba(128,128,128,.10)"],
+    ["border-radius", "12px"],
+    ["padding", "18px 20px"],
+  ],
+  borde: [
+    ["border", "1px solid rgba(128,128,128,.35)"],
+    ["border-radius", "12px"],
+    ["padding", "18px 20px"],
+  ],
+  lateral: [
+    ["border-left", "3px solid currentColor"],
+    ["padding", "4px 0 4px 16px"],
+  ],
+};
+
 export function enteroEnRango(v: unknown, min: number, max: number): boolean {
   return typeof v === "number" && Number.isInteger(v) && v >= min && v <= max;
 }
@@ -111,8 +195,10 @@ function imgHtml(src: string, alt: string): string {
  * mismo nodo producirían dos ediciones del mismo rango y el HTML saldría roto.
  * Se funden en una cadena y se escribe una vez.
  */
-function esOpDeEstilo(op: PageOp): op is Extract<PageOp, { kind: "style" | "align" | "size" | "margen" }> {
-  return op.kind === "style" || op.kind === "align" || op.kind === "size" || op.kind === "margen";
+const KINDS_DE_ESTILO = ["style", "align", "textAlign", "size", "margen", "recuadro"] as const;
+
+function esOpDeEstilo(op: PageOp): op is Extract<PageOp, { kind: (typeof KINDS_DE_ESTILO)[number] }> {
+  return (KINDS_DE_ESTILO as readonly string[]).includes(op.kind);
 }
 
 type Edit = { start: number; end: number; text: string };
@@ -141,10 +227,13 @@ export function applyEdits(html: string, ops: PageOp[]): string {
     // Las imágenes NUEVAS se distinguen por cuál es y dónde va: si no, meter dos
     // fotos distintas debajo del mismo párrafo dejaría solo la última. Mandar la
     // misma otra vez al mismo sitio sí se colapsa, que es lo que se quiere.
+    // El lado entra en la clave: «aire arriba» y «aire abajo» son la misma op
+    // sobre el mismo nodo, y sin distinguirlas la segunda borraría la primera.
     const extra =
       op.kind === "style" ? op.property
         : op.kind === "textNode" ? String(op.index)
         : op.kind === "insertImage" ? `${op.posicion}#${op.value}`
+        : op.kind === "margen" ? (op.lado ?? "ambos")
         : "";
     dedup.set(`${op.nodeId}#${op.kind}#${extra}`, op);
   }
@@ -198,16 +287,22 @@ export function applyEdits(html: string, ops: PageOp[]): string {
       s = mergeStyleProperty(s, "display", "block");
       s = mergeStyleProperty(s, "margin-left", ml);
       s = mergeStyleProperty(s, "margin-right", mr);
+    } else if (op.kind === "textAlign") {
+      // Alinear el TEXTO dentro del bloque, que no es lo mismo que alinear el
+      // bloque (`align`, para imágenes). Aquí no se toca `display`: ponerlo en
+      // bloque sacaría el elemento de la fila donde estaba.
+      s = mergeStyleProperty(s, "text-align", TEXT_ALIGN[op.value]);
     } else if (op.kind === "size") {
       // `height: auto` va siempre: sin él, cambiar solo el ancho deforma la foto.
       s = mergeStyleProperty(s, "display", "block");
       s = mergeStyleProperty(s, "width", op.value + "%");
       s = mergeStyleProperty(s, "height", "auto");
+    } else if (op.kind === "recuadro") {
+      for (const prop of PROPIEDADES_RECUADRO) s = quitarStyleProperty(s, prop);
+      for (const [prop, valor] of RECUADROS[op.value]) s = mergeStyleProperty(s, prop, valor);
     } else {
-      // Solo arriba y abajo: los lados son de la alineación (ver `Margen`).
       const sep = `${op.value}px`;
-      s = mergeStyleProperty(s, "margin-top", sep);
-      s = mergeStyleProperty(s, "margin-bottom", sep);
+      for (const prop of PROPIEDADES_MARGEN[op.lado ?? "ambos"]) s = mergeStyleProperty(s, prop, sep);
     }
     estiloPorNodo.set(op.nodeId, s);
   }

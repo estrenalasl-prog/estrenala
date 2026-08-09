@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { isSafeHref } from "@/src/editor/validate-op";
+import { MARGENES, TEXT_ALIGN, RECUADROS, PROPIEDADES_RECUADRO } from "@/src/editor/apply";
 
 // `public/wc-editor.js` es el script que corre DENTRO de la web del cliente, en un
 // iframe. No pasa por TypeScript, no lo importa ningún módulo y no se puede probar
@@ -44,7 +45,7 @@ describe("wc-editor.js", () => {
   // en pantalla, guarda, y al recargar no está.
   it("solo emite tipos de op que el motor sabe aplicar", () => {
     const emitidos = [...FUENTE.matchAll(/kind:\s*"([a-zA-Z]+)"/g)].map((m) => m[1]);
-    const conocidos = ["text", "richText", "href", "src", "insertImage", "align", "size", "margen", "style", "textNode"];
+    const conocidos = ["text", "richText", "href", "src", "insertImage", "align", "textAlign", "size", "margen", "recuadro", "style", "textNode"];
     const desconocidos = [...new Set(emitidos)].filter((k) => !conocidos.includes(k));
     expect(desconocidos, `el motor no conoce: ${desconocidos.join(", ")}`).toEqual([]);
     // Y que de verdad emite algo, no vaya a ser que el regex deje de encontrar nada
@@ -98,5 +99,53 @@ describe("wc-editor.js", () => {
     for (const c of casos) {
       expect(hrefSeguro(c), `discrepan en ${JSON.stringify(c)}`).toBe(isSafeHref(c));
     }
+  });
+});
+
+/**
+ * Las tablas que están escritas DOS veces: aquí, para pintar el cambio en vivo
+ * dentro del iframe, y en el servidor, para escribirlo en el HTML al guardar.
+ *
+ * Si discrepan no falla nada: el usuario ve un recuadro con borde, le da a
+ * guardar, y en su web publicada aparece otra cosa. Ese es exactamente el fallo
+ * que ya se documentó con las imágenes insertadas («si aquí se viera de otra
+ * manera, el usuario aprobaría una cosa y se guardaría otra»), y hasta ahora
+ * dependía de que nadie tocara una de las dos copias.
+ */
+describe("wc-editor.js · las tablas de estilo dicen lo mismo que el servidor", () => {
+  // Saca el literal de `var NOMBRE = …` equilibrando llaves y corchetes. Se
+  // evalúa suelto porque el archivo entero no se puede: en su primer nivel ya
+  // llama a document.createElement.
+  function literal(nombre: string): unknown {
+    const i = FUENTE.indexOf("var " + nombre + " = ");
+    expect(i, `ya no existe ${nombre} en el editor`).toBeGreaterThan(-1);
+    let j = i;
+    while (FUENTE[j] !== "{" && FUENTE[j] !== "[") j++;
+    let prof = 0, fin = j;
+    for (; fin < FUENTE.length; fin++) {
+      const c = FUENTE[fin];
+      if (c === "{" || c === "[") prof++;
+      else if (c === "}" || c === "]") { if (--prof === 0) break; }
+    }
+    return new Function("return " + FUENTE.slice(j, fin + 1))();
+  }
+
+  it("los recuadros son los mismos", () => {
+    expect(literal("RECUADROS_UI")).toEqual(RECUADROS);
+  });
+
+  // El grupo de propiedades es la parte que más silenciosamente se descuadra:
+  // si al servidor se le añade una y al editor no, «quitar el recuadro» deja
+  // media caja puesta en la web publicada y ninguna en la vista previa.
+  it("el grupo de propiedades que borra el recuadro es el mismo", () => {
+    expect(literal("PROPIEDADES_RECUADRO_UI")).toEqual([...PROPIEDADES_RECUADRO]);
+  });
+
+  it("la alineación del texto es la misma", () => {
+    expect(literal("TEXT_ALIGN_UI")).toEqual(TEXT_ALIGN);
+  });
+
+  it("los márgenes de la alineación de imagen son los mismos", () => {
+    expect(literal("MARGENES_UI")).toEqual(MARGENES);
   });
 });

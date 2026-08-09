@@ -13,8 +13,10 @@ type EditOp =
   | { page: string; nodeId: number; kind: "src"; value: string; assetId: string }
   | { page: string; nodeId: number; kind: "insertImage"; value: string; assetId: string; alt: string; posicion: "antes" | "despues" }
   | { page: string; nodeId: number; kind: "align"; value: "izquierda" | "centro" | "derecha" }
+  | { page: string; nodeId: number; kind: "textAlign"; value: "izquierda" | "centro" | "derecha" }
   | { page: string; nodeId: number; kind: "size"; value: number }
-  | { page: string; nodeId: number; kind: "margen"; value: number }
+  | { page: string; nodeId: number; kind: "margen"; value: number; lado?: "ambos" | "arriba" | "abajo" }
+  | { page: string; nodeId: number; kind: "recuadro"; value: "ninguno" | "suave" | "borde" | "lateral" }
   | { page: string; nodeId: number; kind: "style"; property: "color"; value: string }
   | { page: string; nodeId: number; kind: "textNode"; index: number; value: string };
 type SnapshotInfo = { id: string; tipo: string; parentId: string | null; createdAt: string; esActual: boolean };
@@ -27,6 +29,7 @@ function opKey(op: EditOp): string {
     op.kind === "style" ? op.property
       : op.kind === "textNode" ? String(op.index)
       : op.kind === "insertImage" ? `${op.posicion}#${op.value}`
+      : op.kind === "margen" ? (op.lado ?? "ambos")
       : "";
   return `${op.page}#${op.nodeId}#${op.kind}#${extra}`;
 }

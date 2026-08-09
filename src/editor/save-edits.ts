@@ -13,8 +13,10 @@ export function toPageOp(op: EditOp): PageOp {
     case "src": return { nodeId: op.nodeId, kind: "src", value: op.value };
     case "insertImage": return { nodeId: op.nodeId, kind: "insertImage", value: op.value, alt: op.alt, posicion: op.posicion };
     case "align": return { nodeId: op.nodeId, kind: "align", value: op.value };
+    case "textAlign": return { nodeId: op.nodeId, kind: "textAlign", value: op.value };
     case "size": return { nodeId: op.nodeId, kind: "size", value: op.value };
-    case "margen": return { nodeId: op.nodeId, kind: "margen", value: op.value };
+    case "margen": return { nodeId: op.nodeId, kind: "margen", value: op.value, lado: op.lado };
+    case "recuadro": return { nodeId: op.nodeId, kind: "recuadro", value: op.value };
     case "style": return { nodeId: op.nodeId, kind: "style", property: op.property, value: op.value };
     case "textNode": return { nodeId: op.nodeId, kind: "textNode", index: op.index, value: op.value };
   }

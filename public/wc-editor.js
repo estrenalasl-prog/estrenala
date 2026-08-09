@@ -57,7 +57,11 @@
   pop.setAttribute("data-wc-ui", "1");
   // Estilo Estrénala v2: tarjeta clara con acento lima, tipografía de sistema (no
   // se asume Space Grotesk cargada en la web del cliente). z-index máximo.
-  pop.style.cssText = "position:absolute;z-index:2147483647;display:none;flex-direction:column;gap:8px;align-items:stretch;width:280px;max-width:92vw;background:#fff;color:#141509;border:1px solid #DEDFD6;border-radius:14px;padding:12px;font:13px/1.45 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;box-shadow:0 18px 48px -12px rgba(20,21,9,.28)";
+  // `max-height` + scroll propio: con alineación, dos barras de aire y los
+  // recuadros, el menú de un texto pasa de los 400px. En una pantalla de portátil
+  // no cabe entero, y sin esto la parte de abajo se quedaba fuera sin manera de
+  // llegar a ella. Se prefiere que ruede por dentro a que desaparezca.
+  pop.style.cssText = "position:absolute;z-index:2147483647;display:none;flex-direction:column;gap:8px;align-items:stretch;width:280px;max-width:92vw;max-height:min(78vh,520px);overflow-y:auto;background:#fff;color:#141509;border:1px solid #DEDFD6;border-radius:14px;padding:12px;font:13px/1.45 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;box-shadow:0 18px 48px -12px rgba(20,21,9,.28)";
   function montarPop() { if (!pop.parentNode && document.body) document.body.appendChild(pop); }
   if (document.body) montarPop(); else document.addEventListener("DOMContentLoaded", montarPop);
 
@@ -246,7 +250,17 @@
     var r = el.getBoundingClientRect();
     // Solapa 2px el borde inferior del elemento: sin "zona muerta" entre el elemento
     // y el popover (si hay hueco, el ratón cruza otros editables y el popover se escapa).
-    pop.style.top = (window.scrollY + r.bottom - 2) + "px";
+    var top = window.scrollY + r.bottom - 2;
+    // Desde que el menú de un texto trae alineación, aire y recuadro mide unos
+    // 400px: pinchando algo de la mitad de abajo de la pantalla, la parte útil se
+    // quedaba fuera y no había forma de llegar a ella. Si no cabe debajo y arriba
+    // hay más sitio, se pone encima —solapando 2px por el otro lado, para que el
+    // ratón siga sin cruzar hueco muerto.
+    var alto = pop.offsetHeight || 0;
+    if (alto > 0 && r.bottom + alto > window.innerHeight && r.top > window.innerHeight - r.bottom) {
+      top = Math.max(window.scrollY, window.scrollY + r.top - alto + 2);
+    }
+    pop.style.top = top + "px";
     pop.style.left = (window.scrollX + r.left) + "px";
   }
 
@@ -337,6 +351,81 @@
 
   function acotar(n, min, max) { return Math.max(min, Math.min(max, Math.round(n))); }
 
+  // ---------- diseño del bloque (texto) ----------
+  //
+  // Estos tres controles —alineación, aire y recuadro— son lo que Sebas pedía
+  // desde el principio: hasta ahora el editor solo dejaba cambiar el CONTENIDO,
+  // y para separar un título de su párrafo había que bajarse el ZIP y tocar CSS.
+  //
+  // Van solo en elementos que de verdad SON un bloque. Un `text-align` sobre un
+  // <span> y un `margin-top` sobre un <a> en línea no hacen absolutamente nada:
+  // el botón se pulsaría, no pasaría nada, y parecería roto. Es el mismo fallo
+  // que ya tuvo la alineación de imágenes, así que aquí se mira el `display` de
+  // verdad en vez de suponerlo por la etiqueta.
+  var DISPLAY_EN_BLOQUE = ["block", "flex", "grid", "list-item", "inline-block", "flow-root", "table"];
+  function esBloque(el) {
+    try { return DISPLAY_EN_BLOQUE.indexOf(window.getComputedStyle(el).display) !== -1; }
+    catch (_) { return false; }
+  }
+
+  // Las MISMAS tablas que el servidor (TEXT_ALIGN, RECUADROS y PROPIEDADES_RECUADRO
+  // en src/editor/apply.ts). Se aplican aquí en vivo y allí al guardar: si
+  // discreparan, el usuario aprobaría una cosa y se publicaría otra. Hay un test
+  // que las compara literalmente.
+  var TEXT_ALIGN_UI = { izquierda: "left", centro: "center", derecha: "right" };
+  var PROPIEDADES_RECUADRO_UI = ["padding", "padding-top", "padding-right", "padding-bottom", "padding-left", "background", "background-color", "border", "border-top", "border-right", "border-bottom", "border-left", "border-width", "border-style", "border-color", "border-radius"];
+  var RECUADROS_UI = {
+    ninguno: [],
+    suave: [["background-color", "rgba(128,128,128,.10)"], ["border-radius", "12px"], ["padding", "18px 20px"]],
+    borde: [["border", "1px solid rgba(128,128,128,.35)"], ["border-radius", "12px"], ["padding", "18px 20px"]],
+    lateral: [["border-left", "3px solid currentColor"], ["padding", "4px 0 4px 16px"]]
+  };
+
+  function botonChico(txt, titulo) {
+    var b = document.createElement("button");
+    b.type = "button"; b.textContent = txt; if (titulo) b.title = titulo;
+    b.style.cssText = "flex:1;height:30px;border-radius:9px;border:1px solid #DEDFD6;background:#fff;color:#141509;font-size:12px;font-weight:500;cursor:pointer";
+    return b;
+  }
+
+  function botonAlinearTexto(txt, valor, el) {
+    var b = botonChico(txt);
+    b.addEventListener("click", function () {
+      // Solo `text-align`. Nada de `display:block` como en las imágenes: eso
+      // sacaría de su fila a un título que estuviera dentro de una maqueta.
+      el.style.textAlign = TEXT_ALIGN_UI[valor];
+      emitir({ page: PAGE, nodeId: idDe(el), kind: "textAlign", value: valor });
+    });
+    return b;
+  }
+
+  function botonRecuadro(txt, valor, el) {
+    var b = botonChico(txt);
+    b.addEventListener("click", function () {
+      // Primero se borran TODAS las propiedades del grupo y luego se escriben las
+      // del recuadro elegido. Sin el borrado, cambiar de «con borde» a «barra
+      // lateral» dejaría el borde de antes puesto y saldría un marco con barra.
+      for (var i = 0; i < PROPIEDADES_RECUADRO_UI.length; i++) el.style.removeProperty(PROPIEDADES_RECUADRO_UI[i]);
+      var decls = RECUADROS_UI[valor] || [];
+      for (var j = 0; j < decls.length; j++) el.style.setProperty(decls[j][0], decls[j][1]);
+      emitir({ page: PAGE, nodeId: idDe(el), kind: "recuadro", value: valor });
+      colocarPopSiAbierto();
+    });
+    return b;
+  }
+  // El recuadro cambia el alto del elemento (mete relleno), así que el menú, que
+  // cuelga de su borde de abajo, se queda flotando donde ya no está.
+  function colocarPopSiAbierto() { if (objetivo && pop.style.display !== "none") posicionar(objetivo); }
+
+  function filaDeBotones(botones, columnas) {
+    var f = document.createElement("div");
+    f.style.cssText = columnas
+      ? "display:grid;grid-template-columns:repeat(" + columnas + ",1fr);gap:6px"
+      : "display:flex;gap:6px";
+    for (var i = 0; i < botones.length; i++) f.appendChild(botones[i]);
+    return f;
+  }
+
   // Dónde está la imagen AHORA, para que la barra arranque en su sitio. Se mide
   // contra el contenedor: es lo que el usuario ve, y no depende de si el ancho
   // está escrito en el HTML, en una hoja de estilos o en ningún sitio.
@@ -349,6 +438,13 @@
   }
   function margenActual(el) {
     var v = parseFloat(window.getComputedStyle(el).marginTop);
+    return acotar(isNaN(v) ? 0 : v, 0, 120);
+  }
+  // Un margen puede ser negativo en la web de origen; la barra empieza en 0, así
+  // que se recorta. No se «arregla» nada al leerlo: hasta que no se toque la
+  // barra, no se emite ninguna op y el margen negativo se queda como estaba.
+  function margenActualLado(el, prop) {
+    var v = parseFloat(window.getComputedStyle(el)[prop]);
     return acotar(isNaN(v) ? 0 : v, 0, 120);
   }
 
@@ -425,6 +521,46 @@
         emitir({ page: PAGE, nodeId: idDe(el), kind: "style", property: "color", value: color.value });
       });
       pop.appendChild(etiqueta("Color")); pop.appendChild(color);
+    }
+
+    // Alineación, aire y recuadro. Fuera del `if (hoja)` a propósito: también
+    // valen para un enlace que sea un bloque (un botón-enlace, por ejemplo). Lo
+    // que decide no es la etiqueta HTML sino si el navegador lo pinta como bloque
+    // —lo único que hace que estos tres controles surtan efecto.
+    if (!esImagen(el) && esBloque(el)) {
+      pop.appendChild(etiqueta("Alineación del texto"));
+      pop.appendChild(filaDeBotones([
+        botonAlinearTexto("Izq.", "izquierda", el),
+        botonAlinearTexto("Centro", "centro", el),
+        botonAlinearTexto("Der.", "derecha", el)
+      ]));
+
+      // Arriba y abajo por separado, y no un solo control como en las imágenes:
+      // en un texto el hueco que se quiere abrir está casi siempre a un lado
+      // —un título despegado del párrafo de arriba— y moviendo los dos a la vez
+      // hay que aceptar un cambio que no se ha pedido para conseguir el que sí.
+      pop.appendChild(deslizador("Aire arriba", "px", 0, 120, margenActualLado(el, "marginTop"), function (n, final) {
+        el.style.marginTop = n + "px";
+        // Recolocar solo al soltar. Subir el aire de arriba empuja el elemento
+        // hacia abajo y el menú cuelga de él: si se recolocara en cada píxel del
+        // arrastre, el menú iría persiguiendo al ratón mientras se arrastra.
+        if (final) { emitir({ page: PAGE, nodeId: idDe(el), kind: "margen", value: n, lado: "arriba" }); colocarPopSiAbierto(); }
+      }));
+      pop.appendChild(deslizador("Aire abajo", "px", 0, 120, margenActualLado(el, "marginBottom"), function (n, final) {
+        el.style.marginBottom = n + "px";
+        if (final) { emitir({ page: PAGE, nodeId: idDe(el), kind: "margen", value: n, lado: "abajo" }); colocarPopSiAbierto(); }
+      }));
+
+      // Cuatro y en dos filas: los nombres («Fondo suave», «Barra lateral») no
+      // caben en una sola de 280px, y abreviarlos hasta que quepan obliga a
+      // probarlos uno por uno para saber cuál es cuál.
+      pop.appendChild(etiqueta("Recuadro"));
+      pop.appendChild(filaDeBotones([
+        botonRecuadro("Ninguno", "ninguno", el),
+        botonRecuadro("Fondo suave", "suave", el),
+        botonRecuadro("Con borde", "borde", el),
+        botonRecuadro("Barra lateral", "lateral", el)
+      ], 2));
     }
 
     if (hoja && esBoton(el)) {
@@ -536,8 +672,14 @@
     if (ocultarTimer) { clearTimeout(ocultarTimer); ocultarTimer = null; }
     if (objetivo !== el || pop.style.display === "none") construir(el);
     if (!pop.firstChild) { pop.style.display = "none"; objetivo = null; return; }
-    posicionar(el);
+    // Se muestra ANTES de colocar porque `posicionar` necesita medir el alto para
+    // decidir si cabe debajo, y un elemento con `display:none` mide cero. La
+    // visibilidad tapa el fotograma intermedio: si no, al abrirlo se ve un salto
+    // desde donde estaba el menú anterior.
+    pop.style.visibility = "hidden";
     pop.style.display = "flex";
+    posicionar(el);
+    pop.style.visibility = "visible";
   }
   function programarOcultar() {
     if (ocultarTimer) clearTimeout(ocultarTimer);

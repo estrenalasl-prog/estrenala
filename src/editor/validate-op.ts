@@ -1,5 +1,5 @@
 import type { EditOp } from "./apply";
-import { enteroEnRango, ANCHO_MIN, ANCHO_MAX, MARGEN_MIN, MARGEN_MAX } from "./apply";
+import { enteroEnRango, ANCHO_MIN, ANCHO_MAX, MARGEN_MIN, MARGEN_MAX, RECUADROS } from "./apply";
 
 export const ALLOWED_IMAGE_EXTS = ["png", "jpg", "jpeg", "gif", "webp", "avif", "svg"] as const;
 
@@ -60,13 +60,21 @@ export function isValidOp(op: EditOp): boolean {
     // «lo que venga». Un decimal o un valor fuera de rango se rechaza entero en
     // vez de recortarse, para que el resultado no sea nunca una sorpresa.
     case "margen":
+      // `lado` puede no venir: entonces es «ambos», que es lo que mandan las
+      // imágenes y lo que mandaba todo el mundo antes de que existieran los lados.
+      if (op.lado !== undefined && op.lado !== "ambos" && op.lado !== "arriba" && op.lado !== "abajo") return false;
       return enteroEnRango(op.value, MARGEN_MIN, MARGEN_MAX);
     case "size":
       return enteroEnRango(op.value, ANCHO_MIN, ANCHO_MAX);
     case "align":
+    case "textAlign":
       // Se admite la INTENCIÓN, no CSS: el servidor decide los márgenes. Así no
       // hay forma de colar una declaración de estilo en la página de nadie.
       return op.value === "izquierda" || op.value === "centro" || op.value === "derecha";
+    case "recuadro":
+      // Igual: llega el nombre del recuadro, y el CSS lo pone el servidor. La
+      // lista sale del propio catálogo, así que añadir uno no exige tocar esto.
+      return typeof op.value === "string" && Object.hasOwn(RECUADROS, op.value);
     case "style":
       return op.property === "color" && typeof op.value === "string" && COLOR_RE.test(op.value.trim());
     case "textNode":
