@@ -1,14 +1,23 @@
 import { describe, it, expect } from "vitest";
 import { sitemapPlataforma, urlSitemap } from "@/src/config/sitemap-plataforma";
 import { reglasRobots, ZONAS_PRIVADAS } from "@/src/config/robots-plataforma";
+import { ARTICULOS, rutaArticulo } from "@/src/blog-estrenala/indice";
 
 const BASE = "https://estrenala.com";
 const urls = () => sitemapPlataforma(BASE).map((e) => e.url);
 
 describe("el sitemap de la plataforma", () => {
-  it("lleva las cinco landings y las cuatro legales, y nada más", () => {
+  /**
+   * La lista sigue siendo CERRADA: los artículos se calculan a partir del
+   * índice del blog, no se enumeran a mano, pero cualquier otra cosa que se
+   * cuele aquí hace fallar el test. Es lo que impide que acabe apareciendo el
+   * panel o una ruta de la API en el sitemap.
+   */
+  it("lleva las cinco landings, el blog con sus artículos y las cuatro legales, y nada más", () => {
     expect(urls().sort()).toEqual([
       "https://estrenala.com/",
+      "https://estrenala.com/blog",
+      ...ARTICULOS.map((a) => `https://estrenala.com${rutaArticulo(a.slug)}`),
       "https://estrenala.com/en",
       "https://estrenala.com/fr",
       "https://estrenala.com/it",
@@ -17,7 +26,21 @@ describe("el sitemap de la plataforma", () => {
       "https://estrenala.com/legal/privacidad",
       "https://estrenala.com/legal/terminos",
       "https://estrenala.com/pt",
-    ]);
+    ].sort());
+  });
+
+  /** Se escriben para que Google los enseñe: mandan sobre el papeleo legal. */
+  it("los artículos pesan más que las legales", () => {
+    const e = sitemapPlataforma(BASE);
+    const art = e.find((x) => x.url.includes(rutaArticulo(ARTICULOS[0].slug)))!;
+    const legal = e.find((x) => x.url.includes("/legal/"))!;
+    expect(art.priority).toBeGreaterThan(legal.priority);
+  });
+
+  /** Existen solo en español: declarar traducciones que no hay es peor que nada. */
+  it("los artículos NO declaran alternativas de idioma", () => {
+    const art = sitemapPlataforma(BASE).find((x) => x.url.includes("/blog/"))!;
+    expect(art.alternates).toBeUndefined();
   });
 
   /**

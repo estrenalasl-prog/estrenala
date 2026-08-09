@@ -1,0 +1,116 @@
+/* El blog de estrenala.com. Encima de landing.css, que ya trae la paleta y las
+   tipografías: aquí solo va lo que la portada no tiene, que es una columna de
+   lectura larga. Todo acotado a `.landing` por lo mismo que el resto. */
+
+.landing .blog-cab { padding: 72px 0 44px; border-bottom: 1px solid var(--borde); }
+.landing .blog-cab h1 { font: 700 clamp(30px, 5vw, 46px)/1.06 var(--sans); letter-spacing: -.03em; max-width: 20ch; }
+.landing .blog-cab p { font-size: 18px; color: var(--texto-2); margin-top: 14px; max-width: 52ch; }
+
+/* ── El listado ─────────────────────────────────────────────────────────── */
+
+.landing .blog-lista { display: grid; gap: 0; padding: 8px 0 84px; }
+.landing .blog-item { display: block; padding: 30px 0; border-bottom: 1px solid var(--borde); }
+.landing .blog-item:hover h2 { color: var(--acento-texto); }
+.landing .blog-item h2 {
+  font: 600 clamp(21px, 2.6vw, 27px)/1.22 var(--sans); letter-spacing: -.02em;
+  max-width: 26ch; transition: color .18s;
+}
+.landing .blog-item p { color: var(--texto-2); margin-top: 9px; max-width: 62ch; font-size: 16.5px; }
+
+/* Fecha, tema y minutos. Es un dato, no un adorno: por eso va en mayúsculas
+   pequeñas y apagado, y no compite con el titular. */
+.landing .blog-datos {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+  font-size: 12px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase;
+  color: var(--texto-3); margin-bottom: 11px;
+}
+.landing .blog-datos .tema {
+  color: var(--acento-texto); background: var(--acento-suave);
+  border: 1px solid var(--acento-borde); border-radius: var(--radio-full);
+  padding: 3px 10px; letter-spacing: .06em;
+}
+.landing .blog-datos .sep { color: var(--borde-fuerte); }
+
+/* ── El artículo ────────────────────────────────────────────────────────── */
+
+.landing .art { padding: 60px 0 20px; }
+.landing .art-col { max-width: 68ch; margin: 0 auto; }
+.landing .art h1 { font: 700 clamp(30px, 5.2vw, 50px)/1.05 var(--sans); letter-spacing: -.032em; }
+.landing .art .entradilla {
+  font-size: clamp(18px, 2.2vw, 21px); line-height: 1.55; color: var(--texto-2);
+  margin-top: 18px; border-left: 3px solid var(--acento); padding-left: 18px;
+}
+
+.landing .prosa { padding: 0 0 40px; font-size: 17.5px; line-height: 1.75; color: var(--texto-2); }
+.landing .prosa > *:first-child { margin-top: 0; }
+.landing .prosa p { margin: 0 0 1.15em; }
+.landing .prosa strong { color: var(--texto); font-weight: 600; }
+.landing .prosa em { color: var(--texto); }
+.landing .prosa h2 {
+  font: 700 clamp(22px, 3vw, 30px)/1.18 var(--sans); letter-spacing: -.025em;
+  color: var(--texto); margin: 2.1em 0 .7em; max-width: 24ch; scroll-margin-top: 90px;
+}
+.landing .prosa h3 { font: 600 20px/1.3 var(--sans); color: var(--texto); margin: 1.7em 0 .5em; }
+.landing .prosa a { color: var(--acento-texto); text-decoration: underline; text-underline-offset: 3px; }
+.landing .prosa a:hover { text-decoration-thickness: 2px; }
+
+/* Las listas: el punto va en posición ABSOLUTA, no como hijo flex.
+   Con flex, un <li> que tenga dentro más de una cosa —un enlace y un párrafo,
+   por ejemplo— se parte en dos columnas. Es exactamente lo que rompió los
+   artículos importados de WordPress en quantivatechnology.com el 09/08. */
+.landing .prosa ul, .landing .prosa ol { margin: 0 0 1.3em; padding: 0; list-style: none; }
+.landing .prosa li { position: relative; padding-left: 26px; margin-bottom: .6em; }
+.landing .prosa ul > li::before {
+  content: ""; position: absolute; left: 4px; top: .62em;
+  width: 7px; height: 7px; border-radius: 50%; background: var(--acento-anillo);
+}
+.landing .prosa ol { counter-reset: paso; }
+.landing .prosa ol > li { counter-increment: paso; padding-left: 38px; }
+.landing .prosa ol > li::before {
+  content: counter(paso); position: absolute; left: 0; top: .1em;
+  width: 25px; height: 25px; border-radius: 50%;
+  background: var(--acento); color: var(--texto);
+  font: 700 13px/25px var(--sans); text-align: center;
+}
+
+.landing .prosa code {
+  font: 500 .89em var(--mono); background: var(--superficie-2);
+  border: 1px solid var(--borde); border-radius: 5px; padding: 1px 6px; color: var(--texto);
+}
+
+/* La tabla se desborda en horizontal DENTRO de su caja; la página nunca. */
+.landing .tabla-scroll { overflow-x: auto; margin: 0 0 1.6em; border: 1px solid var(--borde); border-radius: var(--radio-t); background: var(--superficie); }
+.landing .prosa table { border-collapse: collapse; width: 100%; min-width: 540px; font-size: 15.5px; }
+.landing .prosa th, .landing .prosa td { padding: 13px 16px; text-align: left; border-bottom: 1px solid var(--borde); vertical-align: top; }
+.landing .prosa thead th { font: 600 12px var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--texto-3); background: var(--superficie-2); }
+.landing .prosa tbody tr:last-child td { border-bottom: 0; }
+.landing .prosa td:first-child { color: var(--texto); }
+
+/* ── Preguntas frecuentes ───────────────────────────────────────────────── */
+
+/* <dl>, no <ul>: una pregunta con su respuesta ES una lista de definiciones, y
+   así no hay ningún <li> con dos hijos que se pueda partir en dos columnas. */
+.landing .faq-art { border-top: 1px solid var(--borde); padding: 40px 0 0; margin-top: 20px; }
+.landing .faq-art h2 { font: 700 clamp(21px, 2.8vw, 27px)/1.2 var(--sans); letter-spacing: -.025em; margin-bottom: 22px; }
+.landing .faq-art dl { margin: 0; }
+.landing .faq-art dt { font: 600 17px/1.4 var(--sans); color: var(--texto); margin-top: 22px; }
+.landing .faq-art dt:first-of-type { margin-top: 0; }
+.landing .faq-art dd { margin: 7px 0 0; color: var(--texto-2); font-size: 16.5px; line-height: 1.68; }
+
+/* ── Cierre ─────────────────────────────────────────────────────────────── */
+
+.landing .art-cta {
+  margin: 48px 0 84px; padding: 34px; text-align: center;
+  background: var(--tinta-sup); border-radius: var(--radio-pop);
+}
+.landing .art-cta h2 { font: 700 clamp(21px, 3vw, 29px)/1.15 var(--sans); letter-spacing: -.025em; color: #fff; max-width: 20ch; margin: 0 auto; }
+.landing .art-cta p { color: var(--tinta-txt2); margin: 12px auto 22px; max-width: 46ch; font-size: 16px; }
+
+.landing .volver { display: inline-block; margin: 26px 0 0; font-size: 14.5px; color: var(--texto-2); }
+.landing .volver:hover { color: var(--acento-texto); }
+
+@media (max-width: 700px) {
+  .landing .blog-cab { padding: 48px 0 32px; }
+  .landing .art { padding: 40px 0 12px; }
+  .landing .art-cta { padding: 26px 20px; }
+}

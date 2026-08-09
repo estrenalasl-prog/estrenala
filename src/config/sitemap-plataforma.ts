@@ -1,4 +1,5 @@
 import { IDIOMAS, rutaDeIdioma, alternativasHreflang } from "@/src/i18n/idiomas";
+import { ARTICULOS, RUTA_BLOG, rutaArticulo } from "@/src/blog-estrenala/indice";
 
 /**
  * El sitemap de LA PLATAFORMA (estrenala.com). No el de las webs de clientes:
@@ -62,7 +63,23 @@ export function sitemapPlataforma(base: string): EntradaSitemap[] {
     priority: 0.3,
   }));
 
-  return [...landings, ...legales];
+  // El blog y sus artículos. Sin hreflang: existen solo en español, y declarar
+  // alternativas que no existen es peor que no declarar ninguna (mismo criterio
+  // que las legales).
+  //
+  // Prioridad 0.8: por debajo de la portada, muy por encima de las legales. Es
+  // por donde se espera que entre la gente desde Google, que es justo para lo
+  // que se escribe.
+  const blog: EntradaSitemap[] = [
+    { url: absoluta(base, RUTA_BLOG), changeFrequency: "weekly", priority: 0.7 },
+    ...ARTICULOS.map((a) => ({
+      url: absoluta(base, rutaArticulo(a.slug)),
+      changeFrequency: "monthly" as const,
+      priority: 0.8,
+    })),
+  ];
+
+  return [...landings, ...blog, ...legales];
 }
 
 /**

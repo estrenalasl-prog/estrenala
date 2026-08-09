@@ -17,6 +17,10 @@ const RUTAS_PUBLICAS = ["/login", "/api/login", "/registro", "/api/registro",
   // `/api/health` dice si el proceso vive; `/api/salud` mira además la base de
   // datos, y la llama el vigilante externo, que no tiene sesión.
   "/api/health", "/api/salud", "/api/cron/publicar", "/api/cron/piloto", "/brand", "/legal",
+  // El blog de marketing. Va por PREFIJO y no por coincidencia exacta a
+  // propósito: los artículos cuelgan de él (`/blog/loquesea`). Sin esta línea
+  // acabarían en el 307 a /login, o sea que no existirían para Google.
+  "/blog",
   // Lo llama Stripe (sin cookie); su candado es la firma HMAC del cuerpo.
   "/api/stripe/webhook"];
 
