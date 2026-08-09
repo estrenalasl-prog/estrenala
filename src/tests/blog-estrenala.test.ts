@@ -2,7 +2,9 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { ARTICULOS, articuloPorSlug, rutaArticulo, RUTA_BLOG } from "@/src/blog-estrenala/indice";
-import { cuerpoAHtml, datosEstructurados } from "@/src/blog-estrenala/render";
+import { cuerpoAHtml, datosEstructurados, rutaPortada } from "@/src/blog-estrenala/render";
+import { svgPortada } from "@/src/blog-estrenala/portada";
+import { FIGURAS, insertarFiguras } from "@/src/blog-estrenala/figuras";
 import { fechaLarga, minutosDeLectura } from "@/src/blog-estrenala/tipos";
 import { sitemapPlataforma } from "@/src/config/sitemap-plataforma";
 import { ZONAS_PRIVADAS } from "@/src/config/robots-plataforma";
@@ -91,6 +93,81 @@ describe("el cuerpo en HTML", () => {
       const envueltas = (html.match(/<div class="tabla-scroll"><table>/g) ?? []).length;
       expect(envueltas, `${a.slug}: hay tablas sin envolver`).toBe(abiertas);
     }
+  });
+});
+
+describe("la portada de cada artículo", () => {
+  it("es SVG bien formado, del tamaño de una tarjeta social", () => {
+    for (const a of ARTICULOS) {
+      const svg = svgPortada(a);
+      expect(svg.startsWith("<svg"), a.slug).toBe(true);
+      expect(svg.endsWith("</svg>"), a.slug).toBe(true);
+      expect(svg).toContain('width="1200" height="630"');
+      expect(svg.split("<").length, "etiquetas sin cerrar").toBe(svg.split(">").length);
+    }
+  });
+
+  it("el título entero cabe: nunca se recorta ni se sale", () => {
+    for (const a of ARTICULOS) {
+      const svg = svgPortada(a);
+      // Todas las palabras del título tienen que estar dentro del SVG.
+      for (const p of a.titulo.split(/\s+/)) {
+        expect(svg, `falta «${p}» en la portada de ${a.slug}`).toContain(p);
+      }
+      expect((svg.match(/<tspan/g) ?? []).length, `${a.slug}: más de tres líneas`).toBeLessThanOrEqual(3);
+    }
+  });
+
+  it("un título larguísimo baja el cuerpo en vez de desbordarse", () => {
+    const largo = svgPortada({ titulo: "Palabra ".repeat(14).trim(), tema: "Prueba" });
+    expect((largo.match(/<tspan/g) ?? []).length).toBeLessThanOrEqual(3);
+    expect(largo).toContain('font-size="44"');
+  });
+
+  it("escapa lo que rompería el XML", () => {
+    const svg = svgPortada({ titulo: 'Uno & <dos> "tres"', tema: "Prueba" });
+    expect(svg).toContain("&amp;");
+    expect(svg).not.toContain("<dos>");
+  });
+
+  it("cada artículo tiene su propia dirección de portada", () => {
+    const rutas = ARTICULOS.map((a) => rutaPortada(a.slug));
+    expect(new Set(rutas).size).toBe(rutas.length);
+    for (const r of rutas) expect(r).toMatch(/^\/blog\/[a-z0-9-]+\/portada\.png$/);
+  });
+});
+
+describe("las figuras", () => {
+  it("el marcador se cambia por el dibujo y su pie", () => {
+    const html = insertarFiguras("antes\n\n{{figura:que-falta}}\n\ndespués");
+    expect(html).toContain("<figure class=\"figura\">");
+    expect(html).toContain("<figcaption>");
+    expect(html).not.toContain("{{figura:");
+  });
+
+  it("un nombre que no existe se queda tal cual, sin reventar", () => {
+    expect(insertarFiguras("{{figura:no-existe}}")).toBe("{{figura:no-existe}}");
+  });
+
+  it("todas las figuras tienen título y descripción para quien no ve", () => {
+    for (const [nombre, f] of Object.entries(FIGURAS)) {
+      expect(f.svg, `${nombre}: sin role=img`).toContain('role="img"');
+      expect(f.svg, `${nombre}: sin <title>`).toContain("<title");
+      expect(f.svg, `${nombre}: sin <desc>`).toContain("<desc");
+      expect(f.pie.length, `${nombre}: pie vacío`).toBeGreaterThan(20);
+    }
+  });
+
+  it("no queda ningún marcador sin resolver en los artículos publicados", () => {
+    for (const a of ARTICULOS) {
+      expect(cuerpoAHtml(a.cuerpo), `${a.slug}: figura inexistente`).not.toContain("{{figura:");
+    }
+  });
+
+  /** Dentro de un <p> el dibujo no es HTML válido y descoloca el aire. */
+  it("el dibujo sale como bloque, no dentro de un párrafo", () => {
+    const html = cuerpoAHtml("Un párrafo.\n\n{{figura:que-falta}}\n\nOtro párrafo.");
+    expect(html).not.toMatch(/<p>\s*<figure/);
   });
 });
 

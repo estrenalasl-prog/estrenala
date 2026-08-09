@@ -9,8 +9,21 @@
 /* ── El listado ─────────────────────────────────────────────────────────── */
 
 .landing .blog-lista { display: grid; gap: 0; padding: 8px 0 84px; }
-.landing .blog-item { display: block; padding: 30px 0; border-bottom: 1px solid var(--borde); }
+.landing .blog-item {
+  display: grid; grid-template-columns: 300px minmax(0, 1fr);
+  gap: clamp(20px, 3vw, 38px); align-items: center;
+  padding: 30px 0; border-bottom: 1px solid var(--borde);
+}
 .landing .blog-item:hover h2 { color: var(--acento-texto); }
+
+/* `height:auto` va PEGADO al ancho: si se recorta uno y el otro se queda fijo,
+   la imagen sale aplastada. Es lo que le pasó al logo del pie el 09/08. */
+.landing .blog-miniatura {
+  width: 100%; height: auto; display: block;
+  border-radius: var(--radio-t); border: 1px solid var(--borde);
+  background: var(--texto); transition: transform .3s cubic-bezier(.2,.8,.2,1);
+}
+.landing .blog-item:hover .blog-miniatura { transform: translateY(-3px); }
 .landing .blog-item h2 {
   font: 600 clamp(21px, 2.6vw, 27px)/1.22 var(--sans); letter-spacing: -.02em;
   max-width: 26ch; transition: color .18s;
@@ -109,8 +122,31 @@
 .landing .volver { display: inline-block; margin: 26px 0 0; font-size: 14.5px; color: var(--texto-2); }
 .landing .volver:hover { color: var(--acento-texto); }
 
+/* ── Figuras ────────────────────────────────────────────────────────────── */
+
+.landing .figura { margin: 2.2em 0; }
+.landing .figura svg {
+  display: block; width: 100%; height: auto;
+  background: var(--superficie); border: 1px solid var(--borde);
+  border-radius: var(--radio-t); padding: 20px 22px;
+}
+.landing .figura figcaption {
+  margin-top: 11px; font-size: 14.5px; line-height: 1.5;
+  color: var(--texto-3); text-align: center;
+}
+
+@media (max-width: 760px) {
+  .landing .blog-item { grid-template-columns: 1fr; gap: 16px; padding: 26px 0; }
+  /* En el móvil la portada va delante y a todo el ancho: de miniatura de 300 px
+     no se leería el título que lleva dentro. */
+  .landing .blog-miniatura { max-width: 460px; }
+}
+
 @media (max-width: 700px) {
   .landing .blog-cab { padding: 48px 0 32px; }
   .landing .art { padding: 40px 0 12px; }
   .landing .art-cta { padding: 26px 20px; }
+  /* El dibujo tiene texto dentro y a 340 px no se lee: se deja desplazar. */
+  .landing .figura { overflow-x: auto; }
+  .landing .figura svg { min-width: 520px; }
 }

@@ -4,7 +4,7 @@ import "../../_landing/landing.css";
 import "../blog.css";
 import { Marco } from "../Marco";
 import { articuloPorSlug, rutaArticulo, RUTA_BLOG } from "@/src/blog-estrenala/indice";
-import { cuerpoAHtml, datosEstructurados } from "@/src/blog-estrenala/render";
+import { cuerpoAHtml, datosEstructurados, rutaPortada } from "@/src/blog-estrenala/render";
 import { fechaLarga, minutosDeLectura } from "@/src/blog-estrenala/tipos";
 import { urlPlataforma } from "@/src/config/sitio";
 
@@ -15,6 +15,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const a = articuloPorSlug(slug);
   if (!a) return {};
   const ruta = rutaArticulo(a.slug);
+  // Su propia portada, no la genérica de la marca: pegar cinco artículos en un
+  // grupo y que salgan cinco tarjetas idénticas es peor que no tener tarjeta.
+  const portada = rutaPortada(a.slug);
   return {
     title: `${a.titulo} — Estrénala`,
     description: a.descripcion,
@@ -29,9 +32,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       title: a.titulo,
       description: a.descripcion,
       publishedTime: a.fecha,
-      images: [{ url: "/brand/og.png", width: 1200, height: 630, alt: a.titulo }],
+      images: [{ url: portada, width: 1200, height: 630, alt: a.titulo }],
     },
-    twitter: { card: "summary_large_image", title: a.titulo, description: a.descripcion, images: ["/brand/og.png"] },
+    twitter: { card: "summary_large_image", title: a.titulo, description: a.descripcion, images: [portada] },
   };
 }
 

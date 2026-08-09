@@ -42,6 +42,8 @@ Lo que no está es todo lo demás:
 Son tres cosas separadas, y ninguna te la puede dar la IA que escribió el código.
 Es como si te hubieran construido la casa entera pero no tuvieras el solar.
 
+{{figura:que-falta}}
+
 ## Las cuatro salidas
 
 Cuando buscas cómo hacerlo, internet te ofrece básicamente esto:

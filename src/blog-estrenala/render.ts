@@ -1,6 +1,12 @@
 import { mdAHtml } from "@/src/blog/markdown";
 import { minutosDeLectura, type Articulo } from "./tipos";
 import { rutaArticulo, RUTA_BLOG } from "./indice";
+import { insertarFiguras } from "./figuras";
+
+/** La portada de un artículo, como ruta. Absoluta la hace quien la necesite. */
+export function rutaPortada(slug: string): string {
+  return `${rutaArticulo(slug)}/portada.png`;
+}
 
 /**
  * El cuerpo en HTML, con las tablas metidas en una caja que se desplaza sola.
@@ -11,7 +17,10 @@ import { rutaArticulo, RUTA_BLOG } from "./indice";
  * recordarlo al escribir cada artículo.
  */
 export function cuerpoAHtml(md: string): string {
-  return mdAHtml(md)
+  // Las figuras ANTES de pasar por Markdown: así el `<figure>` sale como bloque
+  // suelto. Metido después, marked ya habría envuelto el marcador en un <p> y el
+  // dibujo acabaría dentro de un párrafo, que no es válido y descoloca el aire.
+  return mdAHtml(insertarFiguras(md))
     .replace(/<table>/g, '<div class="tabla-scroll"><table>')
     .replace(/<\/table>/g, "</table></div>");
 }
@@ -46,7 +55,7 @@ export function datosEstructurados(a: Articulo, base: string): object {
           name: "Estrénala",
           logo: { "@type": "ImageObject", url: new URL("/brand/logo-tinta.png", base).toString() },
         },
-        image: [new URL("/brand/og.png", base).toString()],
+        image: [new URL(rutaPortada(a.slug), base).toString()],
         wordCount: a.cuerpo.trim().split(/\s+/).filter(Boolean).length,
         timeRequired: `PT${minutosDeLectura(a.cuerpo)}M`,
       },

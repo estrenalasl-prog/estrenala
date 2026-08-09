@@ -3,6 +3,7 @@ import "../_landing/landing.css";
 import "./blog.css";
 import { Marco } from "./Marco";
 import { ARTICULOS, RUTA_BLOG, rutaArticulo } from "@/src/blog-estrenala/indice";
+import { rutaPortada } from "@/src/blog-estrenala/render";
 import { fechaLarga, minutosDeLectura } from "@/src/blog-estrenala/tipos";
 
 // Como el resto de lo público: la dirección sale del entorno del servidor, y
@@ -39,14 +40,19 @@ export default function BlogIndice() {
         <div className="blog-lista">
           {ARTICULOS.map((a) => (
             <a className="blog-item" key={a.slug} href={rutaArticulo(a.slug)}>
-              <div className="blog-datos">
-                <span className="tema">{a.tema}</span>
-                <time dateTime={a.fecha}>{fechaLarga(a.fecha)}</time>
-                <span className="sep">·</span>
-                <span>{minutosDeLectura(a.cuerpo)} min</span>
+              {/* La portada ya lleva el título dentro, así que para quien no ve
+                  la pantalla es una repetición: alt vacío y que la salte. */}
+              <img className="blog-miniatura" src={rutaPortada(a.slug)} alt="" width={1200} height={630} loading="lazy" />
+              <div className="blog-texto">
+                <div className="blog-datos">
+                  <span className="tema">{a.tema}</span>
+                  <time dateTime={a.fecha}>{fechaLarga(a.fecha)}</time>
+                  <span className="sep">·</span>
+                  <span>{minutosDeLectura(a.cuerpo)} min</span>
+                </div>
+                <h2>{a.titulo}</h2>
+                <p>{a.entradilla}</p>
               </div>
-              <h2>{a.titulo}</h2>
-              <p>{a.entradilla}</p>
             </a>
           ))}
         </div>
