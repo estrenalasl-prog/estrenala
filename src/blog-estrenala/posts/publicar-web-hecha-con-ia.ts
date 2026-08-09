@@ -12,6 +12,11 @@ export const publicarWebHechaConIa: Articulo = {
     "Le pediste una web a la IA. Quedó mejor de lo que esperabas. La descargaste… y lleva tres semanas en la carpeta de Descargas. No es culpa tuya: nadie te dijo que faltaba la mitad.",
   fecha: "2026-08-09",
   tema: "Publicar",
+  resumen: [
+    "Qué hay exactamente dentro del .zip y cuáles son las tres cosas que no vienen.",
+    "Las cuatro formas de publicarlo, con lo que cuesta y lo que hay que saber en cada una.",
+    "Por qué el dominio es la parte que se atraganta, y el registro AAAA que arruina la tarde a casi todo el mundo.",
+  ],
   cuerpo: `
 Pasa siempre igual. Le describes a ChatGPT el negocio, te devuelve una web, la
 abres en el navegador y piensas *«pues está mejor que la que me pidieron 1.200 €

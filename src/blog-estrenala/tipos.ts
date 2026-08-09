@@ -30,6 +30,14 @@ export type Articulo = {
   fecha: string;
   /** Para el listado: de qué va, en dos palabras. */
   tema: string;
+  /**
+   * Tres frases con lo que se lleva quien lo lea, para el recuadro de arriba.
+   *
+   * No es un resumen del artículo: es lo que va a SABER al terminar. Quien llega
+   * de una búsqueda decide en cinco segundos si se queda, y una entradilla con
+   * gancho le dice de qué va pero no si le sirve.
+   */
+  resumen: string[];
   /** El cuerpo, en Markdown. */
   cuerpo: string;
   /**

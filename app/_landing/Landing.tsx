@@ -483,6 +483,15 @@ export function Landing({ idioma = "es" }: { idioma?: Idioma }) {
                 <a href={CTA}>{t.pie.subeTuWeb}</a>
                 <a href="/login">{t.pie.entrar}</a>
                 <a href="#faq">{t.pie.preguntasFrecuentes}</a>
+                {/* El blog de verdad (/blog), que no es el «Blog automático» de
+                    ahí arriba: eso es un ancla a la sección de producto.
+                    Sin este enlace /blog era una página HUÉRFANA — Google solo
+                    llegaba por el sitemap y no le pasaba nada de la autoridad de
+                    la portada, que es la página fuerte del sitio.
+                    Solo en español, y no por descuido: los artículos están solo
+                    en español, y mandar a un italiano a leerlos es peor que no
+                    ofrecérselo. La palabra «Blog» no necesita traducción. */}
+                {idioma === "es" && <a href="/blog">Blog</a>}
               </div>
               <div className="pie-col">
                 <h3>{t.pie.colLegal}</h3>

@@ -32,7 +32,46 @@ export function cuerpoAHtml(md: string): string {
   const html = mdAHtml(md)
     .replace(/<table>/g, '<div class="tabla-scroll"><table>')
     .replace(/<\/table>/g, "</table></div>");
-  return insertarFiguras(html);
+  return insertarFiguras(conAnclas(html));
+}
+
+/**
+ * Un identificador de URL a partir de un texto: «La parte que de verdad se
+ * atraganta: el dominio» → `la-parte-que-de-verdad-se-atraganta-el-dominio`.
+ *
+ * Sin acentos ni eñes: son válidos en una URL moderna, pero al copiar el enlace
+ * y pegarlo en WhatsApp salen convertidos en `%C3%B1` y el enlace se vuelve
+ * ilegible justo cuando alguien lo está compartiendo.
+ */
+export function anclaDe(texto: string): string {
+  return texto
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+/**
+ * Le pone `id` a cada `<h2>` para poder enlazar a una sección concreta.
+ *
+ * Hace falta para tres cosas: que se pueda mandar «mira este trozo» por
+ * WhatsApp, que Google pueda ofrecer los saltos a secciones dentro del
+ * resultado, y que el `scroll-margin-top` del CSS deje el título a la vista en
+ * vez de pegado al borde de arriba.
+ *
+ * Dos secciones con el mismo título darían el mismo identificador y el enlace
+ * llevaría siempre a la primera: a la segunda se le pone `-2`.
+ */
+export function conAnclas(html: string): string {
+  const usados = new Map<string, number>();
+  return html.replace(/<h2>([\s\S]*?)<\/h2>/g, (_o, dentro: string) => {
+    const limpio = dentro.replace(/<[^>]+>/g, "").trim();
+    const raiz = anclaDe(limpio) || "seccion";
+    const n = (usados.get(raiz) ?? 0) + 1;
+    usados.set(raiz, n);
+    const id = n === 1 ? raiz : `${raiz}-${n}`;
+    return `<h2 id="${id}">${dentro}</h2>`;
+  });
 }
 
 /**

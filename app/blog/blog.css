@@ -43,6 +43,9 @@
   padding: 3px 10px; letter-spacing: .06em;
 }
 .landing .blog-datos .sep { color: var(--borde-fuerte); }
+/* Cuánto va a tardar es de lo primero que se mira antes de decidir si empiezas,
+   así que no puede estar tan apagado como la fecha. */
+.landing .blog-datos .minutos { color: var(--texto-2); font-weight: 700; }
 
 /* ── El artículo ────────────────────────────────────────────────────────── */
 
@@ -52,6 +55,25 @@
 .landing .art .entradilla {
   font-size: clamp(18px, 2.2vw, 21px); line-height: 1.55; color: var(--texto-2);
   margin-top: 18px; border-left: 3px solid var(--acento); padding-left: 18px;
+}
+
+/* ── Lo que vas a leer ──────────────────────────────────────────────────── */
+
+.landing .resumen {
+  margin: 34px 0 6px; padding: 22px 26px;
+  background: var(--acento-suave); border: 1px solid var(--acento-borde);
+  border-radius: var(--radio-t);
+}
+.landing .resumen-tit {
+  margin: 0 0 12px; font-size: 12px; font-weight: 700;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--acento-texto);
+}
+.landing .resumen ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 9px; }
+/* Punto en absoluto, nunca flex: dentro del <li> tiene que caber lo que sea. */
+.landing .resumen li { position: relative; padding-left: 24px; font-size: 16px; line-height: 1.6; color: var(--texto); }
+.landing .resumen li::before {
+  content: ""; position: absolute; left: 3px; top: .58em;
+  width: 7px; height: 7px; border-radius: 50%; background: var(--acento-anillo);
 }
 
 .landing .prosa { padding: 0 0 40px; font-size: 17.5px; line-height: 1.75; color: var(--texto-2); }
@@ -118,6 +140,27 @@
 }
 .landing .art-cta h2 { font: 700 clamp(21px, 3vw, 29px)/1.15 var(--sans); letter-spacing: -.025em; color: #fff; max-width: 20ch; margin: 0 auto; }
 .landing .art-cta p { color: var(--tinta-txt2); margin: 12px auto 22px; max-width: 46ch; font-size: 16px; }
+
+/* ── Sigue leyendo ──────────────────────────────────────────────────────── */
+
+.landing .sigue { border-top: 1px solid var(--borde); padding-top: 34px; }
+.landing .sigue h2 { font: 700 20px var(--sans); letter-spacing: -.02em; margin-bottom: 18px; }
+.landing .sigue-lista { display: grid; gap: 12px; }
+.landing .sigue-item {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center; gap: 14px;
+  padding: 16px 18px; background: var(--superficie);
+  border: 1px solid var(--borde); border-radius: var(--radio-t);
+  transition: border-color .2s, transform .2s;
+}
+.landing .sigue-item:hover { border-color: var(--acento-anillo); transform: translateX(3px); }
+.landing .sigue-item .tema {
+  font-size: 11px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
+  color: var(--acento-texto); background: var(--acento-suave);
+  border: 1px solid var(--acento-borde); border-radius: var(--radio-full); padding: 3px 10px;
+}
+.landing .sigue-tit { font-weight: 600; color: var(--texto); font-size: 16.5px; }
+.landing .sigue-min { font-size: 12px; color: var(--texto-3); white-space: nowrap; }
 
 .landing .volver { display: inline-block; margin: 26px 0 0; font-size: 14.5px; color: var(--texto-2); }
 .landing .volver:hover { color: var(--acento-texto); }

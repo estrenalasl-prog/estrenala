@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import "../../_landing/landing.css";
 import "../blog.css";
 import { Marco } from "../Marco";
-import { articuloPorSlug, rutaArticulo, RUTA_BLOG } from "@/src/blog-estrenala/indice";
+import { articuloPorSlug, otrosArticulos, rutaArticulo, RUTA_BLOG } from "@/src/blog-estrenala/indice";
 import { cuerpoAHtml, datosEstructurados, rutaPortada } from "@/src/blog-estrenala/render";
 import { fechaLarga, minutosDeLectura } from "@/src/blog-estrenala/tipos";
 import { urlPlataforma } from "@/src/config/sitio";
@@ -42,6 +42,7 @@ export default async function Articulo({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const a = articuloPorSlug(slug);
   if (!a) notFound();
+  const otros = otrosArticulos(a.slug);
 
   return (
     <Marco>
@@ -59,7 +60,7 @@ export default async function Articulo({ params }: { params: Promise<{ slug: str
               <span className="tema">{a.tema}</span>
               <time dateTime={a.fecha}>{fechaLarga(a.fecha)}</time>
               <span className="sep">·</span>
-              <span>{minutosDeLectura(a.cuerpo)} min de lectura</span>
+              <span className="minutos">{minutosDeLectura(a.cuerpo)} min de lectura</span>
             </div>
             <h1>{a.titulo}</h1>
             <p className="entradilla">{a.entradilla}</p>
@@ -67,6 +68,16 @@ export default async function Articulo({ params }: { params: Promise<{ slug: str
         </header>
 
         <div className="contenedor art-col">
+          {/* Qué se lleva quien lo lea. Quien llega de una búsqueda decide en
+              cinco segundos si se queda, y el titular le dice de qué va pero no
+              si le sirve. */}
+          {a.resumen.length > 0 && (
+            <aside className="resumen" aria-label="Lo que vas a leer">
+              <p className="resumen-tit">Lo que vas a leer</p>
+              <ul>{a.resumen.map((r) => <li key={r}>{r}</li>)}</ul>
+            </aside>
+          )}
+
           {/* El contenido es nuestro y está en el repositorio: no hay entrada de
               usuario por ningún lado. */}
           <div className="prosa" dangerouslySetInnerHTML={{ __html: cuerpoAHtml(a.cuerpo) }} />
@@ -90,6 +101,24 @@ export default async function Articulo({ params }: { params: Promise<{ slug: str
             <p>Sube el .zip y ponle dirección gratis. Se tarda menos que en leer esto.</p>
             <a className="btn btn-primario" href="/registro">Publicar mi web</a>
           </aside>
+
+          {/* Enlaces entre artículos: sin ellos cada uno es una isla, Google
+              reparte peor la autoridad y quien acaba de leer no tiene a dónde
+              ir. Con un solo artículo no se pinta nada. */}
+          {otros.length > 0 && (
+            <section className="sigue">
+              <h2>Sigue leyendo</h2>
+              <div className="sigue-lista">
+                {otros.map((o) => (
+                  <a className="sigue-item" key={o.slug} href={rutaArticulo(o.slug)}>
+                    <span className="tema">{o.tema}</span>
+                    <span className="sigue-tit">{o.titulo}</span>
+                    <span className="sigue-min">{minutosDeLectura(o.cuerpo)} min</span>
+                  </a>
+                ))}
+              </div>
+            </section>
+          )}
 
           <a className="volver" href={RUTA_BLOG}>← Todos los artículos</a>
         </div>

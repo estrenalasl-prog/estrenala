@@ -2,7 +2,8 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { ARTICULOS, articuloPorSlug, rutaArticulo, RUTA_BLOG } from "@/src/blog-estrenala/indice";
-import { cuerpoAHtml, datosEstructurados, rutaPortada } from "@/src/blog-estrenala/render";
+import { anclaDe, conAnclas, cuerpoAHtml, datosEstructurados, rutaPortada } from "@/src/blog-estrenala/render";
+import { otrosArticulos } from "@/src/blog-estrenala/indice";
 import { svgPortada } from "@/src/blog-estrenala/portada";
 import { FIGURAS, insertarFiguras } from "@/src/blog-estrenala/figuras";
 import { fechaLarga, minutosDeLectura } from "@/src/blog-estrenala/tipos";
@@ -93,6 +94,73 @@ describe("el cuerpo en HTML", () => {
       const envueltas = (html.match(/<div class="tabla-scroll"><table>/g) ?? []).length;
       expect(envueltas, `${a.slug}: hay tablas sin envolver`).toBe(abiertas);
     }
+  });
+});
+
+describe("lo que vas a leer", () => {
+  it("todos los artículos lo traen, y son frases, no titulares", () => {
+    for (const a of ARTICULOS) {
+      expect(a.resumen.length, `${a.slug}: sin resumen`).toBeGreaterThanOrEqual(2);
+      expect(a.resumen.length, `${a.slug}: demasiados puntos`).toBeLessThanOrEqual(4);
+      for (const r of a.resumen) {
+        expect(r.length, `${a.slug}: «${r}» es demasiado corto`).toBeGreaterThan(35);
+        expect(r.endsWith("."), `${a.slug}: «${r}» sin punto final`).toBe(true);
+      }
+    }
+  });
+
+  /** Si repite la entradilla no aporta nada: una engancha, el otro informa. */
+  it("no es una copia de la entradilla", () => {
+    for (const a of ARTICULOS) {
+      for (const r of a.resumen) expect(a.entradilla).not.toContain(r);
+    }
+  });
+});
+
+describe("los enlaces a una sección", () => {
+  it("quita acentos y eñes, que al copiar el enlace salen ilegibles", () => {
+    expect(anclaDe("La parte que de verdad se atraganta: el dominio"))
+      .toBe("la-parte-que-de-verdad-se-atraganta-el-dominio");
+    expect(anclaDe("Año español ¿qué?")).toBe("ano-espanol-que");
+  });
+
+  it("cada <h2> del artículo se puede enlazar", () => {
+    for (const a of ARTICULOS) {
+      const html = cuerpoAHtml(a.cuerpo);
+      const sinAncla = [...html.matchAll(/<h2(?![^>]*\bid=)/g)];
+      expect(sinAncla.length, `${a.slug}: hay <h2> sin id`).toBe(0);
+      expect((html.match(/<h2 id="/g) ?? []).length, `${a.slug}: ningún h2`).toBeGreaterThan(2);
+    }
+  });
+
+  it("dos títulos iguales no comparten identificador", () => {
+    const html = conAnclas("<h2>Igual</h2><p>x</p><h2>Igual</h2>");
+    expect(html).toContain('<h2 id="igual">');
+    expect(html).toContain('<h2 id="igual-2">');
+  });
+
+  it("un título solo de símbolos no deja el id vacío", () => {
+    expect(conAnclas("<h2>¿?¡!</h2>")).toContain('id="seccion"');
+  });
+
+  it("el marcado de dentro del título no se pierde", () => {
+    expect(conAnclas("<h2>Con <em>énfasis</em></h2>")).toContain("<em>énfasis</em>");
+  });
+});
+
+describe("los enlaces entre artículos", () => {
+  it("un artículo nunca se enlaza a sí mismo", () => {
+    for (const a of ARTICULOS) {
+      expect(otrosArticulos(a.slug).map((o) => o.slug)).not.toContain(a.slug);
+    }
+  });
+
+  it("con un solo artículo no se inventa una sección vacía", () => {
+    if (ARTICULOS.length === 1) expect(otrosArticulos(ARTICULOS[0].slug)).toEqual([]);
+  });
+
+  it("no ofrece más de los que caben", () => {
+    expect(otrosArticulos("nada", 2).length).toBeLessThanOrEqual(2);
   });
 });
 
@@ -250,10 +318,17 @@ describe("el blog está donde Google puede verlo", () => {
   });
 
   /**
-   * Sin esto el blog no existe para nadie: el middleware manda al 307 de /login
-   * todo lo que no esté en su lista, y un artículo que redirige al login no se
-   * indexa ni se lee.
+   * Una página a la que no apunta NADIE es huérfana: Google llega solo por el
+   * sitemap y no le pasa nada de la autoridad de la portada, que es la página
+   * fuerte del sitio. El blog estuvo así desde que se creó hasta el 09/08 — el
+   * `#blog` del pie es un ancla a la sección de producto, no al blog.
    */
+  it("la portada enlaza al blog de verdad, no al ancla de la sección", () => {
+    const src = readFileSync(path.resolve(process.cwd(), "app/_landing/Landing.tsx"), "utf8");
+    expect(src, "la portada no enlaza a /blog: sería una página huérfana")
+      .toMatch(/href="\/blog"/);
+  });
+
   it("el middleware deja pasar /blog y lo que cuelga de él", () => {
     const src = readFileSync(path.resolve(process.cwd(), "middleware.ts"), "utf8");
     const publicas = src.match(/const RUTAS_PUBLICAS = \[([\s\S]*?)\];/)?.[1];
