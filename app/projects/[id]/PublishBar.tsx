@@ -142,7 +142,16 @@ export function PublishBar({
   const [confirmando, setConfirmando] = useState(false);
   const [confirmandoDom, setConfirmandoDom] = useState(false);
   const [ocupado, setOcupado] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  /**
+   * El fallo se guarda junto al sitio donde hay que enseñarlo.
+   *
+   * Publicar se hace desde fuera del desplegable y la dirección desde dentro.
+   * Con un único hueco de error había que elegir, y el elegido —fuera— dejaba
+   * los de la dirección por debajo de «Despublicar la web»: al conectar un
+   * dominio, el mensaje aparecía fuera de la pantalla y parecía que el botón no
+   * hacía nada. Costó una hora el 2026-08-05.
+   */
+  const [error, setError] = useState<{ texto: string; en: "publicar" | "direccion" } | null>(null);
   const [copiado, setCopiado] = useState(false);
   const [txt, setTxt] = useState<RegistroTxt | null>(null);
   const [diagnostico, setDiagnostico] = useState<Veredicto | null>(null);
@@ -176,7 +185,11 @@ export function PublishBar({
     try {
       const res = await fetch(`/api/projects/${projectId}/publish`, { method: metodo });
       const d = (await res.json().catch(() => ({}))) as { error?: string };
-      if (!res.ok) { setError(d.error ?? t.errores.generico); setConfirmando(false); return; }
+      // Publicar es el botón de arriba; despublicar vive dentro del desplegable.
+      if (!res.ok) {
+        setError({ texto: d.error ?? t.errores.generico, en: metodo === "POST" ? "publicar" : "direccion" });
+        setConfirmando(false); return;
+      }
       setConfirmando(false);
       router.refresh();
     } finally {
@@ -202,7 +215,7 @@ export function PublishBar({
         // fabricado algo de por medio (un proxy que cortó por tiempo, una pasarela
         // caída). Sale el código, que es lo único que distingue un caso del otro.
         // Un «Algo ha fallado» a secas no se puede ni contar por teléfono.
-        setError(d.error ?? `${t.errores.generico} (${res.status})`);
+        setError({ texto: d.error ?? `${t.errores.generico} (${res.status})`, en: "direccion" });
         // Solo llega cuando falla la comprobación de propiedad del dominio.
         if (d.txt) setTxt(d.txt);
         return false;
@@ -355,6 +368,30 @@ export function PublishBar({
             )}
           </div>
 
+          {/* Pegado al grupo del dominio, que es el botón que falla de verdad
+              (DNS, plan, servidor). Fuera del desplegable esto caía por debajo
+              de la zona de peligro y no se veía. */}
+          {error?.en === "direccion" && <p className="error-campo" style={{ marginTop: 10 }}>{error.texto}</p>}
+
+          {/* Lo que el DNS dice AHORA MISMO. Sale tanto cuando falla como cuando
+              se conecta bien: se puede haber conectado y seguir faltando el
+              `www`. Es la diferencia entre «no puedo conectarlo» y «esto es lo
+              que le falta y dónde tocarlo». */}
+          <Diagnostico dns={diagnostico} t={t.direccion} />
+
+          {/* Salida para quien tenga el dominio detrás de un proxy (Cloudflare en
+              naranja): ahí el registro A resuelve al proxy y nunca a nosotros, así
+              que hace falta otra forma de demostrar que el dominio es suyo. */}
+          {txt && (
+            <div className="grupo" style={{ marginTop: 10 }}>
+              <p style={{ marginTop: 0 }}>{conFormato(t.direccion.txtIntro)}</p>
+              <div className="bloque-codigo">
+                <div className="linea"><span className="etiqueta-dns">{t.direccion.txtNombre}</span><span>{txt.nombre}</span></div>
+                <div className="linea"><span className="etiqueta-dns">{t.direccion.txtValor}</span><span>{txt.valor}</span></div>
+              </div>
+            </div>
+          )}
+
           <div className="grupo">
             <h4>{t.direccion.googleTitulo}</h4>
             <div className="fila-conf">
@@ -397,26 +434,7 @@ export function PublishBar({
         </div>
       </details>
 
-      {error && <p className="error-campo" style={{ marginTop: 10 }}>{error}</p>}
-
-      {/* Lo que el DNS dice AHORA MISMO. Sale tanto cuando falla como cuando se
-          conecta bien: se puede haber conectado y seguir faltando el `www`. Es
-          la diferencia entre «no puedo conectarlo» y «esto es lo que le falta y
-          dónde tocarlo». */}
-      <Diagnostico dns={diagnostico} t={t.direccion} />
-
-      {/* Salida para quien tenga el dominio detrás de un proxy (Cloudflare en
-          naranja): ahí el registro A resuelve al proxy y nunca a nosotros, así
-          que hace falta otra forma de demostrar que el dominio es suyo. */}
-      {txt && (
-        <div className="grupo" style={{ marginTop: 10 }}>
-          <p style={{ marginTop: 0 }}>{conFormato(t.direccion.txtIntro)}</p>
-          <div className="bloque-codigo">
-            <div className="linea"><span className="etiqueta-dns">{t.direccion.txtNombre}</span><span>{txt.nombre}</span></div>
-            <div className="linea"><span className="etiqueta-dns">{t.direccion.txtValor}</span><span>{txt.valor}</span></div>
-          </div>
-        </div>
-      )}
+      {error?.en === "publicar" && <p className="error-campo" style={{ marginTop: 10 }}>{error.texto}</p>}
     </div>
   );
 }
