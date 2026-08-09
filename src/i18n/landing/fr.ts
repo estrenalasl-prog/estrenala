@@ -228,6 +228,12 @@ export const fr: TextosLanding = {
     nota: "Gratuit pour commencer · sans carte · sans savoir coder",
   },
 
+  noEncontrada: {
+    titulo: "Cette page n'existe pas",
+    texto: "L'adresse est peut-être mal écrite, ou la page n'est plus ici.",
+    boton: "Aller à l'accueil",
+  },
+
   pie: {
     lema: "L'endroit où ton site fait par l'IA sort enfin dans le monde.",
     colProducto: "Produit",

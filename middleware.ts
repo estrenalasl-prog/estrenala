@@ -6,40 +6,12 @@ import {
   PREFIJOS_PUBLICOS, CABECERA_IDIOMA, IDIOMA_POR_DEFECTO, PARAM_IDIOMA,
   cookieIdioma, esIdioma, type Idioma,
 } from "@/src/i18n/idiomas";
+import {
+  RUTAS_PUBLICAS, ARCHIVOS_PUBLICOS, RUTAS_PRIVADAS, RUTA_NO_ENCONTRADA, bajoAlgunPrefijo,
+} from "@/src/config/rutas-plataforma";
 
-// Rutas del panel accesibles sin sesión. Los cron son para disparadores
-// externos (sin cookie): solo hacen lo que el tick del servidor haría igual en
-// <60 s (publicar vencidos / ejecutar pilotos ya configurados por sus dueños)
-// y pueden exigir CRON_SECRET — el candado real está en cada ruta.
-const RUTAS_PUBLICAS = ["/login", "/api/login", "/registro", "/api/registro",
-  "/verificar", "/recuperar", "/restablecer", "/api/auth/recuperar", "/api/auth/restablecer",
-  "/api/auth/google", "/invitacion", "/cambiar-email", "/api/cuenta/email/confirmar",
-  // `/api/health` dice si el proceso vive; `/api/salud` mira además la base de
-  // datos, y la llama el vigilante externo, que no tiene sesión.
-  "/api/health", "/api/salud", "/api/cron/publicar", "/api/cron/piloto", "/brand", "/legal",
-  // El blog de marketing. Va por PREFIJO y no por coincidencia exacta a
-  // propósito: los artículos cuelgan de él (`/blog/loquesea`). Sin esta línea
-  // acabarían en el 307 a /login, o sea que no existirían para Google.
-  "/blog",
-  // Lo llama Stripe (sin cookie); su candado es la firma HMAC del cuerpo.
-  "/api/stripe/webhook"];
-
-// Archivos que Next sirve en la raíz por convención de `app/`. Los piden el
-// navegador y los buscadores SIN sesión, así que van por coincidencia EXACTA
-// (no por prefijo como RUTAS_PUBLICAS: no queremos abrir "/icon.png/loquesea").
-// Sin esto acababan en el 307 a /login y el icono no se veía en la landing.
-// `security.txt` está aquí por lo mismo y con más razón: existe para que alguien
-// de FUERA nos avise de un problema —un banco, un investigador, el equipo de
-// Safe Browsing de Google—, y pedirle sesión a esa gente es cerrarle la puerta
-// justo a quien queremos que llame. Redirigía a /login hasta que se probó.
-// `favicon.ico` está aquí desde que dejó de excluirse en el `matcher` (ver el
-// final del archivo). La plataforma no tiene ninguno —usa `icon.png`—, así que
-// seguirá dando 404; pero un 404 es la respuesta correcta a un archivo que no
-// existe, y un 307 al login por pedir un icono, no.
-const ARCHIVOS_PUBLICOS = new Set([
-  "/robots.txt", "/sitemap.xml", "/icon.png", "/apple-icon.png", "/favicon.ico",
-  "/.well-known/security.txt",
-]);
+// Las listas viven en src/config/rutas-plataforma.ts, con sus porqués, para que
+// un test pueda compararlas contra las páginas que existen de verdad en `app/`.
 
 // La landing en los otros idiomas: /en, /pt, /fr, /it. Sale de la MISMA lista que
 // las rutas (ver src/i18n/idiomas.ts) para que no puedan discrepar: un idioma que
@@ -150,7 +122,7 @@ export async function middleware(req: NextRequest) {
     return res;
   }
   if (ARCHIVOS_PUBLICOS.has(pathname)) return sellar(NextResponse.next());
-  if (RUTAS_PUBLICAS.some((r) => pathname === r || pathname.startsWith(r + "/"))) {
+  if (bajoAlgunPrefijo(pathname, RUTAS_PUBLICAS)) {
     // Aquí caen los enlaces de los correos (/verificar, /restablecer,
     // /invitacion, /cambiar-email), que traen su idioma en la URL porque un
     // correo se abre donde le da la gana y allí no hay ninguna cookie nuestra.
@@ -177,6 +149,28 @@ export async function middleware(req: NextRequest) {
   ) {
     return sellar(NextResponse.next(), CABECERAS_SEGURIDAD_INCRUSTABLE);
   }
+  // Una dirección que no es de nadie no es una puerta cerrada: es una dirección
+  // que no lleva a ninguna parte. Mandarla al login hacía que una letra de más
+  // en la URL —o un enlace mal copiado— pareciera que la web entera es privada.
+  //
+  // Va ANTES de mirar la sesión para que la respuesta sea la misma con cuenta y
+  // sin ella: una dirección inventada no existe más por haber entrado.
+  //
+  // Sigue sin abrirse nada. Se reescribe a una página nuestra que solo sabe
+  // decir «esto no existe», así que da igual si la ruta pedida existía. Y si
+  // algún día se añade una página con candado y se olvida en RUTAS_PRIVADAS,
+  // cae por aquí: tampoco se sirve. Las dos ramas niegan; esto solo elige qué
+  // negativa se devuelve.
+  if (!bajoAlgunPrefijo(pathname, RUTAS_PRIVADAS)) {
+    const destino = req.nextUrl.clone();
+    destino.pathname = RUTA_NO_ENCONTRADA;
+    destino.search = "";
+    // El 404 lo pone la reescritura: la página de destino no puede, y un 200
+    // diciendo «no existe» es justo lo que hace que Google indexe direcciones
+    // que no llevan a ninguna parte.
+    return sellar(NextResponse.rewrite(destino, { status: 404 }));
+  }
+
   const secret = process.env.SESSION_SECRET;
   const cookie = req.cookies.get(SESSION_COOKIE)?.value;
   const sesion = secret && cookie ? await verificarSesion(secret, cookie, Date.now()) : null;
@@ -185,6 +179,7 @@ export async function middleware(req: NextRequest) {
   if (pathname.startsWith("/api/")) {
     return sellar(NextResponse.json({ error: "No autorizado" }, { status: 401 }));
   }
+
   const url = req.nextUrl.clone();
   url.pathname = "/login";
   url.search = "";

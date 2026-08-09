@@ -9,6 +9,7 @@ import { FIGURAS, insertarFiguras } from "@/src/blog-estrenala/figuras";
 import { fechaLarga, minutosDeLectura } from "@/src/blog-estrenala/tipos";
 import { sitemapPlataforma } from "@/src/config/sitemap-plataforma";
 import { ZONAS_PRIVADAS } from "@/src/config/robots-plataforma";
+import { RUTAS_PUBLICAS, bajoAlgunPrefijo } from "@/src/config/rutas-plataforma";
 
 const BASE = "https://estrenala.com";
 
@@ -374,10 +375,14 @@ describe("el blog está donde Google puede verlo", () => {
       .toMatch(/href="\/blog"/);
   });
 
+  // Antes esto leía middleware.ts y buscaba `"/blog"` con una expresión regular.
+  // Al mudar la lista a su propio módulo, el regex dejó de encontrar nada y el
+  // test se cayó — que es lo que tenía que pasar, pero por el motivo equivocado:
+  // no comprobaba el comportamiento, comprobaba unas letras en un archivo.
   it("el middleware deja pasar /blog y lo que cuelga de él", () => {
-    const src = readFileSync(path.resolve(process.cwd(), "middleware.ts"), "utf8");
-    const publicas = src.match(/const RUTAS_PUBLICAS = \[([\s\S]*?)\];/)?.[1];
-    expect(publicas, "no se encuentra RUTAS_PUBLICAS").toBeTruthy();
-    expect(publicas, "falta /blog: los artículos acabarían en el login").toContain('"/blog"');
+    expect(bajoAlgunPrefijo(RUTA_BLOG, RUTAS_PUBLICAS), "el índice del blog acabaría en el login").toBe(true);
+    for (const a of ARTICULOS) {
+      expect(bajoAlgunPrefijo(rutaArticulo(a.slug), RUTAS_PUBLICAS), a.slug).toBe(true);
+    }
   });
 });

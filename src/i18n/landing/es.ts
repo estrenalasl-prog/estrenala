@@ -234,6 +234,16 @@ export const es = {
     nota: "Gratis para empezar · sin tarjeta · sin saber programar",
   },
 
+  // La 404 de la propia plataforma. Hasta hoy no había ninguna: una dirección
+  // mal escrita mandaba al login, que se lee como «esto es privado», y las que
+  // sí llegaban al 404 veían la pantalla en blanco y negro que trae Next de
+  // fábrica, en inglés y sin salida.
+  noEncontrada: {
+    titulo: "Esta página no existe",
+    texto: "Puede que la dirección esté mal escrita, o que la página ya no esté aquí.",
+    boton: "Ir a la portada",
+  },
+
   pie: {
     lema: "El sitio donde tu web hecha con IA por fin sale al mundo.",
     colProducto: "Producto",

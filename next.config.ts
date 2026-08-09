@@ -21,6 +21,8 @@ const nextConfig: NextConfig = {
     root: process.cwd(),
   },
 
+
+
   // La barra final la decidimos NOSOTROS, no Next.
   //
   // Next normaliza siempre igual (`/blog/` → 308 → `/blog`), y para las webs de

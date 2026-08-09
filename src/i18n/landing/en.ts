@@ -228,6 +228,12 @@ export const en: TextosLanding = {
     nota: "Free to start · no card · no coding",
   },
 
+  noEncontrada: {
+    titulo: "This page doesn't exist",
+    texto: "The address may be misspelled, or the page may no longer be here.",
+    boton: "Go to the home page",
+  },
+
   pie: {
     lema: "Where your AI-built website finally goes out into the world.",
     colProducto: "Product",

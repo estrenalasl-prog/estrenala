@@ -227,6 +227,12 @@ export const pt: TextosLanding = {
     nota: "Grátis para começar · sem cartão · sem saber programar",
   },
 
+  noEncontrada: {
+    titulo: "Esta página não existe",
+    texto: "Pode ser que o endereço esteja mal escrito, ou que a página já não esteja aqui.",
+    boton: "Ir para a página inicial",
+  },
+
   pie: {
     lema: "O sítio onde o teu site feito com IA sai finalmente para o mundo.",
     colProducto: "Produto",
