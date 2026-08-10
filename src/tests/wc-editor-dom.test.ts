@@ -721,3 +721,72 @@ describe("wc-editor.js · el recuadro de «esto se puede tocar»", () => {
     expect(m.puntos.map((p) => !!p.li.style.outline)).toEqual([false, false, true]);
   });
 });
+
+/**
+ * Sebas, el 10/08, después de que le contara qué se perdería al juntar un texto
+ * con un enlace o una palabra con estilo propio: «¿podría salir un mensaje de
+ * alerta tipo "si cambias eso perderás…"?».
+ *
+ * Mejor que avisar es que no pase. Y quedaba una puerta abierta, anterior a lo
+ * de juntar: un párrafo cuyo contenido es `<a class="btn">` o
+ * `<strong class="…">` se podía escribir ENTERO, y al guardar el servidor
+ * reescribe el formato pelado — la clase se perdía sin que nadie lo viera.
+ *
+ * Ahora en el contenedor no se escribe: se escribe en el trozo de dentro, que se
+ * guarda sin tocar sus atributos. El texto sigue siendo editable; lo que cambia
+ * es a qué nivel.
+ */
+describe("wc-editor.js · no se escribe donde escribir rompe", () => {
+  function parrafoCon(hijo: string, attrs: Record<string, string>) {
+    const ctx = montar();
+    const p = crearNodo("p");
+    p.setAttribute("data-wc-id", "1");
+    p.textContent = "Ver la oferta";
+    const dentro = crearNodo(hijo);
+    dentro.setAttribute("data-wc-id", "2");
+    dentro.textContent = "Ver la oferta";
+    for (const [n, v] of Object.entries(attrs)) dentro.setAttribute(n, v);
+    p.appendChild(dentro);
+    const pinchar = (n: Nodo) => { for (const f of ctx.oyentesDoc["click"] ?? []) f({ target: n }); };
+    return { ...ctx, p, dentro, pinchar };
+  }
+
+  it("un párrafo con una negrita con clase propia no se escribe entero", () => {
+    const m = parrafoCon("strong", { class: "text-brand" });
+    m.pinchar(m.p);
+    expect(m.p.getAttribute("contenteditable")).toBeNull();
+  });
+
+  it("pero la negrita sí, y se guarda sin tocar su clase", () => {
+    const m = parrafoCon("strong", { class: "text-brand" });
+    m.pinchar(m.dentro);
+    expect(m.dentro.getAttribute("contenteditable")).toBe("true");
+    m.dentro.textContent = "Ver la oferta ya";
+    for (const f of m.oyentesDoc["keydown"] ?? []) f({ key: "Enter", target: m.dentro, preventDefault() {} });
+    // `text` y no `richText`: solo viaja el texto, los atributos ni se mencionan.
+    expect(m.mensajes.at(-1)?.op).toMatchObject({ kind: "text", nodeId: 2, value: "Ver la oferta ya" });
+  });
+
+  it("y con un enlace dentro, tampoco", () => {
+    const m = parrafoCon("a", { class: "btn", href: "/oferta" });
+    m.pinchar(m.p);
+    expect(m.p.getAttribute("contenteditable")).toBeNull();
+  });
+
+  // Lo de siempre tiene que seguir funcionando: un texto sin nada dentro, y un
+  // bloque con formato pelado, se escriben tal cual.
+  it("un texto normal se sigue escribiendo", () => {
+    const ctx = montar();
+    const p = crearNodo("p");
+    p.setAttribute("data-wc-id", "1");
+    p.textContent = "Un párrafo cualquiera";
+    for (const f of ctx.oyentesDoc["click"] ?? []) f({ target: p });
+    expect(p.getAttribute("contenteditable")).toBe("true");
+  });
+
+  it("y uno con una negrita pelada, también", () => {
+    const m = parrafoCon("strong", {});
+    m.pinchar(m.dentro);
+    expect(m.p.getAttribute("contenteditable")).toBe("true");
+  });
+});

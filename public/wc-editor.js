@@ -99,6 +99,23 @@
    */
   function esTextoEscribible(el) { return esTextoRico(el) || esTextoJuntable(el); }
 
+  /**
+   * Dónde se puede escribir SIN estropear nada, que no es lo mismo que dónde hay
+   * texto.
+   *
+   * Escribir dentro de un elemento que tiene hijos manda el fragmento entero, y
+   * el servidor lo reescribe dejando el formato pelado. En una hoja de texto eso
+   * da igual (no hay nada dentro) y en un bloque juntable también (dentro solo
+   * hay formato sin estilo propio, que sobrevive tal cual). Pero en un párrafo
+   * cuyo contenido es `<a class="btn">` o `<strong class="…">`, escribir encima
+   * le quitaría la clase y el cambio se vería en la web publicada.
+   *
+   * Ahí no se escribe en el contenedor: se escribe en el trozo de dentro, que se
+   * elige pinchándolo y se guarda sin tocar sus atributos. `esTextoJuntable` ya
+   * dice exactamente eso —incluidas las hojas, que no tienen hijos que perder—.
+   */
+  var seEscribeSinPerder = esTextoJuntable;
+
   // Objetivo editable de un evento: el texto entero al que pertenece lo pinchado
   // (ver arriba), el elemento mismo si no se puede juntar, o el <a> ancestro más
   // cercano con data-wc-id. Las webs reales (hechas con IA) traen <a><svg/></a>,
@@ -980,7 +997,7 @@
     if (marcado && marcado !== el) desmarcar(marcado);
     marcado = el;
     el.style.outline = "2px dashed rgba(196,240,0,.95)"; el.style.outlineOffset = "3px";
-    if (esTextoEscribible(el) || esTextoMixto(el)) el.style.cursor = "text";
+    if (seEscribeSinPerder(el) || esTextoMixto(el)) el.style.cursor = "text";
   }
   function desmarcar(el) {
     if (el === editando) return;
@@ -1058,7 +1075,7 @@
     if (!objetivoClick) return;
     mostrar(objetivoClick); // el click también fija el popover (por si el hover se escapó)
     var mixtoEnBoton = esTextoMixto(objetivoClick) && objetivoClick.closest && !!objetivoClick.closest("button");
-    if ((esTextoEscribible(objetivoClick) || esTextoMixto(objetivoClick)) && !esBoton(objetivoClick) && !mixtoEnBoton && objetivoClick !== editando) {
+    if ((seEscribeSinPerder(objetivoClick) || esTextoMixto(objetivoClick)) && !esBoton(objetivoClick) && !mixtoEnBoton && objetivoClick !== editando) {
       iniciarEdicion(objetivoClick);
     }
   });
