@@ -16,6 +16,7 @@ export type EditOp =
   | { page: string; nodeId: number; kind: "size"; value: number }
   | { page: string; nodeId: number; kind: "margen"; value: number; lado?: LadoMargen }
   | { page: string; nodeId: number; kind: "recuadro"; value: Recuadro }
+  | { page: string; nodeId: number; kind: "fontSize"; value: number }
   | { page: string; nodeId: number; kind: "style"; property: "color"; value: string }
   | { page: string; nodeId: number; kind: "textNode"; index: number; value: string };
 
@@ -31,6 +32,7 @@ export type PageOp =
   | { nodeId: number; kind: "size"; value: number }
   | { nodeId: number; kind: "margen"; value: number; lado?: LadoMargen }
   | { nodeId: number; kind: "recuadro"; value: Recuadro }
+  | { nodeId: number; kind: "fontSize"; value: number }
   | { nodeId: number; kind: "style"; property: "color"; value: string }
   | { nodeId: number; kind: "textNode"; index: number; value: string };
 
@@ -106,6 +108,22 @@ const PROPIEDADES_MARGEN: Record<LadoMargen, string[]> = {
   arriba: ["margin-top"],
   abajo: ["margin-bottom"],
 };
+
+/**
+ * Tamaño de la letra, en píxeles.
+ *
+ * En píxeles y no en un porcentaje porque un porcentaje en CSS es relativo al
+ * PADRE, no a lo que mide el elemento ahora: poner «100%» a un título de 32px
+ * dentro de un cuerpo de 16px lo encogería a la mitad, que es exactamente lo
+ * contrario de lo que ha pedido quien no ha tocado la barra. La barra arranca en
+ * lo que mide de verdad y desde ahí se mueve.
+ *
+ * El coste, que hay que saberlo: si la web usaba un tamaño que se adapta a la
+ * pantalla, esto lo fija. Un título que se achicaba solo en el móvil dejará de
+ * hacerlo.
+ */
+export const FUENTE_MIN = 10;
+export const FUENTE_MAX = 96;
 
 /**
  * Los recuadros.
@@ -195,7 +213,7 @@ function imgHtml(src: string, alt: string): string {
  * mismo nodo producirían dos ediciones del mismo rango y el HTML saldría roto.
  * Se funden en una cadena y se escribe una vez.
  */
-const KINDS_DE_ESTILO = ["style", "align", "textAlign", "size", "margen", "recuadro"] as const;
+const KINDS_DE_ESTILO = ["style", "align", "textAlign", "size", "fontSize", "margen", "recuadro"] as const;
 
 function esOpDeEstilo(op: PageOp): op is Extract<PageOp, { kind: (typeof KINDS_DE_ESTILO)[number] }> {
   return (KINDS_DE_ESTILO as readonly string[]).includes(op.kind);
@@ -297,6 +315,10 @@ export function applyEdits(html: string, ops: PageOp[]): string {
       s = mergeStyleProperty(s, "display", "block");
       s = mergeStyleProperty(s, "width", op.value + "%");
       s = mergeStyleProperty(s, "height", "auto");
+    } else if (op.kind === "fontSize") {
+      // Solo el tamaño. Nada de tocar el interlineado: casi todas las webs lo
+      // llevan sin unidad, o sea proporcional, y ya se estira solo.
+      s = mergeStyleProperty(s, "font-size", op.value + "px");
     } else if (op.kind === "recuadro") {
       for (const prop of PROPIEDADES_RECUADRO) s = quitarStyleProperty(s, prop);
       for (const [prop, valor] of RECUADROS[op.value]) s = mergeStyleProperty(s, prop, valor);

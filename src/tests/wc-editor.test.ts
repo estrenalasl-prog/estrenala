@@ -45,7 +45,7 @@ describe("wc-editor.js", () => {
   // en pantalla, guarda, y al recargar no está.
   it("solo emite tipos de op que el motor sabe aplicar", () => {
     const emitidos = [...FUENTE.matchAll(/kind:\s*"([a-zA-Z]+)"/g)].map((m) => m[1]);
-    const conocidos = ["text", "richText", "href", "src", "insertImage", "align", "textAlign", "size", "margen", "recuadro", "style", "textNode"];
+    const conocidos = ["text", "richText", "href", "src", "insertImage", "align", "textAlign", "size", "fontSize", "margen", "recuadro", "style", "textNode"];
     const desconocidos = [...new Set(emitidos)].filter((k) => !conocidos.includes(k));
     expect(desconocidos, `el motor no conoce: ${desconocidos.join(", ")}`).toEqual([]);
     // Y que de verdad emite algo, no vaya a ser que el regex deje de encontrar nada

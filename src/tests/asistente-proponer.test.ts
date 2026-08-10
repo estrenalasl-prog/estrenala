@@ -179,3 +179,86 @@ describe("prompt: no aplastar frases repartidas en varios nodos", () => {
     expect(p).toContain("no juntes toda la frase en uno solo");
   });
 });
+
+/**
+ * El asistente sabía cambiar textos, enlaces y color, pero no las herramientas
+ * de diseño que el editor a mano tenía al lado. «Sepáralo un poco» o «mete esto
+ * en un recuadro» —lo más natural que se le puede pedir a alguien que está
+ * viendo esos botones— no se podía hacer hablando.
+ */
+describe("el asistente y las herramientas de diseño", () => {
+  const HTML = `<h2>Un título</h2><p>Un párrafo cualquiera.</p>`;
+  const interpretar = (cambios: { nodeId: number; kind: string; value: string }[]) =>
+    interpretarPropuesta("index.html", HTML, { cambios });
+
+  it("entiende las cinco nuevas", () => {
+    const ops = interpretar([
+      { nodeId: 0, kind: "textAlign", value: "centro" },
+      { nodeId: 0, kind: "fontSize", value: "40" },
+      { nodeId: 1, kind: "margenArriba", value: "32" },
+      { nodeId: 1, kind: "margenAbajo", value: "8" },
+      { nodeId: 1, kind: "recuadro", value: "suave" },
+    ]);
+    expect(ops).toEqual([
+      { page: "index.html", nodeId: 0, kind: "textAlign", value: "centro" },
+      { page: "index.html", nodeId: 0, kind: "fontSize", value: 40 },
+      { page: "index.html", nodeId: 1, kind: "margen", value: 32, lado: "arriba" },
+      { page: "index.html", nodeId: 1, kind: "margen", value: 8, lado: "abajo" },
+      { page: "index.html", nodeId: 1, kind: "recuadro", value: "suave" },
+    ]);
+  });
+
+  // El modelo manda texto siempre. Un «34px» es lo que va a escribir la mitad de
+  // las veces, y descartarlo por la unidad sería tirar un cambio bueno.
+  it("acepta el número aunque venga con «px» detrás", () => {
+    expect(interpretar([{ nodeId: 0, kind: "fontSize", value: " 34px " }])[0])
+      .toMatchObject({ kind: "fontSize", value: 34 });
+  });
+
+  /**
+   * EL punto de que el asistente pase por la misma puerta que el editor a mano:
+   * lo que el modelo se invente no llega a la página de nadie. Y un cambio malo
+   * no se lleva por delante a los buenos del mismo lote.
+   */
+  it("lo que se inventa el modelo se cae, y el resto del lote sobrevive", () => {
+    const ops = interpretar([
+      { nodeId: 0, kind: "fontSize", value: "400" },          // fuera de rango
+      { nodeId: 0, kind: "fontSize", value: "grande" },        // no es un número
+      { nodeId: 0, kind: "textAlign", value: "justificado" },  // no existe
+      { nodeId: 0, kind: "textAlign", value: "center" },       // en inglés: tampoco
+      { nodeId: 0, kind: "recuadro", value: "azul" },          // no existe
+      { nodeId: 1, kind: "margenArriba", value: "-40" },       // negativo
+      { nodeId: 1, kind: "recuadro", value: "borde" },         // este sí
+    ]);
+    expect(ops).toEqual([{ page: "index.html", nodeId: 1, kind: "recuadro", value: "borde" }]);
+  });
+
+  // Ni CSS crudo por la puerta de atrás: el modelo manda la intención, igual que
+  // el navegador. Si esto entrara, entraría en el `style` de una web publicada.
+  it("no deja colar CSS en el value", () => {
+    expect(interpretar([
+      { nodeId: 0, kind: "recuadro", value: "padding: 40px; background: url(x)" },
+      { nodeId: 0, kind: "textAlign", value: "center; position: fixed" },
+    ])).toEqual([]);
+  });
+
+  it("el resumen se lee en cristiano, no en CSS", () => {
+    const ops = interpretar([
+      { nodeId: 0, kind: "fontSize", value: "40" },
+      { nodeId: 1, kind: "margenArriba", value: "32" },
+      { nodeId: 1, kind: "recuadro", value: "lateral" },
+    ]);
+    expect(resumenCambios(HTML, ops).map((r) => r.despues))
+      .toEqual(["40 px de letra", "32 px de aire arriba", "barra lateral"]);
+  });
+
+  // El prompt tiene que nombrar cada kind que el intérprete sabe leer: si se
+  // añade uno y no se le cuenta al modelo, no lo usará nunca y nadie se enterará.
+  it("el prompt le cuenta al modelo todas las que sabe interpretar", () => {
+    const prompt = promptAsistente({ instruccion: "x", nombre: "Web", inventario: [] });
+    for (const kind of ["text", "richText", "href", "style", "textAlign", "fontSize",
+      "margenArriba", "margenAbajo", "recuadro"]) {
+      expect(prompt, `el prompt no menciona ${kind}`).toContain(kind);
+    }
+  });
+});

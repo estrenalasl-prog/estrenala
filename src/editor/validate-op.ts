@@ -1,5 +1,5 @@
 import type { EditOp } from "./apply";
-import { enteroEnRango, ANCHO_MIN, ANCHO_MAX, MARGEN_MIN, MARGEN_MAX, RECUADROS } from "./apply";
+import { enteroEnRango, ANCHO_MIN, ANCHO_MAX, MARGEN_MIN, MARGEN_MAX, FUENTE_MIN, FUENTE_MAX, RECUADROS } from "./apply";
 
 export const ALLOWED_IMAGE_EXTS = ["png", "jpg", "jpeg", "gif", "webp", "avif", "svg"] as const;
 
@@ -66,6 +66,8 @@ export function isValidOp(op: EditOp): boolean {
       return enteroEnRango(op.value, MARGEN_MIN, MARGEN_MAX);
     case "size":
       return enteroEnRango(op.value, ANCHO_MIN, ANCHO_MAX);
+    case "fontSize":
+      return enteroEnRango(op.value, FUENTE_MIN, FUENTE_MAX);
     case "align":
     case "textAlign":
       // Se admite la INTENCIÓN, no CSS: el servidor decide los márgenes. Así no

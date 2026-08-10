@@ -192,3 +192,23 @@ describe("isValidOp · las herramientas de bloque", () => {
     expect(isValidOp({ ...base, kind: "margen", value: 500, lado: "arriba" })).toBe(false);
   });
 });
+
+describe("isValidOp · el tamaño de la letra", () => {
+  const base = { page: "index.html", nodeId: 0 };
+
+  it("acepta píxeles enteros dentro del rango", () => {
+    for (const value of [10, 16, 34, 96]) {
+      expect(isValidOp({ ...base, kind: "fontSize", value })).toBe(true);
+    }
+  });
+
+  // Fuera de rango se RECHAZA entera en vez de recortarse: recortar convierte un
+  // error en una sorpresa silenciosa, y esto acaba en el `style` de una página
+  // publicada.
+  it("rechaza lo que no es un entero en rango", () => {
+    for (const value of [9, 97, 0, -20, 16.5, NaN, Infinity]) {
+      expect(isValidOp({ ...base, kind: "fontSize", value }), String(value)).toBe(false);
+    }
+    expect(isValidOp({ ...base, kind: "fontSize", value: "34px" } as never)).toBe(false);
+  });
+});

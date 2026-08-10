@@ -180,6 +180,7 @@ function montar() {
     getComputedStyle: (el: Nodo) => ({
       display: DISPLAY_REAL[el.tagName] ?? "block",
       color: "rgb(20, 21, 9)",
+      fontSize: el.tagName === "H2" ? "32px" : "17px",
       marginTop: "12px",
       marginBottom: "4px",
       textAlign: "start",
@@ -222,7 +223,7 @@ describe("wc-editor.js · el menú se abre de verdad", () => {
   // visible en ninguna parte.
   it("un párrafo trae los controles de bloque enteros", () => {
     const textos = todos(m.menu).map((n) => n.textContent);
-    for (const esperado of ["Alineación del texto", "Aire arriba", "Aire abajo", "Recuadro", "Añadir una imagen"]) {
+    for (const esperado of ["Alineación del texto", "Tamaño de la letra", "Aire arriba", "Aire abajo", "Recuadro", "Añadir una imagen"]) {
       expect(textos, `falta «${esperado}» en el menú`).toContain(esperado);
     }
   });
@@ -372,5 +373,18 @@ describe("wc-editor.js · los bordes de a qué bloque se sube", () => {
   it("dentro de una tabla no se sube a nada", () => {
     const m = abrirEn(["div", "td", "span"]);
     expect(todos(m.menu).map((n) => n.textContent)).not.toContain("Recuadro");
+  });
+});
+
+describe("wc-editor.js · el tamaño de la letra", () => {
+  // Arranca en lo que MIDE, no en un valor de fábrica. Si empezara en 16 sobre
+  // un título de 32, el primer arrastre lo encogería a la mitad sin que nadie lo
+  // haya pedido — el mismo fallo que ya tuvo el ancho de las imágenes.
+  it("la barra arranca en el tamaño que ya tiene el elemento", () => {
+    const titulo = abrirMenu("h2");
+    expect(todos(titulo.menu).filter((n) => n.type === "number").map((n) => n.value)).toContain("32");
+
+    const parrafo = abrirMenu("p");
+    expect(todos(parrafo.menu).filter((n) => n.type === "number").map((n) => n.value)).toContain("17");
   });
 });

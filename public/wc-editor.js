@@ -526,6 +526,10 @@
     var v = parseFloat(window.getComputedStyle(el)[prop]);
     return acotar(isNaN(v) ? 0 : v, 0, 120);
   }
+  function tamanoActual(el) {
+    var v = parseFloat(window.getComputedStyle(el).fontSize);
+    return acotar(isNaN(v) ? 16 : v, 10, 96);
+  }
 
   /**
    * Barra deslizante + cajita con el número. Sebas: «queda más profesional», y
@@ -628,6 +632,14 @@
       // en un texto el hueco que se quiere abrir está casi siempre a un lado
       // —un título despegado del párrafo de arriba— y moviendo los dos a la vez
       // hay que aceptar un cambio que no se ha pedido para conseguir el que sí.
+      // Arranca en lo que MIDE ahora, no en un valor de fábrica: si empezara en
+      // otro sitio, el primer arrastre daría un salto que nadie ha pedido. Es la
+      // misma razón por la que el ancho de las imágenes se mide contra su hueco.
+      caja.appendChild(deslizador("Tamaño de la letra", "px", 10, 96, tamanoActual(bloque), function (n, final) {
+        bloque.style.fontSize = n + "px";
+        if (final) { emitir({ page: PAGE, nodeId: idDe(bloque), kind: "fontSize", value: n }); colocarPopSiAbierto(); }
+      }));
+
       caja.appendChild(deslizador("Aire arriba", "px", 0, 120, margenActualLado(bloque, "marginTop"), function (n, final) {
         bloque.style.marginTop = n + "px";
         // Recolocar solo al soltar. Subir el aire de arriba empuja el elemento

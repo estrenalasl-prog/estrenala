@@ -17,6 +17,7 @@ export function toPageOp(op: EditOp): PageOp {
     case "size": return { nodeId: op.nodeId, kind: "size", value: op.value };
     case "margen": return { nodeId: op.nodeId, kind: "margen", value: op.value, lado: op.lado };
     case "recuadro": return { nodeId: op.nodeId, kind: "recuadro", value: op.value };
+    case "fontSize": return { nodeId: op.nodeId, kind: "fontSize", value: op.value };
     case "style": return { nodeId: op.nodeId, kind: "style", property: op.property, value: op.value };
     case "textNode": return { nodeId: op.nodeId, kind: "textNode", index: op.index, value: op.value };
   }

@@ -536,3 +536,33 @@ describe("applyEdits · recuadros", () => {
     expect(r).toContain("text-align: center");
   });
 });
+
+describe("applyEdits · tamaño de la letra", () => {
+  it("escribe font-size en píxeles", () => {
+    expect(applyEdits(`<h2>x</h2>`, [{ nodeId: 0, kind: "fontSize", value: 34 }]))
+      .toContain("font-size: 34px");
+  });
+
+  // Nada de tocar el interlineado: casi todas las webs lo llevan sin unidad, o
+  // sea proporcional, y ya se estira solo. Escribirlo aquí sería pisar una
+  // decisión de diseño que nadie ha pedido cambiar.
+  it("no toca el interlineado", () => {
+    expect(applyEdits(`<h2>x</h2>`, [{ nodeId: 0, kind: "fontSize", value: 34 }]))
+      .not.toContain("line-height");
+  });
+
+  it("convive con el resto del diseño del bloque en un solo atributo", () => {
+    const r = applyEdits(`<p style="color: red">x</p>`, [
+      { nodeId: 0, kind: "fontSize", value: 20 },
+      { nodeId: 0, kind: "textAlign", value: "centro" },
+      { nodeId: 0, kind: "recuadro", value: "suave" },
+      { nodeId: 0, kind: "margen", value: 30, lado: "arriba" },
+    ]);
+    expect([...r.matchAll(/style=/g)]).toHaveLength(1);
+    expect(r).toContain("color: red");
+    expect(r).toContain("font-size: 20px");
+    expect(r).toContain("text-align: center");
+    expect(r).toContain("padding: 18px 20px");
+    expect(r).toContain("margin-top: 30px");
+  });
+});
