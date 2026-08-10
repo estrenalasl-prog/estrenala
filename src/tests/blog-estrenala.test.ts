@@ -10,6 +10,7 @@ import { fechaLarga, minutosDeLectura } from "@/src/blog-estrenala/tipos";
 import { sitemapPlataforma } from "@/src/config/sitemap-plataforma";
 import { ZONAS_PRIVADAS } from "@/src/config/robots-plataforma";
 import { RUTAS_PUBLICAS, bajoAlgunPrefijo } from "@/src/config/rutas-plataforma";
+import { ACTUALIZADO, ACTUALIZADO_ISO } from "@/src/legal/titular";
 
 const BASE = "https://estrenala.com";
 
@@ -384,5 +385,70 @@ describe("el blog está donde Google puede verlo", () => {
     for (const a of ARTICULOS) {
       expect(bajoAlgunPrefijo(rutaArticulo(a.slug), RUTAS_PUBLICAS), a.slug).toBe(true);
     }
+  });
+});
+
+/**
+ * La fecha del sitemap.
+ *
+ * El 07/08 Google leyó el sitemap, el 09/08 nació el blog, y el 10/08 Search
+ * Console seguía diciendo «9 páginas descubiertas» — exactamente las cinco
+ * landings y las cuatro legales, o sea la foto de antes del blog. Sin
+ * `lastmod`, nada le indicaba que hubiera algo nuevo que mirar.
+ *
+ * Lo delicado no es ponerla: es no mentir. Google compara lo que declaras con
+ * lo que se encuentra al pasar, y si no cuadra deja de hacer caso a TODAS las
+ * fechas del sitio. O sea que una fecha inventada en las landings estropearía
+ * las de los artículos, que son las que importan.
+ */
+describe("las fechas del sitemap son datos, no estimaciones", () => {
+  const BASE_S = "https://estrenala.com";
+  const entradas = sitemapPlataforma(BASE_S);
+  const de = (ruta: string) => entradas.find((e) => e.url === `${BASE_S}${ruta}`);
+
+  it("cada artículo declara SU fecha", () => {
+    for (const a of ARTICULOS) {
+      expect(de(rutaArticulo(a.slug))?.lastModified, a.slug).toBe(a.fecha);
+    }
+  });
+
+  // Para que publicar un artículo refresque también el índice: es la página que
+  // los enlaza, y si se queda con fecha vieja Google no vuelve a por los nuevos.
+  it("el índice del blog lleva la fecha del artículo más nuevo", () => {
+    const masNuevo = [...ARTICULOS].map((a) => a.fecha).sort().at(-1);
+    expect(de(RUTA_BLOG)?.lastModified).toBe(masNuevo);
+  });
+
+  it("las legales declaran la misma fecha que enseñan en la página", () => {
+    for (const ruta of ["/legal/aviso-legal", "/legal/privacidad", "/legal/terminos", "/legal/cookies"]) {
+      expect(de(ruta)?.lastModified, ruta).toBe(ACTUALIZADO_ISO);
+    }
+  });
+
+  // La omisión es deliberada y tiene que seguir siéndolo: de la landing no
+  // tenemos ninguna fecha cierta, y «no lo sé» se dice callando.
+  it("las landings NO llevan fecha, porque no tenemos ninguna verdadera", () => {
+    for (const ruta of ["/", "/en", "/pt", "/fr", "/it"]) {
+      expect(de(ruta)?.lastModified, ruta).toBeUndefined();
+    }
+  });
+
+  it("todas las que hay son fechas válidas y ninguna está en el futuro", () => {
+    const hoy = new Date().toISOString().slice(0, 10);
+    for (const e of entradas) {
+      if (e.lastModified === undefined) continue;
+      expect(e.lastModified, e.url).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      // Una fecha futura es el truco clásico para que te rastreen más, y lo que
+      // consigue es que Google deje de fiarse de las del sitio entero.
+      expect(e.lastModified.localeCompare(hoy), `${e.url} está en el futuro`).toBeLessThanOrEqual(0);
+    }
+  });
+
+  // El texto que lee una persona y la fecha que lee Google salen de la misma
+  // constante: tenerlas por separado es garantizar que un día digan cosas
+  // distintas.
+  it("el texto de las legales y su fecha ISO no pueden discrepar", () => {
+    expect(ACTUALIZADO).toBe("26 de julio de 2026");
+    expect(ACTUALIZADO_ISO).toBe("2026-07-26");
   });
 });

@@ -1,5 +1,6 @@
 import { IDIOMAS, rutaDeIdioma, alternativasHreflang } from "@/src/i18n/idiomas";
 import { ARTICULOS, RUTA_BLOG, rutaArticulo } from "@/src/blog-estrenala/indice";
+import { ACTUALIZADO_ISO } from "@/src/legal/titular";
 
 /**
  * El sitemap de LA PLATAFORMA (estrenala.com). No el de las webs de clientes:
@@ -24,10 +25,29 @@ const LEGALES = [
   "/legal/cookies",
 ] as const;
 
+/**
+ * LA FECHA (`lastModified`) solo se pone donde es un DATO, nunca una estimación.
+ *
+ * Aquí no había ninguna, y por una razón buena que sigue en pie: `new Date()` en
+ * cada visita le diría a Google que todo cambia siempre, y una fecha inventada es
+ * peor que ninguna — Google compara lo que declaras con lo que se encuentra al
+ * pasar, y si no cuadra deja de hacerle caso a TODAS las del sitio.
+ *
+ * Lo que ha cambiado es que ahora sí hay fechas de verdad: cada artículo trae la
+ * suya, y las legales publican la suya en la propia página. Esas se declaran. Las
+ * cinco landings siguen sin fecha, porque no tenemos ninguna que sea cierta —y
+ * quedan exactamente como estaban, que es la respuesta honesta a «no lo sé».
+ *
+ * Costó no tenerla: el 07/08 Google leyó el sitemap, el 09/08 nació el blog, y el
+ * 10/08 Search Console seguía diciendo «9 páginas» porque nada le indicaba que
+ * hubiera algo nuevo que mirar.
+ */
 export type EntradaSitemap = {
   url: string;
   changeFrequency: "weekly" | "monthly";
   priority: number;
+  /** `YYYY-MM-DD`. Ausente cuando no hay una fecha real que declarar. */
+  lastModified?: string;
   alternates?: { languages: Record<string, string> };
 };
 
@@ -57,10 +77,13 @@ export function sitemapPlataforma(base: string): EntradaSitemap[] {
   // Las legales van en español para todo el mundo a propósito (solo la de
   // cookies está traducida), así que NO llevan hreflang: declarar alternativas
   // que no existen es peor que no declarar ninguna.
+  // La MISMA fecha que la página enseña al pie («Última actualización: …»). Las
+  // cuatro se revisan a la vez y comparten constante, así que comparten fecha.
   const legales: EntradaSitemap[] = LEGALES.map((ruta) => ({
     url: absoluta(base, ruta),
     changeFrequency: "monthly",
     priority: 0.3,
+    lastModified: ACTUALIZADO_ISO,
   }));
 
   // El blog y sus artículos. Sin hreflang: existen solo en español, y declarar
@@ -70,12 +93,18 @@ export function sitemapPlataforma(base: string): EntradaSitemap[] {
   // Prioridad 0.8: por debajo de la portada, muy por encima de las legales. Es
   // por donde se espera que entre la gente desde Google, que es justo para lo
   // que se escribe.
+  // El índice cambia cuando entra un artículo, así que su fecha es la del más
+  // nuevo. Se calcula, no se coge `ARTICULOS[0]`: el orden es cosa del índice y
+  // el día que se ordene por otra cosa esto se quedaría mintiendo en silencio.
+  const masNuevo = ARTICULOS.reduce((max, a) => (a.fecha > max ? a.fecha : max), ARTICULOS[0].fecha);
+
   const blog: EntradaSitemap[] = [
-    { url: absoluta(base, RUTA_BLOG), changeFrequency: "weekly", priority: 0.7 },
+    { url: absoluta(base, RUTA_BLOG), changeFrequency: "weekly", priority: 0.7, lastModified: masNuevo },
     ...ARTICULOS.map((a) => ({
       url: absoluta(base, rutaArticulo(a.slug)),
       changeFrequency: "monthly" as const,
       priority: 0.8,
+      lastModified: a.fecha,
     })),
   ];
 

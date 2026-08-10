@@ -26,5 +26,20 @@ export function direccionCompleta(): string {
   return `${t.domicilio}, ${t.cp} ${t.localidad} (${t.provincia}), ${t.pais}`;
 }
 
-// Fecha de última actualización que se muestra en los documentos.
-export const ACTUALIZADO = "26 de julio de 2026";
+/**
+ * Fecha de última actualización de los documentos legales.
+ *
+ * La de verdad es la ISO, y el texto que se enseña se deriva de ella. Antes solo
+ * existía el texto («26 de julio de 2026»), y el sitemap necesita una fecha que
+ * una máquina entienda: teniendo las dos por separado, tarde o temprano una se
+ * queda vieja y le estaríamos diciendo cosas distintas a Google y al lector.
+ */
+export const ACTUALIZADO_ISO = "2026-07-26";
+
+const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio",
+  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+
+export const ACTUALIZADO = (() => {
+  const [anio, mes, dia] = ACTUALIZADO_ISO.split("-").map(Number);
+  return `${dia} de ${MESES[mes - 1]} de ${anio}`;
+})();

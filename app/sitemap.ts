@@ -7,7 +7,9 @@ import { sitemapPlataforma } from "@/src/config/sitemap-plataforma";
 export const dynamic = "force-dynamic";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  // Sin `lastModified`: mentir sobre cuándo cambió algo es peor que callarlo, y
-  // poner `new Date()` en cada visita le diría a Google que TODO cambia siempre.
+  // `lastModified` solo donde hay una fecha DE VERDAD (los artículos traen la
+  // suya, las legales publican la suya). Las landings siguen sin ella: mentir
+  // sobre cuándo cambió algo es peor que callarlo, y `new Date()` en cada visita
+  // le diría a Google que TODO cambia siempre. El porqué, en sitemap-plataforma.
   return sitemapPlataforma(urlPlataforma());
 }
