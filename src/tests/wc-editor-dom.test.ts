@@ -55,6 +55,7 @@ interface Nodo {
   getAttribute(n: string): string | null;
   hasAttribute(n: string): boolean;
   removeAttribute(n: string): void;
+  readonly attributes: { name: string }[];
   contains(o: unknown): boolean;
   closest(): Nodo | null;
   focus(): void;
@@ -133,6 +134,10 @@ function crearNodo(tag: string): Nodo {
     getAttribute(n: string) { return Object.hasOwn(nodo._attrs, n) ? nodo._attrs[n] : null; },
     hasAttribute(n: string) { return Object.hasOwn(nodo._attrs, n); },
     removeAttribute(n: string) { delete nodo._attrs[n]; },
+    // Como el `attributes` del navegador: la lista de los que tiene puestos. Se
+    // mira para saber si una negrita lleva estilo propio y por tanto no se puede
+    // fundir con el texto de alrededor.
+    get attributes() { return Object.keys(nodo._attrs).map((name) => ({ name })); },
     contains(o: unknown) { return o === nodo; },
     closest() { return null; },
     focus() {},
@@ -562,5 +567,99 @@ describe("wc-editor.js · dónde se coloca el menú", () => {
   it("y si es más alto que la ventana, arranca arriba del todo", () => {
     const s = colocar({ top: 700, bottom: 740, left: 40, right: 400 }, 900);
     expect(s.top).toBe("8px");
+  });
+});
+
+/**
+ * Sebas, el 10/08: «hay palabras que vienen sueltas… ¿podemos hacer una
+ * herramienta para juntar todo el texto en 1?».
+ *
+ * Lo que veía: un punto de lista que empieza con una palabra en negrita se
+ * partía en dos trozos que se elegían por separado. No lo parte la IA que
+ * escribió la web —ahí es un `<li>` normal—, lo parte el editor: envuelve el
+ * texto suelto en un `<wc-t>` para poder cambiarlo por su cuenta.
+ *
+ * Ahora se juntan. Pero solo CUANDO JUNTARLOS NO PIERDE NADA: al guardar un
+ * texto con formato el servidor lo reescribe dejando las etiquetas peladas, así
+ * que una negrita con `class` propia o un enlace (que tiene dirección) se
+ * quedarían por el camino. En esos casos sigue cada trozo por su cuenta.
+ */
+describe("wc-editor.js · juntar el texto de un bloque", () => {
+  /**
+   * Un punto de lista como los que escribe la IA, ya anotado por la vista
+   * previa: `<li><strong>X</strong><wc-t> resto</wc-t></li>`.
+   */
+  function listaConNegrita(attrsNegrita: Record<string, string> = {}, tagSegundo = "wc-t") {
+    const ctx = montar();
+    const li = crearNodo("li");
+    li.setAttribute("data-wc-id", "3");
+    li.textContent = "Automatización es esencial.";
+
+    const fuerte = crearNodo("strong");
+    fuerte.setAttribute("data-wc-id", "4");
+    fuerte.textContent = "Automatización";
+    for (const [n, v] of Object.entries(attrsNegrita)) fuerte.setAttribute(n, v);
+
+    const resto = crearNodo(tagSegundo);
+    if (tagSegundo === "wc-t") resto.setAttribute("data-wc-tn", "3:0");
+    else resto.setAttribute("data-wc-id", "5");
+    resto.textContent = " es esencial.";
+
+    li.appendChild(fuerte);
+    li.appendChild(resto);
+    return { ...ctx, li, fuerte, resto };
+  }
+
+  /** Sobre qué elemento actúa el menú: se pregunta con el selector de color. */
+  function aQuienApunta(ctx: ReturnType<typeof listaConNegrita>, pinchado: Nodo): number {
+    for (const f of ctx.oyentesDoc["click"] ?? []) f({ target: pinchado });
+    const menu = ctx.cuerpo.children[0];
+    const color = todos(menu).find((n) => n.type === "color");
+    expect(color, "el menú no trae selector de color").toBeTruthy();
+    color!.value = "#ff0000";
+    color!._disparar("input");
+    return ctx.mensajes.at(-1)?.op?.nodeId as number;
+  }
+
+  it("pinchando la negrita se elige el punto entero, no la palabra", () => {
+    const ctx = listaConNegrita();
+    expect(aQuienApunta(ctx, ctx.fuerte)).toBe(3);
+  });
+
+  it("y pinchando el resto de la frase, también", () => {
+    const ctx = listaConNegrita();
+    expect(aQuienApunta(ctx, ctx.resto)).toBe(3);
+  });
+
+  // Aquí juntar SÍ perdería algo: al guardar, el servidor reescribe el formato
+  // sin atributos y la negrita se quedaría sin su clase. Antes que cambiar la
+  // web por detrás, se deja como estaba.
+  it("una negrita con estilo propio NO se junta", () => {
+    const ctx = listaConNegrita({ class: "text-lima" });
+    expect(aQuienApunta(ctx, ctx.fuerte)).toBe(4);
+  });
+
+  // Un enlace tiene dirección propia: hay que poder pincharlo para cambiarla.
+  it("con un enlace dentro, cada trozo sigue por su cuenta", () => {
+    const ctx = listaConNegrita({}, "a");
+    expect(aQuienApunta(ctx, ctx.fuerte)).toBe(4);
+    // Y el enlace se sigue eligiendo a sí mismo.
+    for (const f of ctx.oyentesDoc["click"] ?? []) f({ target: ctx.resto });
+    const textos = todos(ctx.cuerpo.children[0]).map((n) => n.textContent);
+    expect(textos).toContain("Enlace");
+  });
+
+  // El envoltorio solo existe en la vista previa: si viajara en lo que se
+  // guarda, acabaría escrito en la web publicada del cliente.
+  it("lo que se guarda no lleva el envoltorio de la vista previa", () => {
+    const ctx = listaConNegrita();
+    for (const f of ctx.oyentesDoc["click"] ?? []) f({ target: ctx.fuerte });
+    ctx.li.innerHTML = '<strong data-wc-id="4">Automatización</strong><wc-t data-wc-tn="3:0"> ya no es opcional.</wc-t>';
+    for (const f of ctx.oyentesDoc["keydown"] ?? []) f({ key: "Enter", target: ctx.li, preventDefault() {} });
+    expect(ctx.mensajes.at(-1)?.op).toMatchObject({
+      kind: "richText",
+      nodeId: 3,
+      value: '<strong data-wc-id="4">Automatización</strong> ya no es opcional.',
+    });
   });
 });

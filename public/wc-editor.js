@@ -36,18 +36,87 @@
     return !!(el && el.nodeType === 1 && el.tagName.toLowerCase() === "wc-t" && el.hasAttribute("data-wc-tn"));
   }
 
-  // Objetivo editable de un evento: el elemento mismo (hoja de texto, imagen o <a>),
-  // o si no, el <a> ancestro más cercano con data-wc-id. Las webs reales (hechas con
-  // IA) traen <a><svg/></a>, <a><span>…</span></a>: el target del evento es el hijo,
-  // no el enlace — sin esta resolución, iconos y botones-enlace quedan muertos.
+  /**
+   * Un párrafo con una palabra en negrita llega partido en trozos: la negrita
+   * por un lado y el resto de la frase por otro (envuelto en `<wc-t>`). Eso lo
+   * hace el editor para poder cambiar cada trozo por su cuenta, no la IA que
+   * escribió la web —el HTML es un párrafo normal—, pero al usarlo parece que el
+   * texto viniera suelto por palabras. Lo enseñó Sebas el 10/08.
+   *
+   * Estas dos funciones deciden cuándo se pueden juntar. La condición es que
+   * juntarlos NO PIERDA NADA: al guardar un texto con formato, el servidor lo
+   * reescribe dejando solo las etiquetas de formato, sin atributos. Así que solo
+   * se funden las etiquetas de formato PELADAS.
+   *
+   * Fuera quedan a propósito:
+   * - `<a>`: tiene dirección propia, y hay que poder pincharlo para cambiarla.
+   * - cualquier cosa con `class`/`style` propios (`<strong class="text-lima">`):
+   *   al fundirla se quedaría sin su estilo, y el cambio se vería en la web.
+   * En esos casos todo sigue como estaba: cada trozo, por su cuenta.
+   */
+  var FUNDIBLES = ["b", "strong", "i", "em", "u", "br"];
+  function sinEstiloPropio(el) {
+    var attrs = el.attributes || [];
+    for (var i = 0; i < attrs.length; i++) {
+      // `data-wc-id` y `data-wc-tn` los pone el editor: no cuentan.
+      if (attrs[i].name.indexOf("data-wc-") !== 0) return false;
+    }
+    return true;
+  }
+  function soloFormatoFundible(el) {
+    for (var i = 0; i < el.children.length; i++) {
+      var h = el.children[i], t = h.tagName.toLowerCase();
+      // `wc-t` es el envoltorio que pone el propio editor alrededor del texto
+      // suelto: por dentro no hay más que texto, así que es transparente.
+      if (t !== "wc-t" && FUNDIBLES.indexOf(t) === -1) return false;
+      if (!sinEstiloPropio(h)) return false;
+      if (!soloFormatoFundible(h)) return false;
+    }
+    return true;
+  }
+  function esTextoJuntable(el) {
+    if (!tieneId(el)) return false;
+    if (TEXT_TAGS.indexOf(el.tagName.toLowerCase()) === -1) return false;
+    if (el.textContent.trim().length === 0) return false;
+    return soloFormatoFundible(el);
+  }
+  /** El texto ENTERO al que pertenece lo pinchado, o null si no se puede juntar. */
+  function textoEntero(el) {
+    var mejor = null, n = el, saltos = 0;
+    while (n && n.nodeType === 1 && saltos < 6) {
+      // Un enlace, un botón o una imagen se editan por su cuenta: pasado ese
+      // punto ya no es "el mismo texto".
+      if (esEnlace(n) || esBoton(n) || esImagen(n)) break;
+      if (esTextoJuntable(n)) mejor = n;
+      n = n.parentElement; saltos++;
+    }
+    return mejor;
+  }
+  /**
+   * Un texto en el que se puede escribir: o ya lo era de por sí, o es de los que
+   * se juntan enteros. Los dos casos existen porque no se solapan — un párrafo
+   * cuyo único hijo es un enlace con estilo es lo primero pero no lo segundo.
+   */
+  function esTextoEscribible(el) { return esTextoRico(el) || esTextoJuntable(el); }
+
+  // Objetivo editable de un evento: el texto entero al que pertenece lo pinchado
+  // (ver arriba), el elemento mismo si no se puede juntar, o el <a> ancestro más
+  // cercano con data-wc-id. Las webs reales (hechas con IA) traen <a><svg/></a>,
+  // <a><span>…</span></a>: el target del evento es el hijo, no el enlace — sin
+  // esta resolución, iconos y botones-enlace quedan muertos.
   function resolverEditable(el) {
     if (!el || el.nodeType !== 1) return null;
-    if (esTextoMixto(el)) return el;
-    if (esTextoRico(el) || esImagen(el) || esEnlace(el)) return el;
+    if (esImagen(el) || esEnlace(el)) return el;
+    if (esTextoMixto(el) || esTextoRico(el)) return textoEntero(el) || el;
     if (!el.closest) return null;
     var a = el.closest("a[data-wc-id]");
     return a || null;
   }
+
+  // El envoltorio del texto suelto solo existe en la vista previa. El servidor lo
+  // desenvuelve igual al sanear, pero mandándolo ya limpio lo que se guarda es
+  // exactamente lo que se manda, sin depender de eso.
+  function sinEnvoltorios(html) { return html.replace(/<\/?wc-t\b[^>]*>/gi, ""); }
 
   function emitir(op) { window.parent.postMessage({ type: "wc-edit", op: op }, "*"); }
   function idDe(el) { return Number(el.getAttribute("data-wc-id")); }
@@ -688,7 +757,7 @@
   function construir(el) {
     pop.innerHTML = "";
     objetivo = el;
-    var hoja = esTextoRico(el);
+    var hoja = esTextoEscribible(el);
     var enlace = esEnlace(el) ? el : (el.closest ? el.closest("a[data-wc-id]") : null);
 
     if (hoja) {
@@ -896,7 +965,7 @@
   }
 
   // ---------- marcado visual ----------
-  function marcar(el) { el.style.outline = "2px dashed rgba(196,240,0,.95)"; el.style.outlineOffset = "3px"; if (esTextoRico(el) || esTextoMixto(el)) el.style.cursor = "text"; }
+  function marcar(el) { el.style.outline = "2px dashed rgba(196,240,0,.95)"; el.style.outlineOffset = "3px"; if (esTextoEscribible(el) || esTextoMixto(el)) el.style.cursor = "text"; }
   function desmarcar(el) { if (el === editando) return; el.style.outline = ""; el.style.outlineOffset = ""; el.style.cursor = ""; }
 
   // ---------- edición de texto in-situ ----------
@@ -921,7 +990,7 @@
         }
       } else if (el.children.length > 0) {
         // Tiene formato en línea → op rich-text (el servidor la sanea).
-        if (html !== htmlPrevio) emitir({ page: PAGE, nodeId: idDe(el), kind: "richText", value: html });
+        if (html !== htmlPrevio) emitir({ page: PAGE, nodeId: idDe(el), kind: "richText", value: sinEnvoltorios(html) });
       } else if (texto !== valorPrevio) {
         emitir({ page: PAGE, nodeId: idDe(el), kind: "text", value: texto });
       }
@@ -969,7 +1038,7 @@
     if (!objetivoClick) return;
     mostrar(objetivoClick); // el click también fija el popover (por si el hover se escapó)
     var mixtoEnBoton = esTextoMixto(objetivoClick) && objetivoClick.closest && !!objetivoClick.closest("button");
-    if ((esTextoRico(objetivoClick) || esTextoMixto(objetivoClick)) && !esBoton(objetivoClick) && !mixtoEnBoton && objetivoClick !== editando) {
+    if ((esTextoEscribible(objetivoClick) || esTextoMixto(objetivoClick)) && !esBoton(objetivoClick) && !mixtoEnBoton && objetivoClick !== editando) {
       iniciarEdicion(objetivoClick);
     }
   });
