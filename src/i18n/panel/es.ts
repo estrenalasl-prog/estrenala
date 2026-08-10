@@ -424,6 +424,8 @@ export const es = {
       modoEdicion: "Modo edición",
       unCambio: "{n} cambio",
       variosCambios: "{n} cambios",
+      deshacer: "↩ Deshacer",
+      deshacerTitulo: "Deshacer el último cambio, sin tocar los demás",
       descartar: "Descartar",
       guardarCambios: "Guardar cambios",
       expandir: "⤢ Expandir",

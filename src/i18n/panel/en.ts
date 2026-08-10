@@ -395,6 +395,8 @@ export const en: TextosPanel = {
       modoEdicion: "Edit mode",
       unCambio: "{n} change",
       variosCambios: "{n} changes",
+      deshacer: "↩ Undo",
+      deshacerTitulo: "Undo the last change, leaving the rest",
       descartar: "Discard",
       guardarCambios: "Save changes",
       expandir: "⤢ Expand",

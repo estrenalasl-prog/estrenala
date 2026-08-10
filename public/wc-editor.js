@@ -140,8 +140,98 @@
   // exactamente lo que se manda, sin depender de eso.
   function sinEnvoltorios(html) { return html.replace(/<\/?wc-t\b[^>]*>/gi, ""); }
 
-  function emitir(op) { window.parent.postMessage({ type: "wc-edit", op: op }, "*"); }
   function idDe(el) { return Number(el.getAttribute("data-wc-id")); }
+
+  // ---------- deshacer ----------
+  //
+  // Hasta ahora la única vuelta atrás era «Descartar», que tira TODO. Con seis
+  // herramientas de diseño y una que reordena el HTML, eso pesa: si el noveno
+  // cambio sale mal se pierden los nueve, así que no se prueba nada.
+  //
+  // Cómo funciona: quien cambia algo apunta ADEMÁS cómo se devuelve a su sitio.
+  // Se deshace aquí, en el DOM, y no recargando la vista previa: recargar
+  // volvería a numerar la página, y los cambios pendientes que aún no se han
+  // guardado apuntan a los números de ANTES —insertar una imagen los corre—, así
+  // que se guardaría sobre elementos equivocados.
+
+  /**
+   * La misma clave con la que el panel deduplica (`opKey` en PreviewPane.tsx).
+   * Tienen que coincidir: el panel borra de su lista la clave que le diga esta
+   * función, y si dijeran cosas distintas se vería una cosa y se guardaría otra.
+   * Hay un test que compara las dos.
+   */
+  function claveDe(op) {
+    var extra =
+      op.kind === "style" ? op.property
+        : op.kind === "textNode" ? String(op.index)
+        : op.kind === "insertImage" ? op.posicion + "#" + op.value
+        : op.kind === "margen" ? (op.lado || "ambos")
+        : "";
+    return op.page + "#" + op.nodeId + "#" + op.kind + "#" + extra;
+  }
+
+  // Una entrada por clave, como en el panel. Arrastrar una barra manda una sola
+  // op —y cuenta como UN cambio—, así que tiene que deshacerse de una vez; si
+  // aquí hubiera un paso por píxel, el contador y el deshacer no coincidirían.
+  var vueltas = [];
+
+  function apuntarVuelta(clave, volver) {
+    for (var i = 0; i < vueltas.length; i++) {
+      if (vueltas[i].clave !== clave) continue;
+      // Ya estaba. Se conserva la vuelta MÁS ANTIGUA —el estado de antes del
+      // primer cambio, que es a donde hay que volver— pero pasa al final: es lo
+      // último que se ha tocado y por tanto lo primero que se deshace.
+      vueltas.push(vueltas.splice(i, 1)[0]);
+      return;
+    }
+    vueltas.push({ clave: clave, volver: volver });
+  }
+
+  /**
+   * `volver` es obligatorio: sin él el panel contaría un cambio que aquí no se
+   * sabe deshacer, y «Deshacer» se quedaría corto sin decir por qué. Hay un test
+   * que comprueba que ninguna llamada se lo deja.
+   */
+  function emitir(op, volver) {
+    apuntarVuelta(claveDe(op), volver);
+    window.parent.postMessage({ type: "wc-edit", op: op }, "*");
+  }
+
+  /** Cómo devolver a su sitio unas propiedades de estilo en línea. */
+  function volverEstilo(el, props) {
+    var antes = [];
+    for (var i = 0; i < props.length; i++) antes.push([props[i], el.style.getPropertyValue(props[i])]);
+    return function () {
+      for (var j = 0; j < antes.length; j++) {
+        // Cadena vacía significa «no había nada puesto»: se deshace quitándola,
+        // no escribiéndola, para que el elemento vuelva a heredar de su CSS.
+        if (antes[j][1]) el.style.setProperty(antes[j][0], antes[j][1]);
+        else el.style.removeProperty(antes[j][0]);
+      }
+    };
+  }
+  function volverAtributo(el, nombre) {
+    var antes = el.getAttribute(nombre);
+    return function () {
+      if (antes === null) el.removeAttribute(nombre);
+      else el.setAttribute(nombre, antes);
+    };
+  }
+  function volverTexto(el) {
+    var antes = el.textContent;
+    return function () { el.textContent = antes; };
+  }
+  function volverHtml(el, antes) {
+    return function () { el.innerHTML = antes; };
+  }
+  /** Dónde estaba un bloque antes de moverlo: de quién colgaba y delante de quién. */
+  function volverSitio(el) {
+    var padre = el.parentElement, siguiente = el.nextSibling;
+    return function () {
+      if (padre) padre.insertBefore(el, siguiente); // con `null` lo pone al final
+      delete desplazamientos[idDe(el)];             // vuelve a partir de cero
+    };
+  }
 
   // ---------- popover (DOM propio, nunca se guarda) ----------
   var pop = document.createElement("div");
@@ -466,12 +556,13 @@
     b.style.cssText = "flex:1;height:30px;border-radius:9px;border:1px solid #DEDFD6;background:#fff;color:#141509;font-size:12px;font-weight:500;cursor:pointer";
     b.addEventListener("click", function () {
       var m = MARGENES_UI[valor];
+      var volver = volverEstilo(el, ["display", "margin-left", "margin-right"]);
       // display:block es imprescindible: una imagen es en línea por defecto y sin
       // esto los márgenes automáticos no hacen absolutamente nada.
       el.style.display = "block";
       el.style.marginLeft = m[0];
       el.style.marginRight = m[1];
-      emitir({ page: PAGE, nodeId: idDe(el), kind: "align", value: valor });
+      emitir({ page: PAGE, nodeId: idDe(el), kind: "align", value: valor }, volver);
     });
     return b;
   }
@@ -600,8 +691,9 @@
     b.addEventListener("click", function () {
       // Solo `text-align`. Nada de `display:block` como en las imágenes: eso
       // sacaría de su fila a un título que estuviera dentro de una maqueta.
+      var volver = volverEstilo(el, ["text-align"]);
       el.style.textAlign = TEXT_ALIGN_UI[valor];
-      emitir({ page: PAGE, nodeId: idDe(el), kind: "textAlign", value: valor });
+      emitir({ page: PAGE, nodeId: idDe(el), kind: "textAlign", value: valor }, volver);
     });
     return b;
   }
@@ -612,10 +704,11 @@
       // Primero se borran TODAS las propiedades del grupo y luego se escriben las
       // del recuadro elegido. Sin el borrado, cambiar de «con borde» a «barra
       // lateral» dejaría el borde de antes puesto y saldría un marco con barra.
+      var volver = volverEstilo(el, PROPIEDADES_RECUADRO_UI);
       for (var i = 0; i < PROPIEDADES_RECUADRO_UI.length; i++) el.style.removeProperty(PROPIEDADES_RECUADRO_UI[i]);
       var decls = RECUADROS_UI[valor] || [];
       for (var j = 0; j < decls.length; j++) el.style.setProperty(decls[j][0], decls[j][1]);
-      emitir({ page: PAGE, nodeId: idDe(el), kind: "recuadro", value: valor });
+      emitir({ page: PAGE, nodeId: idDe(el), kind: "recuadro", value: valor }, volver);
       colocarPopSiAbierto();
     });
     return b;
@@ -666,12 +759,15 @@
       var lista = hermanosDe(el), pos = lista.indexOf(el), destino = pos + paso;
       if (pos === -1 || destino < 0 || destino >= lista.length) return;
       var padre = el.parentElement;
+      // Se apunta ANTES de moverlo, y de la primera vez: deshacer un bloque que
+      // se ha subido tres veces lo devuelve donde estaba, no un escalón.
+      var volver = volverSitio(el);
       if (paso < 0) padre.insertBefore(el, lista[destino]);
       else padre.insertBefore(el, lista[destino].nextSibling);
 
       var id = idDe(el);
       desplazamientos[id] = (desplazamientos[id] || 0) + paso;
-      emitir({ page: PAGE, nodeId: id, kind: "mover", value: desplazamientos[id] });
+      emitir({ page: PAGE, nodeId: id, kind: "mover", value: desplazamientos[id] }, volver);
 
       el.scrollIntoView({ block: "nearest" });
       // Se reconstruye el menú: el bloque puede haber llegado a un extremo y los
@@ -786,9 +882,14 @@
       var color = document.createElement("input"); color.type = "color";
       color.value = rgbAHex(getComputedStyle(el).color);
       color.style.cssText = "width:30px;height:30px;border:1px solid rgba(20,21,9,.12);border-radius:8px;background:none;padding:0;cursor:pointer";
+      // El selector de color manda un `input` por cada tono que se pasa: la
+      // vuelta se apunta en el primero, antes de tocar nada, y los demás se
+      // deduplican por clave.
+      var volverColor = null;
       color.addEventListener("input", function () {
+        if (!volverColor) volverColor = volverEstilo(el, ["color"]);
         el.style.color = color.value;
-        emitir({ page: PAGE, nodeId: idDe(el), kind: "style", property: "color", value: color.value });
+        emitir({ page: PAGE, nodeId: idDe(el), kind: "style", property: "color", value: color.value }, volverColor);
       });
       pop.appendChild(etiqueta("Color")); pop.appendChild(color);
     }
@@ -831,21 +932,28 @@
       // Arranca en lo que MIDE ahora, no en un valor de fábrica: si empezara en
       // otro sitio, el primer arrastre daría un salto que nadie ha pedido. Es la
       // misma razón por la que el ancho de las imágenes se mide contra su hueco.
+      // La vuelta se apunta en el PRIMER movimiento de la barra, no al soltar:
+      // para entonces el tamaño de antes ya no está en ninguna parte.
+      var volverFuente = null;
       caja.appendChild(deslizador("Tamaño de la letra", "px", 10, 96, tamanoActual(bloque), function (n, final) {
+        if (!volverFuente) volverFuente = volverEstilo(bloque, ["font-size"]);
         bloque.style.fontSize = n + "px";
-        if (final) { emitir({ page: PAGE, nodeId: idDe(bloque), kind: "fontSize", value: n }); colocarPopSiAbierto(); }
+        if (final) { emitir({ page: PAGE, nodeId: idDe(bloque), kind: "fontSize", value: n }, volverFuente); colocarPopSiAbierto(); }
       }));
 
+      var volverArriba = null, volverAbajo = null;
       caja.appendChild(deslizador("Aire arriba", "px", 0, 120, margenActualLado(bloque, "marginTop"), function (n, final) {
+        if (!volverArriba) volverArriba = volverEstilo(bloque, ["margin-top"]);
         bloque.style.marginTop = n + "px";
         // Recolocar solo al soltar. Subir el aire de arriba empuja el elemento
         // hacia abajo y el menú cuelga de él: si se recolocara en cada píxel del
         // arrastre, el menú iría persiguiendo al ratón mientras se arrastra.
-        if (final) { emitir({ page: PAGE, nodeId: idDe(bloque), kind: "margen", value: n, lado: "arriba" }); colocarPopSiAbierto(); }
+        if (final) { emitir({ page: PAGE, nodeId: idDe(bloque), kind: "margen", value: n, lado: "arriba" }, volverArriba); colocarPopSiAbierto(); }
       }));
       caja.appendChild(deslizador("Aire abajo", "px", 0, 120, margenActualLado(bloque, "marginBottom"), function (n, final) {
+        if (!volverAbajo) volverAbajo = volverEstilo(bloque, ["margin-bottom"]);
         bloque.style.marginBottom = n + "px";
-        if (final) { emitir({ page: PAGE, nodeId: idDe(bloque), kind: "margen", value: n, lado: "abajo" }); colocarPopSiAbierto(); }
+        if (final) { emitir({ page: PAGE, nodeId: idDe(bloque), kind: "margen", value: n, lado: "abajo" }, volverAbajo); colocarPopSiAbierto(); }
       }));
 
       // Cuatro y en dos filas: los nombres («Fondo suave», «Barra lateral») no
@@ -866,8 +974,9 @@
       var txt = inputTexto(el.textContent, "Texto del botón");
       var okT = botonOk();
       var aplicarT = function () {
+        var volver = volverTexto(el);
         el.textContent = txt.value;
-        emitir({ page: PAGE, nodeId: idDe(el), kind: "text", value: txt.value });
+        emitir({ page: PAGE, nodeId: idDe(el), kind: "text", value: txt.value }, volver);
       };
       okT.addEventListener("click", aplicarT);
       txt.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); aplicarT(); } });
@@ -880,9 +989,10 @@
       var txtM = inputTexto(el.textContent, "Texto del botón");
       var okM = botonOk();
       var aplicarM = function () {
+        var volver = volverTexto(el);
         el.textContent = txtM.value;
         var tnM = (el.getAttribute("data-wc-tn") || "").split(":");
-        emitir({ page: PAGE, nodeId: Number(tnM[0]), kind: "textNode", index: Number(tnM[1]), value: txtM.value });
+        emitir({ page: PAGE, nodeId: Number(tnM[0]), kind: "textNode", index: Number(tnM[1]), value: txtM.value }, volver);
       };
       okM.addEventListener("click", aplicarM);
       txtM.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); aplicarM(); } });
@@ -894,8 +1004,9 @@
       var ok = botonOk();
       var aplicar = function () {
         var v = inp.value.trim();
+        var volver = volverAtributo(enlace, "href");
         enlace.setAttribute("href", v);
-        emitir({ page: PAGE, nodeId: idDe(enlace), kind: "href", value: v });
+        emitir({ page: PAGE, nodeId: idDe(enlace), kind: "href", value: v }, volver);
       };
       ok.addEventListener("click", aplicar);
       inp.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); aplicar(); } });
@@ -927,20 +1038,24 @@
       // Ancho, en % de su hueco. La barra arranca donde está la imagen AHORA
       // —medida contra su contenedor—, no en un valor de fábrica: si empezara en
       // otro sitio, el primer arrastre daría un salto que nadie ha pedido.
+      var volverAncho = null;
       pop.appendChild(deslizador("Tamaño", "%", 10, 100, anchoActual(el), function (n, final) {
+        if (!volverAncho) volverAncho = volverEstilo(el, ["display", "width", "height"]);
         el.style.display = "block";
         el.style.width = n + "%";
         el.style.height = "auto"; // sin esto, cambiar solo el ancho deforma la foto
-        if (final) emitir({ page: PAGE, nodeId: idDe(el), kind: "size", value: n });
+        if (final) emitir({ page: PAGE, nodeId: idDe(el), kind: "size", value: n }, volverAncho);
       }));
 
       // Aire por arriba y por abajo. Solo vertical: los lados son de la
       // alineación, y si esto también los tocara, subirlo descentraría la foto
       // que se acaba de centrar.
+      var volverAire = null;
       pop.appendChild(deslizador("Margen arriba y abajo", "px", 0, 120, margenActual(el), function (n, final) {
+        if (!volverAire) volverAire = volverEstilo(el, ["margin-top", "margin-bottom"]);
         el.style.marginTop = n + "px";
         el.style.marginBottom = n + "px";
-        if (final) emitir({ page: PAGE, nodeId: idDe(el), kind: "margen", value: n });
+        if (final) emitir({ page: PAGE, nodeId: idDe(el), kind: "margen", value: n }, volverAire);
       }));
     }
 
@@ -1019,17 +1134,25 @@
     if (!editando) return;
     var el = editando; el.removeAttribute("contenteditable"); ocultarBarra();
     var texto = el.textContent, html = el.innerHTML; editando = null; desmarcar(el);
+    // Copias locales: `valorPrevio` y `htmlPrevio` los pisa la siguiente edición,
+    // y la vuelta atrás tiene que quedarse con lo de ESTA.
+    var antesTexto = valorPrevio, antesHtml = htmlPrevio;
     if (guardar) {
       if (esTextoMixto(el)) {
-        if (texto !== valorPrevio) {
+        if (texto !== antesTexto) {
           var tn = (el.getAttribute("data-wc-tn") || "").split(":");
-          emitir({ page: PAGE, nodeId: Number(tn[0]), kind: "textNode", index: Number(tn[1]), value: texto });
+          emitir(
+            { page: PAGE, nodeId: Number(tn[0]), kind: "textNode", index: Number(tn[1]), value: texto },
+            function () { el.textContent = antesTexto; }
+          );
         }
       } else if (el.children.length > 0) {
         // Tiene formato en línea → op rich-text (el servidor la sanea).
-        if (html !== htmlPrevio) emitir({ page: PAGE, nodeId: idDe(el), kind: "richText", value: sinEnvoltorios(html) });
-      } else if (texto !== valorPrevio) {
-        emitir({ page: PAGE, nodeId: idDe(el), kind: "text", value: texto });
+        if (html !== antesHtml) {
+          emitir({ page: PAGE, nodeId: idDe(el), kind: "richText", value: sinEnvoltorios(html) }, volverHtml(el, antesHtml));
+        }
+      } else if (texto !== antesTexto) {
+        emitir({ page: PAGE, nodeId: idDe(el), kind: "text", value: texto }, function () { el.textContent = antesTexto; });
       }
     } else {
       el.innerHTML = htmlPrevio; // revertir restaura también el formato
@@ -1137,11 +1260,31 @@
   window.addEventListener("message", function (e) {
     if (e.source !== window.parent) return;
     var d = e.data;
-    if (!d || typeof d.previewUrl !== "string") return;
+    if (!d) return;
+
+    // Deshacer el último cambio. Lo pide el panel, que es donde está el botón,
+    // pero se ejecuta aquí: quien hizo el cambio sabe cómo devolverlo a su sitio.
+    if (d.type === "wc-undo") {
+      var v = vueltas.pop();
+      if (!v) return;
+      v.volver();
+      // El menú se queda enseñando valores de antes de deshacer (la barra en 40
+      // cuando la letra ya ha vuelto a 17). Se cierra: reabrirlo lo vuelve a leer
+      // de la página, que es la única fuente que no miente.
+      pop.style.display = "none"; objetivo = null;
+      // Que el panel borre ESA clave de su lista, ni una más ni una menos.
+      window.parent.postMessage({ type: "wc-undone", clave: v.clave }, "*");
+      return;
+    }
+
+    if (typeof d.previewUrl !== "string") return;
 
     if (d.type === "wc-image-set") {
       var img = document.querySelector('[data-wc-id="' + Number(d.nodeId) + '"]');
-      if (img && img.tagName.toLowerCase() === "img") img.src = d.previewUrl;
+      if (img && img.tagName.toLowerCase() === "img") {
+        apuntarVuelta(claveDe({ page: PAGE, nodeId: Number(d.nodeId), kind: "src" }), volverAtributo(img, "src"));
+        img.src = d.previewUrl;
+      }
       return;
     }
 
@@ -1163,6 +1306,13 @@
       nueva.style.cssText = "max-width:100%;height:auto;display:block";
       if (d.posicion === "antes") ancla.parentNode.insertBefore(nueva, ancla);
       else ancla.parentNode.insertBefore(nueva, ancla.nextSibling);
+      // Deshacer una imagen recién puesta es quitarla. La clave lleva el sitio y
+      // la ruta final (`valor`, que la calcula el panel al subir el archivo):
+      // dos fotos distintas debajo del mismo párrafo son dos cambios, no uno.
+      apuntarVuelta(
+        claveDe({ page: PAGE, nodeId: Number(d.nodeId), kind: "insertImage", posicion: d.posicion, value: String(d.valor) }),
+        function () { if (nueva.parentNode) nueva.parentNode.removeChild(nueva); }
+      );
       nueva.scrollIntoView({ block: "nearest" });
     }
   });

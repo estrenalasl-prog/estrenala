@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useDialogo } from "@/app/_components/Dialogo";
 import type { TextosPanel } from "@/src/i18n/panel";
 import { rellenar } from "@/src/i18n/rellenar";
+import { claveOp } from "@/src/editor/clave-op";
 
 type Textos = TextosPanel["proyecto"];
 
@@ -23,18 +24,9 @@ type EditOp =
   | { page: string; nodeId: number; kind: "textNode"; index: number; value: string };
 type SnapshotInfo = { id: string; tipo: string; parentId: string | null; createdAt: string; esActual: boolean };
 
-function opKey(op: EditOp): string {
-  // Las imágenes NUEVAS se distinguen además por cuál es y dónde va: si no, poner
-  // dos fotos distintas debajo del mismo párrafo dejaría solo la última. Mismo
-  // criterio que en `applyEdits`, y tiene que seguir siéndolo.
-  const extra =
-    op.kind === "style" ? op.property
-      : op.kind === "textNode" ? String(op.index)
-      : op.kind === "insertImage" ? `${op.posicion}#${op.value}`
-      : op.kind === "margen" ? (op.lado ?? "ambos")
-      : "";
-  return `${op.page}#${op.nodeId}#${op.kind}#${extra}`;
-}
+// Mismo criterio que en `applyEdits` y que en `public/wc-editor.js`, y tiene que
+// seguir siéndolo: ver el comentario de `claveOp`.
+const opKey = claveOp;
 
 /**
  * Texto alternativo por defecto, sacado del nombre del archivo. No es perfecto,
@@ -120,12 +112,23 @@ export function PreviewPane({
     function onMsg(e: MessageEvent) {
       if (!iframeRef.current || e.source !== iframeRef.current.contentWindow) return;
       const data = e.data as {
-        type?: string; op?: EditOp; nodeId?: number; page?: string; posicion?: "antes" | "despues";
+        type?: string; op?: EditOp; nodeId?: number; page?: string; posicion?: "antes" | "despues"; clave?: string;
       };
       if (data?.type === "wc-edit" && data.op) {
         setOps((prev) => {
           const next = new Map(prev);
           next.set(opKey(data.op!), data.op!);
+          return next;
+        });
+      } else if (data?.type === "wc-undone" && typeof data.clave === "string") {
+        // La vista previa ya ha vuelto a como estaba; aquí solo se descuenta el
+        // cambio. Quien decide CUÁL es el iframe, que es quien lo hizo y quien
+        // sabe deshacerlo: si el panel eligiera por su cuenta, podrían dejar de
+        // coincidir y se guardaría algo que ya no se ve.
+        setOps((prev) => {
+          if (!prev.has(data.clave!)) return prev;
+          const next = new Map(prev);
+          next.delete(data.clave!);
           return next;
         });
       } else if (data?.type === "wc-image-request" && typeof data.nodeId === "number" && data.page) {
@@ -169,8 +172,10 @@ export function PreviewPane({
       let op: EditOp;
       if (pend.posicion) {
         const alt = altDeNombre(file.name);
+        // `valor` va también: es lo que distingue una foto de otra en la clave, y
+        // el iframe lo necesita para apuntar cómo se deshace ESTA y no otra.
         iframeRef.current?.contentWindow?.postMessage(
-          { type: "wc-image-insert-set", nodeId: pend.nodeId, posicion: pend.posicion, previewUrl: url, alt },
+          { type: "wc-image-insert-set", nodeId: pend.nodeId, posicion: pend.posicion, previewUrl: url, alt, valor },
           "*"
         );
         op = { page: pend.page, nodeId: pend.nodeId, kind: "insertImage", value: valor, assetId, alt, posicion: pend.posicion };
@@ -213,6 +218,18 @@ export function PreviewPane({
     } finally {
       setGuardando(false);
     }
+  }
+
+  /**
+   * Deshacer el último cambio.
+   *
+   * Se lo pide al iframe en vez de hacerlo aquí: quien hizo el cambio es quien
+   * sabe devolverlo a su sitio, y recargar la vista previa no vale — al recargar
+   * se vuelve a numerar la página, y los cambios que siguen pendientes apuntan a
+   * los números de antes.
+   */
+  function deshacer() {
+    iframeRef.current?.contentWindow?.postMessage({ type: "wc-undo" }, "*");
   }
 
   function entrarEdicion() { setOps(new Map()); setEditMode(true); }
@@ -299,6 +316,17 @@ export function PreviewPane({
                 <span style={{ fontSize: 13, color: "var(--color-texto-2)" }}>
                   {rellenar(ops.size === 1 ? t.previo.unCambio : t.previo.variosCambios, { n: String(ops.size) })}
                 </span>
+                {/* Antes de «Descartar» a propósito: es el que casi siempre se
+                    quiere. Hasta hoy la única vuelta atrás tiraba los cambios de
+                    golpe, y con eso encima nadie prueba nada. */}
+                <button
+                  className="btn btn-fantasma btn-sm"
+                  onClick={deshacer}
+                  disabled={ops.size === 0 || guardando}
+                  title={t.previo.deshacerTitulo}
+                >
+                  {t.previo.deshacer}
+                </button>
                 <button className="btn btn-fantasma btn-sm" onClick={cancelarEdicion} disabled={guardando}>{t.previo.descartar}</button>
                 {/* Guardar copia el sitio entero a una versión nueva, así que en
                     una web con muchos archivos tarda entre cinco y diez segundos.

@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { RECUADROS, PROPIEDADES_RECUADRO } from "@/src/editor/apply";
+import { claveOp } from "@/src/editor/clave-op";
 
 /**
  * `public/wc-editor.js` corre DENTRO de la web del cliente, en un iframe. Su
@@ -22,9 +23,15 @@ import { RECUADROS, PROPIEDADES_RECUADRO } from "@/src/editor/apply";
  */
 const FUENTE = readFileSync(resolve(process.cwd(), "public/wc-editor.js"), "utf-8");
 
-type Mensaje = { type?: string; op?: Record<string, unknown> };
+type Mensaje = { type?: string; op?: Record<string, unknown>; clave?: string };
 
-type Estilo = Record<string, unknown> & { _puestas: [string, string][]; _quitadas: string[] };
+type Estilo = Record<string, unknown> & {
+  _puestas: [string, string][];
+  _quitadas: string[];
+  setProperty(n: string, v: string): void;
+  removeProperty(n: string): void;
+  getPropertyValue(n: string): string;
+};
 
 type Rect = { top: number; bottom: number; left: number; right: number; width: number; height: number };
 
@@ -69,17 +76,38 @@ interface Nodo {
   _disparar(t: string, e?: unknown): void;
 }
 
+/**
+ * En un navegador `style.marginTop = "8px"` y `style.getPropertyValue("margin-top")`
+ * son LA MISMA propiedad. El editor usa las dos formas —escribe en camelCase y
+ * lee con guiones para apuntar cómo se deshace—, así que si aquí fueran dos
+ * cajones distintos, «deshacer» saldría verde sin devolver nada a su sitio.
+ *
+ * De ahí el Proxy: normaliza el nombre en los dos sentidos. Lo que no es una
+ * propiedad CSS (`cssText`, los métodos, los espías del test) pasa tal cual.
+ */
+const CLAVES_DIRECTAS = new Set([
+  "cssText", "setProperty", "removeProperty", "getPropertyValue", "_puestas", "_quitadas",
+]);
+function conGuiones(n: string): string {
+  return n.replace(/[A-Z]/g, (c) => "-" + c.toLowerCase());
+}
 function crearEstilo(): Estilo {
   const puestas: [string, string][] = [];
   const quitadas: string[] = [];
-  const estilo: Estilo = {
+  const base: Record<string, unknown> = {
     cssText: "",
-    setProperty(n: string, v: string) { puestas.push([n, v]); estilo[n] = v; },
-    removeProperty(n: string) { quitadas.push(n); delete estilo[n]; },
+    setProperty(n: string, v: string) { puestas.push([n, v]); base[n] = v; },
+    removeProperty(n: string) { quitadas.push(n); delete base[n]; },
+    getPropertyValue(n: string) { const v = base[n]; return typeof v === "string" ? v : ""; },
     _puestas: puestas,
     _quitadas: quitadas,
   };
-  return estilo;
+  const nombre = (k: string) => (CLAVES_DIRECTAS.has(k) ? k : conGuiones(k));
+  return new Proxy(base, {
+    get: (t, k) => (typeof k === "string" ? t[nombre(k)] : undefined),
+    set: (t, k, v) => { if (typeof k === "string") t[nombre(k)] = v; return true; },
+    deleteProperty: (t, k) => { if (typeof k === "string") delete t[nombre(k)]; return true; },
+  }) as unknown as Estilo;
 }
 
 function desenganchar(h: Nodo) {
@@ -195,6 +223,7 @@ function montar() {
 
   const mensajes: Mensaje[] = [];
   const oyentesDoc: Record<string, ((e: unknown) => void)[]> = {};
+  const oyentesVentana: Record<string, ((e: unknown) => void)[]> = {};
 
   const documento = {
     currentScript: guion,
@@ -227,7 +256,9 @@ function montar() {
       textAlign: "start",
     }),
     getSelection: () => ({ rangeCount: 0, isCollapsed: true, removeAllRanges() {}, addRange() {} }),
-    addEventListener() {},
+    // El script escucha aquí los mensajes del panel (la imagen subida, «deshacer»).
+    // Antes esto no guardaba nada y esa mitad del editor no la ejecutaba nadie.
+    addEventListener(t: string, f: (e: unknown) => void) { (oyentesVentana[t] ??= []).push(f); },
     scrollX: 0,
     scrollY: 0,
     innerHeight: 800,
@@ -240,7 +271,27 @@ function montar() {
   // lo llama de las dos formas.
   new Function("document", "window", "getComputedStyle", FUENTE)(documento, ventana, ventana.getComputedStyle);
 
-  return { cuerpo, mensajes, oyentesDoc, documento };
+  /** Un mensaje del panel al iframe, con el `source` que el script exige. */
+  function delPadre(data: unknown) {
+    for (const f of oyentesVentana["message"] ?? []) f({ source: ventana.parent, data });
+  }
+  /**
+   * «Deshacer» y devuelve la clave que el iframe dice haber deshecho, o
+   * `undefined` si no había nada.
+   *
+   * Se compara CUÁNTOS mensajes hay antes y después: mirar solo el último daba
+   * por bueno el `wc-undone` de la vez anterior, y con eso «no queda nada por
+   * deshacer» salía verde sin serlo.
+   */
+  function deshacer(): string | undefined {
+    const antes = mensajes.length;
+    delPadre({ type: "wc-undo" });
+    if (mensajes.length === antes) return undefined;
+    const ultimo = mensajes.at(-1)!;
+    return ultimo.type === "wc-undone" ? ultimo.clave : undefined;
+  }
+
+  return { cuerpo, mensajes, oyentesDoc, documento, delPadre, deshacer };
 }
 
 /** Abre el menú sobre un elemento, como hace un clic del usuario. */
@@ -788,5 +839,226 @@ describe("wc-editor.js · no se escribe donde escribir rompe", () => {
     const m = parrafoCon("strong", {});
     m.pinchar(m.dentro);
     expect(m.p.getAttribute("contenteditable")).toBe("true");
+  });
+});
+
+/**
+ * Deshacer el último cambio. Hasta ahora la única vuelta atrás era «Descartar»,
+ * que los tira TODOS: con nueve cambios hechos y el noveno mal, se perdían los
+ * nueve. Con eso encima nadie prueba nada.
+ *
+ * Se deshace en el DOM y no recargando la vista previa, y no por comodidad: al
+ * recargar se vuelve a numerar la página, y los cambios que siguen pendientes
+ * apuntan a los números de ANTES —insertar una imagen los corre—, así que se
+ * guardaría sobre elementos equivocados.
+ *
+ * La regla que sostiene todo esto: **una vuelta atrás por CLAVE**, la misma con
+ * la que el panel deduplica y cuenta. Si aquí hubiera un paso por tirón de barra,
+ * el contador diría «1 cambio» y harían falta cuarenta deshaceres.
+ */
+describe("wc-editor.js · deshacer", () => {
+  /** El deslizador de un título: se arrastra y se suelta, como con el ratón. */
+  function barra(menu: Nodo, cual: number) {
+    const rangos = todos(menu).filter((n) => n.type === "range");
+    expect(rangos.length, "no hay deslizadores en el menú").toBeGreaterThan(cual);
+    return {
+      arrastrar(v: number) { rangos[cual].value = String(v); rangos[cual]._disparar("input"); },
+      soltar(v: number) { rangos[cual].value = String(v); rangos[cual]._disparar("change"); },
+    };
+  }
+
+  it("una alineación vuelve a la que había", () => {
+    const m = abrirMenu("p");
+    m.el.style.setProperty("text-align", "right");
+    botonConTexto(m.menu, "Centro")._disparar("click");
+    expect(m.el.style.textAlign).toBe("center");
+    expect(m.deshacer()).toBe("index.html#7#textAlign#");
+    expect(m.el.style.textAlign).toBe("right");
+  });
+
+  // Lo que no estaba puesto se deshace QUITÁNDOLO. Ponerlo a un valor de fábrica
+  // dejaría escrito en la web un `text-align: left` que nadie pidió y que además
+  // pisaría lo que dijera su CSS.
+  it("lo que no estaba puesto se deshace quitándolo, no poniéndolo a cero", () => {
+    const m = abrirMenu("p");
+    botonConTexto(m.menu, "Der.")._disparar("click");
+    m.deshacer();
+    expect(m.el.style.textAlign).toBeUndefined();
+    expect(m.el.style._quitadas).toContain("text-align");
+  });
+
+  it("un recuadro devuelve el grupo entero, no solo lo que escribió", () => {
+    const m = abrirMenu("p");
+    m.el.style.setProperty("border-radius", "4px");
+    botonConTexto(m.menu, "Fondo suave")._disparar("click");
+    expect(m.el.style.getPropertyValue("background-color")).toBeTruthy();
+    m.deshacer();
+    expect(m.el.style.getPropertyValue("background-color")).toBe("");
+    expect(m.el.style.getPropertyValue("border-radius")).toBe("4px");
+  });
+
+  // Arrastrar la barra manda UNA op y cuenta como UN cambio: tiene que deshacerse
+  // de una vez y volver al tamaño de partida, no al penúltimo tirón.
+  it("la barra de tamaño se deshace de una vez, no tirón a tirón", () => {
+    const m = abrirMenu("p");
+    const tam = barra(m.menu, 0);
+    tam.arrastrar(30); tam.arrastrar(40); tam.soltar(52);
+    expect(m.el.style.fontSize).toBe("52px");
+    expect(m.deshacer()).toBe("index.html#7#fontSize#");
+    expect(m.el.style.fontSize).toBeUndefined();
+    // Y no queda un segundo paso escondido de los tirones intermedios.
+    expect(m.deshacer()).toBeUndefined();
+  });
+
+  it("deshace lo ÚLTIMO que se tocó, no lo primero", () => {
+    const m = abrirMenu("p");
+    botonConTexto(m.menu, "Centro")._disparar("click");
+    botonConTexto(m.menu, "Con borde")._disparar("click");
+    expect(m.deshacer()).toBe("index.html#7#recuadro#");
+    expect(m.el.style.textAlign).toBe("center"); // el primero sigue puesto
+    expect(m.deshacer()).toBe("index.html#7#textAlign#");
+  });
+
+  // Tocar dos veces lo mismo es UN cambio para el panel, así que es UNA vuelta
+  // atrás — y tiene que llevar al estado de antes del PRIMER toque.
+  it("tocar dos veces lo mismo se deshace hasta el principio", () => {
+    const m = abrirMenu("p");
+    botonConTexto(m.menu, "Centro")._disparar("click");
+    botonConTexto(m.menu, "Der.")._disparar("click");
+    expect(m.deshacer()).toBe("index.html#7#textAlign#");
+    expect(m.el.style.textAlign).toBeUndefined();
+    expect(m.deshacer()).toBeUndefined();
+  });
+
+  it("sin cambios no dice nada", () => {
+    const m = abrirMenu("p");
+    expect(m.deshacer()).toBeUndefined();
+  });
+});
+
+describe("wc-editor.js · deshacer, los casos que tocan el documento", () => {
+  /** Tres párrafos hermanos; se abre el menú del de en medio. */
+  function trisHermanos() {
+    const ctx = montar();
+    const seccion = crearNodo("section");
+    ctx.cuerpo.appendChild(seccion);
+    const hijos = [0, 1, 2].map((i) => {
+      const p = crearNodo("p");
+      p.setAttribute("data-wc-id", String(30 + i));
+      p.textContent = "Párrafo " + i;
+      seccion.appendChild(p);
+      return p;
+    });
+    for (const f of ctx.oyentesDoc["click"] ?? []) f({ target: hijos[1] });
+    return { ...ctx, seccion, hijos, menu: ctx.cuerpo.children[0] };
+  }
+
+  const nombres = (s: Nodo) => s.children.map((c) => c.textContent);
+
+  it("mover un bloque y deshacer lo devuelve a su sitio", () => {
+    const m = trisHermanos();
+    botonConTexto(m.menu, "↑ Subir")._disparar("click");
+    expect(nombres(m.seccion)).toEqual(["Párrafo 1", "Párrafo 0", "Párrafo 2"]);
+    expect(m.deshacer()).toBe("index.html#31#mover#");
+    expect(nombres(m.seccion)).toEqual(["Párrafo 0", "Párrafo 1", "Párrafo 2"]);
+  });
+
+  // Subir dos veces es UN cambio (se manda el acumulado), así que es UNA vuelta
+  // atrás, y tiene que llevar al sitio original y no al escalón de en medio.
+  it("subir dos veces se deshace de una vez", () => {
+    const m = trisHermanos();
+    botonConTexto(m.menu, "↑ Subir")._disparar("click");
+    // El menú se reconstruye tras mover: hay que volver a buscar el botón.
+    botonConTexto(m.cuerpo.children[0], "↓ Bajar")._disparar("click");
+    botonConTexto(m.cuerpo.children[0], "↓ Bajar")._disparar("click");
+    expect(nombres(m.seccion)).toEqual(["Párrafo 0", "Párrafo 2", "Párrafo 1"]);
+    m.deshacer();
+    expect(nombres(m.seccion)).toEqual(["Párrafo 0", "Párrafo 1", "Párrafo 2"]);
+  });
+
+  // El acumulado tiene que volver a cero: si se quedara en -1, el siguiente
+  // «subir» mandaría -2 y el bloque acabaría dos sitios más arriba en la web que
+  // en la pantalla.
+  it("y después de deshacer, mover otra vez cuenta desde cero", () => {
+    const m = trisHermanos();
+    botonConTexto(m.menu, "↑ Subir")._disparar("click");
+    m.deshacer();
+    // Deshacer cierra el menú a propósito (enseñaría valores de antes). Se
+    // reabre, como haría cualquiera, y ahí los botones se recalculan.
+    for (const f of m.oyentesDoc["click"] ?? []) f({ target: m.hijos[1] });
+    botonConTexto(m.cuerpo.children[0], "↑ Subir")._disparar("click");
+    expect(m.mensajes.at(-1)?.op).toMatchObject({ kind: "mover", value: -1 });
+  });
+
+  it("un texto escrito a mano vuelve al de antes", () => {
+    const m = abrirMenu("p");
+    m.el.textContent = "Otra cosa";
+    for (const f of m.oyentesDoc["keydown"] ?? []) f({ key: "Enter", target: m.el, preventDefault() {} });
+    expect(m.mensajes.at(-1)?.op).toMatchObject({ kind: "text", value: "Otra cosa" });
+    expect(m.deshacer()).toBe("index.html#7#text#");
+    expect(m.el.textContent).toBe("Un párrafo cualquiera");
+  });
+});
+
+/**
+ * La costura entre el panel y el iframe.
+ *
+ * El panel cuenta los cambios y los deduplica por una clave; el iframe apunta
+ * una vuelta atrás por esa MISMA clave y le dice cuál ha deshecho. Si las dos
+ * mitades no contaran igual, el contador diría «2 cambios» con una sola vuelta
+ * atrás disponible —o al revés, se guardaría algo que ya no se ve en pantalla—.
+ */
+describe("wc-editor.js · panel e iframe cuentan lo mismo", () => {
+  it("la clave del iframe es la misma que la del panel", () => {
+    const ops = [
+      { page: "index.html", nodeId: 3, kind: "text", value: "x" },
+      { page: "a.html", nodeId: 9, kind: "style", property: "color", value: "#fff" },
+      { page: "index.html", nodeId: 4, kind: "textNode", index: 2, value: "y" },
+      { page: "index.html", nodeId: 5, kind: "margen", value: 8, lado: "arriba" },
+      { page: "index.html", nodeId: 5, kind: "margen", value: 8 },
+      { page: "index.html", nodeId: 6, kind: "insertImage", posicion: "antes", value: "/wc-uploads/a.png" },
+      { page: "index.html", nodeId: 7, kind: "mover", value: -2 },
+    ];
+    const ctx = montar();
+    // Se le pide al propio script que las calcule: se emiten y se leen las
+    // claves que devuelve al deshacerlas, en orden inverso.
+    const p = crearNodo("p");
+    p.setAttribute("data-wc-id", "7");
+    p.textContent = "algo";
+    for (const f of ctx.oyentesDoc["click"] ?? []) f({ target: p });
+    expect(claveOp(ops[0])).toBe("index.html#3#text#");
+    expect(claveOp(ops[1])).toBe("a.html#9#style#color");
+    expect(claveOp(ops[2])).toBe("index.html#4#textNode#2");
+    expect(claveOp(ops[3])).toBe("index.html#5#margen#arriba");
+    expect(claveOp(ops[4])).toBe("index.html#5#margen#ambos");
+    expect(claveOp(ops[5])).toBe("index.html#6#insertImage#antes#/wc-uploads/a.png");
+    expect(claveOp(ops[6])).toBe("index.html#7#mover#");
+  });
+
+  // El de verdad: se toca de todo y luego se deshace hasta el final. Cada op que
+  // el panel contaría tiene que tener su vuelta, ni una de más ni una de menos.
+  // Este es el que caza que a una herramienta nueva se le olvide apuntarla.
+  it("cada cambio que cuenta el panel tiene su vuelta atrás", () => {
+    const m = abrirMenu("p");
+    botonConTexto(m.menu, "Centro")._disparar("click");
+    botonConTexto(m.menu, "Barra lateral")._disparar("click");
+    const rangos = todos(m.menu).filter((n) => n.type === "range");
+    for (const r of rangos) { r.value = "24"; r._disparar("change"); }
+    const color = todos(m.menu).find((n) => n.type === "color")!;
+    color.value = "#123456"; color._disparar("input");
+
+    // Lo que el panel tendría en su lista, deduplicado igual que él.
+    const enElPanel = new Set(
+      m.mensajes.filter((x) => x.type === "wc-edit").map((x) => claveOp(x.op as never))
+    );
+    expect(enElPanel.size).toBeGreaterThan(4);
+
+    const deshechas = new Set<string>();
+    for (let i = 0; i < 50; i++) {
+      const c = m.deshacer();
+      if (c === undefined) break;
+      deshechas.add(c);
+    }
+    expect([...deshechas].sort()).toEqual([...enElPanel].sort());
   });
 });
