@@ -26,6 +26,8 @@ type Mensaje = { type?: string; op?: Record<string, unknown> };
 
 type Estilo = Record<string, unknown> & { _puestas: [string, string][]; _quitadas: string[] };
 
+type Rect = { top: number; bottom: number; left: number; right: number; width: number; height: number };
+
 interface Nodo {
   nodeType: number;
   tagName: string;
@@ -43,6 +45,7 @@ interface Nodo {
   readonly parentElement: Nodo | null;
   readonly nextSibling: Nodo | null;
   offsetHeight: number;
+  offsetWidth: number;
   readonly firstChild: Nodo | null;
   appendChild(h: Nodo): Nodo;
   insertBefore(h: Nodo, ref: Nodo | null): Nodo;
@@ -55,7 +58,9 @@ interface Nodo {
   contains(o: unknown): boolean;
   closest(): Nodo | null;
   focus(): void;
-  getBoundingClientRect(): { top: number; bottom: number; left: number; right: number; width: number; height: number };
+  getBoundingClientRect(): Rect;
+  /** Dónde cae el elemento en pantalla. Los tests de colocación lo cambian. */
+  _rect: Rect;
   scrollIntoView(): void;
   _attrs: Record<string, string>;
   _oyentes: Record<string, ((e: unknown) => void)[]>;
@@ -131,9 +136,11 @@ function crearNodo(tag: string): Nodo {
     contains(o: unknown) { return o === nodo; },
     closest() { return null; },
     focus() {},
-    getBoundingClientRect: () => ({ top: 100, bottom: 140, left: 40, right: 400, width: 360, height: 40 }),
+    _rect: { top: 100, bottom: 140, left: 40, right: 400, width: 360, height: 40 },
+    getBoundingClientRect: () => nodo._rect,
     scrollIntoView() {},
     offsetHeight: 0,
+    offsetWidth: 0,
     /** Dispara el oyente que se le colgó, como haría el navegador. */
     _disparar(t: string, e: unknown = {}) { for (const f of nodo._oyentes[t] ?? []) f(e); },
   };
@@ -194,6 +201,9 @@ function montar() {
     execCommand: () => true,
     createRange: () => ({ selectNodeContents() {}, cloneRange() { return {}; } }),
     activeElement: null,
+    // El ancho de la ventana SIN la barra de scroll, que es contra lo que se
+    // decide si el menú cabe a un lado.
+    documentElement: { clientWidth: 1200 },
   };
 
   const ventana = {
@@ -216,6 +226,7 @@ function montar() {
     scrollX: 0,
     scrollY: 0,
     innerHeight: 800,
+    innerWidth: 1215,
   };
 
   // El script es un IIFE que no exporta nada: se le pasan `document` y `window`
@@ -228,11 +239,12 @@ function montar() {
 }
 
 /** Abre el menú sobre un elemento, como hace un clic del usuario. */
-function abrirMenu(tag: string) {
+function abrirMenu(tag: string, rect?: Partial<Rect>) {
   const ctx = montar();
   const el = crearNodo(tag);
   el.setAttribute("data-wc-id", "7");
   el.textContent = "Un párrafo cualquiera";
+  if (rect) el._rect = { ...el._rect, ...rect };
   for (const f of ctx.oyentesDoc["click"] ?? []) f({ target: el });
   // El menú es el primer hijo que el script cuelga del body.
   const menu = ctx.cuerpo.children[0];
@@ -487,5 +499,68 @@ describe("wc-editor.js · mover bloques", () => {
     expect(botonConTexto(m.menu, "↓ Bajar")).toHaveProperty("disabled", true);
     botonConTexto(m.menu, "↑ Subir")._disparar("click");
     expect(m.mensajes.at(-1)?.op).toMatchObject({ kind: "mover", value: -1 });
+  });
+});
+
+/**
+ * Sebas, el 10/08, con el menú abierto encima del texto que acababa de elegir:
+ * «el recuadro se abre encima de él, y no es en el único lado que pasa».
+ *
+ * Tenía razón. El menú se colocaba SIEMPRE debajo del elemento, y como mide más
+ * de 400px tapaba justo la parte de la página en la que estabas trabajando: para
+ * ver el efecto de un botón había que cerrarlo, mirar, y volver a abrirlo.
+ *
+ * Ahora se pone AL LADO siempre que quepa. Debajo solo queda como último recurso
+ * —pantalla estrecha, o un bloque que ocupa todo el ancho—, que es cuando «al
+ * lado» no existe.
+ *
+ * Las cuentas de aquí salen de la ventana falsa: 1200px de ancho útil, 800 de
+ * alto, y un menú de 280 de ancho.
+ */
+describe("wc-editor.js · dónde se coloca el menú", () => {
+  /** Abre el menú sobre un elemento que cae donde se le diga. */
+  function colocar(rect: Partial<Rect>, alto = 0) {
+    const m = abrirMenu("p", rect);
+    if (alto > 0) {
+      // El alto solo se conoce con el menú ya montado: se vuelve a colocar, que
+      // es lo que hace el navegador en el fotograma siguiente.
+      m.menu.offsetHeight = alto;
+      for (const f of m.oyentesDoc["click"] ?? []) f({ target: m.el });
+    }
+    return m.menu.style;
+  }
+
+  it("a la derecha del elemento cuando hay sitio", () => {
+    const s = colocar({ top: 100, bottom: 140, left: 40, right: 400 });
+    // Pegado al borde derecho del elemento, solapando 2px: sin hueco muerto que
+    // cruzar con el ratón.
+    expect(s.left).toBe("398px");
+    expect(s.top).toBe("100px");
+  });
+
+  it("a la izquierda cuando a la derecha ya no cabe", () => {
+    const s = colocar({ top: 100, bottom: 140, left: 950, right: 1180 });
+    expect(s.left).toBe("672px"); // 950 + 2 - 280
+  });
+
+  // Un bloque a todo el ancho no tiene lados libres. Antes que salirse de la
+  // pantalla, se vuelve a lo de siempre.
+  it("debajo cuando el bloque ocupa todo el ancho", () => {
+    const s = colocar({ top: 100, bottom: 140, left: 0, right: 1200 });
+    expect(s.left).toBe("0px");
+    expect(s.top).toBe("138px");
+  });
+
+  it("puesto al lado, sube lo justo para no salirse por abajo", () => {
+    const s = colocar({ top: 700, bottom: 740, left: 40, right: 400 }, 500);
+    expect(s.left).toBe("398px");
+    expect(s.top).toBe("292px"); // 800 - 500 - 8
+  });
+
+  // Un menú más alto que la ventana no cabe de ninguna forma: que se vea desde
+  // arriba y ruede por dentro, en vez de quedarse con la cabecera fuera.
+  it("y si es más alto que la ventana, arranca arriba del todo", () => {
+    const s = colocar({ top: 700, bottom: 740, left: 40, right: 400 }, 900);
+    expect(s.top).toBe("8px");
   });
 });

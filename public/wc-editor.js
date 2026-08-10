@@ -246,17 +246,53 @@
   // href/texto…) → no ocultar ni re-apuntar mientras se usa.
   function popEnUso() { return dentroDePop(document.activeElement); }
 
+  // Aire que se le deja al borde de la ventana para que el menú no salga pegado.
+  var AIRE_VENTANA = 8;
+  // Lo que mide de ancho el menú (ver `cssText`). Solo se usa como red de
+  // seguridad: si ya está montado y medido, manda lo medido.
+  var ANCHO_POP = 280;
+
   function posicionar(el) {
     var r = el.getBoundingClientRect();
-    // Solapa 2px el borde inferior del elemento: sin "zona muerta" entre el elemento
-    // y el popover (si hay hueco, el ratón cruza otros editables y el popover se escapa).
-    var top = window.scrollY + r.bottom - 2;
-    // Desde que el menú de un texto trae alineación, aire y recuadro mide unos
-    // 400px: pinchando algo de la mitad de abajo de la pantalla, la parte útil se
-    // quedaba fuera y no había forma de llegar a ella. Si no cabe debajo y arriba
-    // hay más sitio, se pone encima —solapando 2px por el otro lado, para que el
-    // ratón siga sin cruzar hueco muerto.
     var alto = pop.offsetHeight || 0;
+    var ancho = pop.offsetWidth || ANCHO_POP;
+    var raiz = document.documentElement;
+    // `clientWidth` y no `innerWidth`: el segundo incluye la barra de scroll, y
+    // el menú acababa medio metido debajo de ella.
+    var anchoVentana = (raiz && raiz.clientWidth) || window.innerWidth;
+
+    // 1) AL LADO. Es lo que pidió Sebas el 10/08 y tiene razón: el menú se abría
+    //    justo encima de lo que acababas de elegir, así que para mirar el efecto
+    //    de un botón había que cerrarlo. Al lado no tapa ni el elemento ni lo que
+    //    va detrás de él, solo el margen de la página.
+    //    Se solapa 2px con el elemento —igual que antes por abajo— para que no
+    //    quede "zona muerta": si hubiera hueco, el ratón cruzaría otro editable
+    //    de camino al menú y el menú saltaría a ese otro.
+    var izquierda = null;
+    if (r.right - 2 + ancho <= anchoVentana - AIRE_VENTANA) izquierda = r.right - 2;
+    else if (r.left + 2 - ancho >= AIRE_VENTANA) izquierda = r.left + 2 - ancho;
+
+    if (izquierda !== null) {
+      // Un elemento puede empezar fuera de la pantalla por la izquierda (un
+      // carrusel a medio pasar): antes que colocar el menú donde no se ve, se
+      // pierde el solape de 2px.
+      izquierda = Math.max(izquierda, AIRE_VENTANA);
+      // Arranca a la altura del elemento y sube lo justo para no salirse por
+      // abajo. Sin esto, elegir algo del pie de la página abriría el menú con la
+      // mitad fuera de la pantalla.
+      var arriba = r.top;
+      if (alto > 0) arriba = Math.min(arriba, window.innerHeight - alto - AIRE_VENTANA);
+      pop.style.top = (window.scrollY + Math.max(arriba, AIRE_VENTANA)) + "px";
+      pop.style.left = (window.scrollX + izquierda) + "px";
+      return;
+    }
+
+    // 2) Sin sitio a los lados —pantalla estrecha, o un bloque que ocupa todo el
+    //    ancho—: debajo, como toda la vida.
+    var top = window.scrollY + r.bottom - 2;
+    // El menú de un texto pasa de los 400px: pinchando algo de la mitad de abajo
+    // de la pantalla, la parte útil se quedaba fuera y no había forma de llegar a
+    // ella. Si no cabe debajo y arriba hay más sitio, se pone encima.
     if (alto > 0 && r.bottom + alto > window.innerHeight && r.top > window.innerHeight - r.bottom) {
       top = Math.max(window.scrollY, window.scrollY + r.top - alto + 2);
     }
@@ -493,8 +529,8 @@
     });
     return b;
   }
-  // El recuadro cambia el alto del elemento (mete relleno), así que el menú, que
-  // cuelga de su borde de abajo, se queda flotando donde ya no está.
+  // El recuadro cambia el tamaño del elemento (mete relleno), y el menú se
+  // coloca contra sus bordes: sin recolocarlo se queda flotando donde ya no está.
   function colocarPopSiAbierto() { if (objetivo && pop.style.display !== "none") posicionar(objetivo); }
 
   /**
