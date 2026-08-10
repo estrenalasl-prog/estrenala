@@ -17,6 +17,7 @@ export type EditOp =
   | { page: string; nodeId: number; kind: "margen"; value: number; lado?: LadoMargen }
   | { page: string; nodeId: number; kind: "recuadro"; value: Recuadro }
   | { page: string; nodeId: number; kind: "fontSize"; value: number }
+  | { page: string; nodeId: number; kind: "mover"; value: number }
   | { page: string; nodeId: number; kind: "style"; property: "color"; value: string }
   | { page: string; nodeId: number; kind: "textNode"; index: number; value: string };
 
@@ -33,6 +34,7 @@ export type PageOp =
   | { nodeId: number; kind: "margen"; value: number; lado?: LadoMargen }
   | { nodeId: number; kind: "recuadro"; value: Recuadro }
   | { nodeId: number; kind: "fontSize"; value: number }
+  | { nodeId: number; kind: "mover"; value: number }
   | { nodeId: number; kind: "style"; property: "color"; value: string }
   | { nodeId: number; kind: "textNode"; index: number; value: string };
 
@@ -124,6 +126,24 @@ const PROPIEDADES_MARGEN: Record<LadoMargen, string[]> = {
  */
 export const FUENTE_MIN = 10;
 export const FUENTE_MAX = 96;
+
+/**
+ * Mover un bloque de sitio.
+ *
+ * Es la ÚNICA op que reordena el documento; todas las demás escriben dentro de
+ * un elemento o en uno de sus atributos. Por eso va aparte y con sus reglas.
+ *
+ * El valor es un DESPLAZAMIENTO con signo (-1 = una posición hacia arriba, +2 =
+ * dos hacia abajo), no una dirección. Con una dirección, pulsar «subir» dos
+ * veces daría dos ops iguales sobre el mismo nodo, la deduplicación se quedaría
+ * con una, y el bloque acabaría una posición más arriba en la web publicada
+ * mientras la vista previa lo enseñaba dos. Ver una cosa y guardar otra es el
+ * peor fallo que puede tener un editor.
+ *
+ * El tope es para que un número absurdo no sea una forma de recorrer el
+ * documento entero; de todas formas se recorta a los hermanos que hay.
+ */
+export const MOVER_MAX = 50;
 
 /**
  * Los recuadros.
@@ -237,8 +257,110 @@ function pushAttrEdit(edits: Edit[], el: WalkedElement, name: string, value: str
   }
 }
 
+/** Dónde empieza y acaba un elemento ENTERO en el fuente, etiquetas incluidas. */
+function tramo(el: WalkedElement): { start: number; end: number } {
+  // `endTagEnd` es null en los que no cierran (<img>, <br>, <hr>): ahí el
+  // elemento acaba donde acaba su etiqueta de apertura.
+  return { start: el.startTagStart, end: el.endTagEnd ?? el.startTagEnd };
+}
+
+/**
+ * Reordena los hermanos de un padre en UNA sola sustitución.
+ *
+ * Podría hacerse intercambiando dos elementos de dos en dos, y sería más
+ * sencillo… hasta que dos bloques del mismo padre se mueven en el mismo lote:
+ * ahí los dos intercambios se pisan y el HTML sale roto. Reescribiendo el padre
+ * entero de una vez, el resultado es el de reordenar una lista, que es
+ * exactamente lo que la vista previa acaba de enseñar.
+ *
+ * Los separadores (los saltos de línea y la sangría que había ENTRE hermanos) se
+ * quedan en su sitio, no viajan con el bloque: si viajaran, mover un párrafo
+ * dentro de un HTML con sangría iría acumulando espacios en cada movimiento.
+ *
+ * Lo que ya se hubiera editado DENTRO de un bloque viaja con él (`edits` que
+ * caen en su tramo). Sin esto, cambiar el texto de un párrafo y moverlo en la
+ * misma tanda dejaría dos escrituras sobre los mismos bytes y el documento
+ * saldría corrupto: es el motivo por el que esto no es una op más del bucle.
+ */
+function aplicarMovimientos(
+  html: string,
+  todos: WalkedElement[],
+  ops: PageOp[],
+  edits: Edit[]
+): void {
+  const movimientos = ops.filter((o): o is Extract<PageOp, { kind: "mover" }> => o.kind === "mover");
+  if (movimientos.length === 0) return;
+
+  const byId = new Map(todos.map((e) => [e.id, e]));
+  const profundidad = (el: WalkedElement): number => {
+    let d = 0;
+    for (let p = el.parentId; p !== null && d < 100; p = byId.get(p)?.parentId ?? null) d++;
+    return d;
+  };
+
+  // Agrupados por padre, y los padres MÁS HONDOS primero. Así, si se mueve un
+  // bloque dentro de otro que a su vez se mueve, el de dentro ya es una edición
+  // normal cuando le toca al de fuera, y este se lo lleva consigo.
+  const porPadre = new Map<number | null, typeof movimientos>();
+  for (const op of movimientos) {
+    const el = byId.get(op.nodeId);
+    if (!el) continue;
+    const p = el.parentId;
+    porPadre.set(p, [...(porPadre.get(p) ?? []), op]);
+  }
+  const padres = [...porPadre.keys()].sort((a, b) => {
+    const ea = a === null ? null : byId.get(a);
+    const eb = b === null ? null : byId.get(b);
+    return (eb ? profundidad(eb) : -1) - (ea ? profundidad(ea) : -1);
+  });
+
+  for (const padre of padres) {
+    const hijos = todos.filter((e) => e.parentId === padre);
+    if (hijos.length < 2) continue;
+
+    const orden = [...hijos];
+    let movido = false;
+    for (const op of porPadre.get(padre) ?? []) {
+      const i = orden.findIndex((e) => e.id === op.nodeId);
+      if (i === -1) continue;
+      // Se recorta a los hermanos que hay: pedir «sube» al primero no es un
+      // error, es que ya está arriba. Devolver un fallo por eso sería absurdo.
+      const destino = Math.max(0, Math.min(orden.length - 1, i + op.value));
+      if (destino === i) continue;
+      const [el] = orden.splice(i, 1);
+      orden.splice(destino, 0, el);
+      movido = true;
+    }
+    if (!movido) continue;
+
+    const tramos = hijos.map(tramo);
+    const region = { start: tramos[0].start, end: tramos[tramos.length - 1].end };
+
+    // Las ediciones que caen dentro de la región se aplican AHORA, cada una a su
+    // bloque, y se sacan de la lista: a partir de aquí ese trozo de documento lo
+    // escribe esta sustitución y nadie más.
+    const dentro = edits.filter((e) => e.start >= region.start && e.end <= region.end);
+    for (const e of dentro) edits.splice(edits.indexOf(e), 1);
+
+    const texto = (el: WalkedElement): string => {
+      const t = tramo(el);
+      const mios = dentro.filter((e) => e.start >= t.start && e.end <= t.end).sort((a, b) => b.start - a.start);
+      let s = html.slice(t.start, t.end);
+      for (const e of mios) s = s.slice(0, e.start - t.start) + e.text + s.slice(e.end - t.start);
+      return s;
+    };
+
+    // sep[k] es lo que había entre el hermano k y el k+1: se queda en su hueco.
+    const sep = hijos.slice(0, -1).map((_, k) => html.slice(tramos[k].end, tramos[k + 1].start));
+    const nuevo = orden.map((el, k) => texto(el) + (k < sep.length ? sep[k] : "")).join("");
+
+    edits.push({ start: region.start, end: region.end, text: nuevo });
+  }
+}
+
 export function applyEdits(html: string, ops: PageOp[]): string {
-  const byId = new Map(walkElementsInOrder(html).map((e) => [e.id, e]));
+  const todos = walkElementsInOrder(html);
+  const byId = new Map(todos.map((e) => [e.id, e]));
   // dedup: la última op por (nodeId, kind, property) gana
   const dedup = new Map<string, PageOp>();
   for (const op of ops) {
@@ -382,6 +504,9 @@ export function applyEdits(html: string, ops: PageOp[]): string {
     if (!el) continue;
     pushAttrEdit(edits, el, "style", valor, replacedAttrsPerNode.get(nodeId) ?? new Set());
   }
+
+  aplicarMovimientos(html, todos, [...dedup.values()], edits);
+
   // Orden descendente por offset. Los tramos de atributos viven dentro del
   // start-tag y el de contenido tras él → no se solapan; dos inserciones en el
   // mismo punto se aplican ambas (ambos atributos quedan presentes).

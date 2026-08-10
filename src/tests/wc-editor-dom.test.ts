@@ -41,6 +41,7 @@ interface Nodo {
   max: string;
   parentNode: Nodo | null;
   readonly parentElement: Nodo | null;
+  readonly nextSibling: Nodo | null;
   offsetHeight: number;
   readonly firstChild: Nodo | null;
   appendChild(h: Nodo): Nodo;
@@ -75,6 +76,13 @@ function crearEstilo(): Estilo {
   return estilo;
 }
 
+function desenganchar(h: Nodo) {
+  const p = h.parentNode;
+  if (!p) return;
+  const i = p.children.indexOf(h);
+  if (i !== -1) p.children.splice(i, 1);
+}
+
 function crearNodo(tag: string): Nodo {
   const nodo: Nodo = {
     nodeType: 1,
@@ -94,12 +102,25 @@ function crearNodo(tag: string): Nodo {
     _oyentes: {},
     get firstChild() { return nodo.children[0] ?? null; },
     get parentElement() { return nodo.parentNode; },
-    appendChild(h: Nodo) { h.parentNode = nodo; nodo.children.push(h); return h; },
+    // Un DOM de verdad MUEVE el nodo: lo quita de donde estuviera antes de
+    // ponerlo. Sin desengancharlo, mover un bloque lo duplicaba — y el test de
+    // «volver al sitio» fallaba por culpa del harness, no del código.
+    appendChild(h: Nodo) { desenganchar(h); h.parentNode = nodo; nodo.children.push(h); return h; },
     insertBefore(h: Nodo, ref: Nodo | null) {
+      desenganchar(h);
       h.parentNode = nodo;
       const i = ref ? nodo.children.indexOf(ref) : -1;
       if (i === -1) nodo.children.push(h); else nodo.children.splice(i, 0, h);
       return h;
+    },
+    // El hermano siguiente. Aquí no hay nodos de texto, así que coincide con
+    // `nextElementSibling`; en el navegador podría ser el espacio en blanco de
+    // entre medias, y da igual: insertar antes de él deja el bloque en el mismo
+    // sitio.
+    get nextSibling() {
+      const p = nodo.parentNode;
+      if (!p) return null;
+      return p.children[p.children.indexOf(nodo) + 1] ?? null;
     },
     addEventListener(t: string, f: (e: unknown) => void) { (nodo._oyentes[t] ??= []).push(f); },
     removeEventListener() {},
@@ -117,13 +138,18 @@ function crearNodo(tag: string): Nodo {
     _disparar(t: string, e: unknown = {}) { for (const f of nodo._oyentes[t] ?? []) f(e); },
   };
   // `innerHTML = ""` es cómo el script vacía el menú antes de reconstruirlo.
-  return new Proxy(nodo, {
-    set(o, k, v) {
-      if (k === "innerHTML" && v === "") o.children.length = 0;
-      (o as unknown as Record<string | symbol, unknown>)[k] = v;
-      return true;
-    },
+  //
+  // Esto era un Proxy y fue un error sutil: los hijos guardaban el proxy, pero
+  // los getters de dentro comparaban contra el objeto crudo, así que
+  // `children.indexOf(este)` daba -1 y `nextSibling` devolvía el PRIMER hermano.
+  // El test de mover falló por eso, no por el código. Con una propiedad definida
+  // sobre el propio objeto no hay dos identidades que confundir.
+  let html = "";
+  Object.defineProperty(nodo, "innerHTML", {
+    get: () => html,
+    set: (v: string) => { html = v; if (v === "") nodo.children.length = 0; },
   });
+  return nodo;
 }
 
 /** Todos los descendientes, en orden. Para buscar un botón por su texto. */
@@ -386,5 +412,80 @@ describe("wc-editor.js · el tamaño de la letra", () => {
 
     const parrafo = abrirMenu("p");
     expect(todos(parrafo.menu).filter((n) => n.type === "number").map((n) => n.value)).toContain("17");
+  });
+});
+
+/**
+ * Mover bloques. Lo que se comprueba aquí es lo que puede desincronizar la vista
+ * previa de lo que se guarda, que es el fallo grave de esta herramienta.
+ */
+describe("wc-editor.js · mover bloques", () => {
+  /** Un padre con varios hijos, como una sección con tres párrafos. */
+  function conHermanos(cuantos: number, cual: number, extras: string[] = []) {
+    const ctx = montar();
+    const padre = crearNodo("section");
+    padre.setAttribute("data-wc-id", "0");
+    const hijos = Array.from({ length: cuantos }, (_, i) => {
+      const p = crearNodo("p");
+      p.setAttribute("data-wc-id", String(i + 1));
+      p.textContent = `Párrafo ${i + 1}`;
+      padre.appendChild(p);
+      return p;
+    });
+    // Cosas que la vista previa añade y el documento guardado NO tiene.
+    for (const tag of extras) padre.appendChild(crearNodo(tag));
+    for (const f of ctx.oyentesDoc["click"] ?? []) f({ target: hijos[cual] });
+    return { ...ctx, padre, hijos, menu: ctx.cuerpo.children[0] };
+  }
+
+  it("subir manda el desplazamiento y mueve el bloque en la vista previa", () => {
+    const m = conHermanos(3, 1);
+    botonConTexto(m.menu, "↑ Subir")._disparar("click");
+    expect(m.mensajes.at(-1)?.op).toMatchObject({ kind: "mover", value: -1, nodeId: 2 });
+    expect(m.padre.children.map((c) => c.textContent)).toEqual(["Párrafo 2", "Párrafo 1", "Párrafo 3"]);
+  });
+
+  /**
+   * EL punto de que el valor sea un acumulado. Dos clics tienen que mandar -2 en
+   * una sola op: con dos ops de -1, la deduplicación se queda con una y el
+   * bloque acabaría una posición más arriba en la web que en la pantalla.
+   */
+  it("dos clics mandan -2, no dos veces -1", () => {
+    const m = conHermanos(3, 2);
+    botonConTexto(m.menu, "↑ Subir")._disparar("click");
+    botonConTexto(m.menu, "↑ Subir")._disparar("click");
+    expect(m.mensajes.at(-1)?.op).toMatchObject({ kind: "mover", value: -2, nodeId: 3 });
+    expect(m.padre.children.map((c) => c.textContent)).toEqual(["Párrafo 3", "Párrafo 1", "Párrafo 2"]);
+  });
+
+  it("volver al sitio manda 0, que el servidor descarta", () => {
+    const m = conHermanos(3, 1);
+    botonConTexto(m.menu, "↑ Subir")._disparar("click");
+    botonConTexto(m.menu, "↓ Bajar")._disparar("click");
+    expect(m.mensajes.at(-1)?.op).toMatchObject({ kind: "mover", value: 0 });
+    expect(m.padre.children.map((c) => c.textContent)).toEqual(["Párrafo 1", "Párrafo 2", "Párrafo 3"]);
+  });
+
+  it("en los extremos el botón está apagado, no escondido", () => {
+    const primero = conHermanos(3, 0);
+    expect(botonConTexto(primero.menu, "↑ Subir")).toHaveProperty("disabled", true);
+    expect(botonConTexto(primero.menu, "↓ Bajar")).not.toHaveProperty("disabled", true);
+
+    const ultimo = conHermanos(3, 2);
+    expect(botonConTexto(ultimo.menu, "↓ Bajar")).toHaveProperty("disabled", true);
+  });
+
+  /**
+   * Lo que la vista previa añade y el documento guardado no tiene: el `<wc-t>`
+   * que envuelve el texto suelto y el `<script>` del editor. Si contaran como
+   * hermanos, el bloque se movería una posición de más al guardar — una cosa en
+   * pantalla y otra en la web publicada.
+   */
+  it("no cuenta como hermanos lo que solo existe en la vista previa", () => {
+    const m = conHermanos(2, 1, ["wc-t", "script"]);
+    // Está el último de los DOS de verdad, aunque en el DOM tenga dos detrás.
+    expect(botonConTexto(m.menu, "↓ Bajar")).toHaveProperty("disabled", true);
+    botonConTexto(m.menu, "↑ Subir")._disparar("click");
+    expect(m.mensajes.at(-1)?.op).toMatchObject({ kind: "mover", value: -1 });
   });
 });

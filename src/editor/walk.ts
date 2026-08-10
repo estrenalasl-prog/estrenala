@@ -26,6 +26,15 @@ export type WalkedElement = {
   attrLocations: Record<string, { start: number; end: number }>;
   /** Nodos de texto significativos (hijos directos con algo no-blanco), en orden documental. */
   textNodes: TextNodeInfo[];
+  /**
+   * El elemento que lo contiene, o null si está en la raíz.
+   *
+   * Hace falta para mover un bloque: mover es cambiarlo de sitio ENTRE SUS
+   * HERMANOS, y sin saber de quién cuelga cada uno no hay forma de saber quiénes
+   * son hermanos. Los ids se reparten en orden documental, así que los hermanos
+   * salen ordenados sin tener que ordenarlos.
+   */
+  parentId: number | null;
   /** true si el elemento ES un excluido para edición de texto o vive dentro de uno. */
   textoExcluido: boolean;
 };
@@ -41,7 +50,7 @@ export function walkElementsInOrder(html: string): WalkedElement[] {
   // Devuelve el texto del subárbol que acaba de recorrer, para que cada elemento
   // pueda quedarse con el suyo sin volver a bajar por sus hijos (así el coste
   // sigue siendo una sola pasada y no una por elemento).
-  const visit = (node: unknown, excluido: boolean): string => {
+  const visit = (node: unknown, excluido: boolean, padre: number | null): string => {
     const n = node as {
       tagName?: string;
       nodeName?: string;
@@ -86,7 +95,8 @@ export function walkElementsInOrder(html: string): WalkedElement[] {
       }
       mio = out.length;
       out.push({
-        id: nextId++,
+        id: nextId,
+        parentId: padre,
         tagName: n.tagName,
         deepText: "", // se rellena al volver de los hijos, más abajo
 
@@ -101,15 +111,17 @@ export function walkElementsInOrder(html: string): WalkedElement[] {
         textNodes,
         textoExcluido: propioExcluido,
       });
+      nextId++;
       excluidoHijos = propioExcluido;
     }
     let subarbol = "";
-    if (n.childNodes) for (const c of n.childNodes) subarbol += visit(c, excluidoHijos);
+    const idPropio = mio >= 0 ? out[mio].id : padre;
+    if (n.childNodes) for (const c of n.childNodes) subarbol += visit(c, excluidoHijos, idPropio);
     if (mio >= 0) out[mio].deepText = subarbol;
     // El contenido de un <script> o un <style> es código: no es texto de la
     // página y no debe subir a lo que digan sus antepasados.
     return n.tagName === "script" || n.tagName === "style" ? "" : subarbol;
   };
-  visit(doc, false);
+  visit(doc, false, null);
   return out;
 }

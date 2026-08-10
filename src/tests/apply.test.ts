@@ -566,3 +566,103 @@ describe("applyEdits · tamaño de la letra", () => {
     expect(r).toContain("margin-top: 30px");
   });
 });
+
+/**
+ * Mover un bloque de sitio. Es la ÚNICA op que reordena el documento: todas las
+ * demás escriben dentro de un elemento o en uno de sus atributos. Por eso tiene
+ * su propio camino y sus propias guardas.
+ */
+describe("applyEdits · mover bloques", () => {
+  // ids: div=0, p(A)=1, p(B)=2, p(C)=3
+  const html = `<div><p>A</p><p>B</p><p>C</p></div>`;
+  const mover = (nodeId: number, value: number) => ({ nodeId, kind: "mover" as const, value });
+
+  it("sube un bloque una posición", () => {
+    expect(applyEdits(html, [mover(2, -1)])).toBe(`<div><p>B</p><p>A</p><p>C</p></div>`);
+  });
+
+  it("baja un bloque una posición", () => {
+    expect(applyEdits(html, [mover(1, 1)])).toBe(`<div><p>B</p><p>A</p><p>C</p></div>`);
+  });
+
+  /**
+   * El motivo de que el valor sea un DESPLAZAMIENTO y no una dirección: pulsar
+   * «subir» dos veces manda una sola op con -2. Con una dirección serían dos ops
+   * iguales sobre el mismo nodo, la deduplicación se quedaría con una, y el
+   * bloque acabaría UNA posición más arriba en la web publicada mientras la
+   * vista previa lo enseñaba DOS. Ver una cosa y guardar otra.
+   */
+  it("dos posiciones de un tirón", () => {
+    expect(applyEdits(html, [mover(3, -2)])).toBe(`<div><p>C</p><p>A</p><p>B</p></div>`);
+  });
+
+  it("pedirle subir al primero no hace nada, y no es un error", () => {
+    expect(applyEdits(html, [mover(1, -1)])).toBe(html);
+    expect(applyEdits(html, [mover(3, 5)])).toBe(html);
+  });
+
+  // Se recorta a los hermanos que hay en vez de fallar: pedir «sube tres» cuando
+  // solo hay dos por encima quiere decir «ponlo el primero».
+  it("un desplazamiento mayor que la lista lo deja en el extremo", () => {
+    expect(applyEdits(html, [mover(3, -9)])).toBe(`<div><p>C</p><p>A</p><p>B</p></div>`);
+  });
+
+  it("respeta la sangría: los saltos de línea se quedan en su hueco", () => {
+    const con = `<div>\n  <p>A</p>\n  <p>B</p>\n</div>`;
+    expect(applyEdits(con, [mover(2, -1)])).toBe(`<div>\n  <p>B</p>\n  <p>A</p>\n</div>`);
+  });
+
+  it("el bloque viaja entero, con sus hijos y sus atributos", () => {
+    const rico = `<div><p>A</p><section id="x" class="c"><h2>T</h2><img src="/a.png"></section></div>`;
+    expect(applyEdits(rico, [mover(2, -1)]))
+      .toBe(`<div><section id="x" class="c"><h2>T</h2><img src="/a.png"></section><p>A</p></div>`);
+  });
+
+  /**
+   * EL caso que obliga a que mover no sea una op más del bucle: si el cambio de
+   * texto y el movimiento se emitieran por separado, serían dos escrituras sobre
+   * los mismos bytes y el HTML saldría corrupto. Lo editado viaja CON el bloque.
+   */
+  it("lo editado dentro del bloque viaja con él", () => {
+    const r = applyEdits(html, [
+      { nodeId: 3, kind: "text", value: "C editada" },
+      mover(3, -2),
+    ]);
+    expect(r).toBe(`<div><p>C editada</p><p>A</p><p>B</p></div>`);
+  });
+
+  it("también viaja el estilo que se le acaba de poner", () => {
+    const r = applyEdits(html, [
+      { nodeId: 3, kind: "recuadro", value: "borde" },
+      mover(3, -2),
+    ]);
+    expect(r).toContain(`<p style="border: 1px solid rgba(128,128,128,.35)`);
+    expect(r.indexOf("C")).toBeLessThan(r.indexOf("A"));
+    // Y sin que el atributo se escriba dos veces por el camino.
+    expect([...r.matchAll(/style=/g)]).toHaveLength(1);
+  });
+
+  it("dos bloques del mismo padre se mueven en el mismo lote sin pisarse", () => {
+    // A baja al final y C sube al principio: la lista se da la vuelta.
+    expect(applyEdits(html, [mover(1, 2), mover(3, -2)]))
+      .toBe(`<div><p>C</p><p>B</p><p>A</p></div>`);
+  });
+
+  // Un bloque que se mueve DENTRO de otro que también se mueve. Se resuelven de
+  // dentro hacia fuera, así que el de fuera se lleva al de dentro ya colocado.
+  it("mover dentro de algo que también se mueve", () => {
+    // ids: div=0, sec=1, p(A)=2, p(B)=3, p(Z)=4
+    const anidado = `<div><section><p>A</p><p>B</p></section><p>Z</p></div>`;
+    expect(applyEdits(anidado, [mover(3, -1), mover(1, 1)]))
+      .toBe(`<div><p>Z</p><section><p>B</p><p>A</p></section></div>`);
+  });
+
+  it("mover algo que no existe no rompe nada", () => {
+    expect(applyEdits(html, [mover(99, -1)])).toBe(html);
+  });
+
+  it("un hijo único no se mueve a ninguna parte", () => {
+    const solo = `<div><p>A</p></div>`;
+    expect(applyEdits(solo, [mover(1, 1)])).toBe(solo);
+  });
+});

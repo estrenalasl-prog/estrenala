@@ -18,6 +18,7 @@ type EditOp =
   | { page: string; nodeId: number; kind: "margen"; value: number; lado?: "ambos" | "arriba" | "abajo" }
   | { page: string; nodeId: number; kind: "recuadro"; value: "ninguno" | "suave" | "borde" | "lateral" }
   | { page: string; nodeId: number; kind: "fontSize"; value: number }
+  | { page: string; nodeId: number; kind: "mover"; value: number }
   | { page: string; nodeId: number; kind: "style"; property: "color"; value: string }
   | { page: string; nodeId: number; kind: "textNode"; index: number; value: string };
 type SnapshotInfo = { id: string; tipo: string; parentId: string | null; createdAt: string; esActual: boolean };

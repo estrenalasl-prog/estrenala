@@ -461,6 +461,7 @@
   };
 
   function botonChico(txt, titulo) {
+    /* `titulo` es el rótulo que sale al dejar el ratón encima. */
     var b = document.createElement("button");
     b.type = "button"; b.textContent = txt; if (titulo) b.title = titulo;
     b.style.cssText = "flex:1;height:30px;border-radius:9px;border:1px solid #DEDFD6;background:#fff;color:#141509;font-size:12px;font-weight:500;cursor:pointer";
@@ -495,6 +496,65 @@
   // El recuadro cambia el alto del elemento (mete relleno), así que el menú, que
   // cuelga de su borde de abajo, se queda flotando donde ya no está.
   function colocarPopSiAbierto() { if (objetivo && pop.style.display !== "none") posicionar(objetivo); }
+
+  /**
+   * Los hermanos de un bloque, TAL Y COMO LOS VE EL SERVIDOR.
+   *
+   * Solo los que llevan `data-wc-id`, o sea los que existen en el documento
+   * guardado. La vista previa añade cosas que ahí no están —el `<wc-t>` que
+   * envuelve el texto suelto, el `<script>` del propio editor, una imagen recién
+   * insertada—, y contarlas movería el bloque una posición de más al guardar:
+   * una cosa en pantalla y otra en la web publicada.
+   */
+  function hermanosDe(el) {
+    var padre = el.parentElement, out = [];
+    if (!padre) return out;
+    for (var i = 0; i < padre.children.length; i++) {
+      if (tieneId(padre.children[i])) out.push(padre.children[i]);
+    }
+    return out;
+  }
+
+  // Cuánto se ha movido cada bloque desde que se entró en modo edición. Se manda
+  // el ACUMULADO, no cada paso: dos ops iguales sobre el mismo nodo se
+  // deduplican, y el bloque acabaría una posición más arriba de lo que enseña la
+  // vista previa. Ver `MOVER_MAX` en src/editor/apply.ts.
+  var desplazamientos = {};
+
+  function botonMover(txt, paso, el) {
+    var hermanos = hermanosDe(el);
+    var i = hermanos.indexOf(el);
+    var puede = i !== -1 && i + paso >= 0 && i + paso < hermanos.length;
+    var b = botonChico(txt, puede ? "" : "Ya está " + (paso < 0 ? "el primero" : "el último"));
+    if (!puede) {
+      // Apagado y no escondido: que se vea que la herramienta existe y que este
+      // bloque ya está en el extremo, en vez de que el botón desaparezca y
+      // parezca que la página se comporta distinta según dónde pinches.
+      b.disabled = true;
+      b.style.opacity = ".45";
+      b.style.cursor = "default";
+      return b;
+    }
+    b.addEventListener("click", function () {
+      var lista = hermanosDe(el), pos = lista.indexOf(el), destino = pos + paso;
+      if (pos === -1 || destino < 0 || destino >= lista.length) return;
+      var padre = el.parentElement;
+      if (paso < 0) padre.insertBefore(el, lista[destino]);
+      else padre.insertBefore(el, lista[destino].nextSibling);
+
+      var id = idDe(el);
+      desplazamientos[id] = (desplazamientos[id] || 0) + paso;
+      emitir({ page: PAGE, nodeId: id, kind: "mover", value: desplazamientos[id] });
+
+      el.scrollIntoView({ block: "nearest" });
+      // Se reconstruye el menú: el bloque puede haber llegado a un extremo y los
+      // botones tienen que apagarse. Sin esto se quedarían activos y el siguiente
+      // clic no haría nada sin explicar por qué.
+      construir(el);
+      posicionar(el);
+    });
+    return b;
+  }
 
   function filaDeBotones(botones, columnas) {
     var f = document.createElement("div");
@@ -621,6 +681,15 @@
       pop.appendChild(caja);
 
       caja.appendChild(etiqueta("Diseño " + nombreDeBloque(bloque)));
+
+      // Mover va lo primero porque es de otra familia: las demás cambian cómo se
+      // ve el bloque, esta cambia dónde está.
+      caja.appendChild(etiqueta("Mover"));
+      caja.appendChild(filaDeBotones([
+        botonMover("↑ Subir", -1, bloque),
+        botonMover("↓ Bajar", 1, bloque)
+      ]));
+
       caja.appendChild(etiqueta("Alineación del texto"));
       caja.appendChild(filaDeBotones([
         botonAlinearTexto("Izq.", "izquierda", bloque),

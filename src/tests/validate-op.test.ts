@@ -212,3 +212,26 @@ describe("isValidOp · el tamaño de la letra", () => {
     expect(isValidOp({ ...base, kind: "fontSize", value: "34px" } as never)).toBe(false);
   });
 });
+
+describe("isValidOp · mover", () => {
+  const base = { page: "index.html", nodeId: 0 };
+
+  it("acepta desplazamientos con signo", () => {
+    for (const value of [-50, -2, -1, 1, 3, 50]) {
+      expect(isValidOp({ ...base, kind: "mover", value }), String(value)).toBe(true);
+    }
+  });
+
+  // El cero no mueve nada. Dejarlo pasar crearía una versión en el historial sin
+  // ninguna diferencia y el panel diría un cambio de más.
+  it("el cero no es un movimiento", () => {
+    expect(isValidOp({ ...base, kind: "mover", value: 0 })).toBe(false);
+  });
+
+  it("rechaza lo que no es un entero en rango", () => {
+    for (const value of [51, -51, 1.5, NaN, Infinity]) {
+      expect(isValidOp({ ...base, kind: "mover", value }), String(value)).toBe(false);
+    }
+    expect(isValidOp({ ...base, kind: "mover", value: "-1" } as never)).toBe(false);
+  });
+});

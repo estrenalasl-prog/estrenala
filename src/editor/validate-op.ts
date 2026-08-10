@@ -1,5 +1,5 @@
 import type { EditOp } from "./apply";
-import { enteroEnRango, ANCHO_MIN, ANCHO_MAX, MARGEN_MIN, MARGEN_MAX, FUENTE_MIN, FUENTE_MAX, RECUADROS } from "./apply";
+import { enteroEnRango, ANCHO_MIN, ANCHO_MAX, MARGEN_MIN, MARGEN_MAX, FUENTE_MIN, FUENTE_MAX, MOVER_MAX, RECUADROS } from "./apply";
 
 export const ALLOWED_IMAGE_EXTS = ["png", "jpg", "jpeg", "gif", "webp", "avif", "svg"] as const;
 
@@ -68,6 +68,11 @@ export function isValidOp(op: EditOp): boolean {
       return enteroEnRango(op.value, ANCHO_MIN, ANCHO_MAX);
     case "fontSize":
       return enteroEnRango(op.value, FUENTE_MIN, FUENTE_MAX);
+    case "mover":
+      // Un desplazamiento con signo. El cero se rechaza: no mueve nada, y
+      // dejarlo pasar haría que el contador de cambios del panel dijera uno de
+      // más y que se creara una versión en el historial sin ninguna diferencia.
+      return enteroEnRango(op.value, -MOVER_MAX, MOVER_MAX) && op.value !== 0;
     case "align":
     case "textAlign":
       // Se admite la INTENCIÓN, no CSS: el servidor decide los márgenes. Así no
