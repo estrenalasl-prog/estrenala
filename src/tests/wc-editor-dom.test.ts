@@ -663,3 +663,61 @@ describe("wc-editor.js · juntar el texto de un bloque", () => {
     });
   });
 });
+
+/**
+ * Sebas, el 10/08, con cuatro puntos de una lista recuadrados a la vez: «mira lo
+ * que pasa ahora cuando paso el ratón por encima, se quedan marcados».
+ *
+ * Efecto colateral de juntar el texto: el recuadro pasó a pintarse sobre el
+ * BLOQUE aunque el ratón estuviera sobre la negrita de dentro, pero el bloque no
+ * se resolvía a sí mismo —un párrafo con una negrita no es «texto rico», porque
+ * entre sus hijos está el envoltorio del texto suelto—. Al salir por su propio
+ * borde no había nada que desmarcar y el recuadro se quedaba pegado.
+ */
+describe("wc-editor.js · el recuadro de «esto se puede tocar»", () => {
+  function listaDePuntos(cuantos: number) {
+    const ctx = montar();
+    const lista = crearNodo("ul");
+    ctx.cuerpo.appendChild(lista);
+    const puntos = [];
+    for (let i = 0; i < cuantos; i++) {
+      const li = crearNodo("li");
+      li.setAttribute("data-wc-id", String(10 + i));
+      li.textContent = "Punto " + i + " con negrita";
+      const fuerte = crearNodo("strong");
+      fuerte.setAttribute("data-wc-id", String(20 + i));
+      fuerte.textContent = "Punto " + i;
+      const resto = crearNodo("wc-t");
+      resto.setAttribute("data-wc-tn", 10 + i + ":0");
+      resto.textContent = " con negrita";
+      li.appendChild(fuerte); li.appendChild(resto);
+      lista.appendChild(li);
+      puntos.push({ li, fuerte });
+    }
+    const encima = (n: Nodo) => { for (const f of ctx.oyentesDoc["mouseover"] ?? []) f({ target: n }); };
+    return { ...ctx, puntos, encima };
+  }
+
+  // El que fallaba: el ratón por el hueco del propio punto, sin tocar la negrita.
+  it("un bloque se reconoce también desde sí mismo, no solo desde sus hijos", () => {
+    const m = listaDePuntos(1);
+    m.encima(m.puntos[0].li);
+    expect(m.puntos[0].li.style.outline).toBeTruthy();
+  });
+
+  it("pasando por la negrita se marca el punto entero", () => {
+    const m = listaDePuntos(1);
+    m.encima(m.puntos[0].fuerte);
+    expect(m.puntos[0].li.style.outline).toBeTruthy();
+    expect(m.puntos[0].fuerte.style.outline).toBeFalsy();
+  });
+
+  // El ratón está en un sitio, no en cuatro.
+  it("marcar el siguiente borra el anterior", () => {
+    const m = listaDePuntos(3);
+    m.encima(m.puntos[0].fuerte);
+    m.encima(m.puntos[1].fuerte);
+    m.encima(m.puntos[2].li);
+    expect(m.puntos.map((p) => !!p.li.style.outline)).toEqual([false, false, true]);
+  });
+});

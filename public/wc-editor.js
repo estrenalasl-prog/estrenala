@@ -107,7 +107,12 @@
   function resolverEditable(el) {
     if (!el || el.nodeType !== 1) return null;
     if (esImagen(el) || esEnlace(el)) return el;
-    if (esTextoMixto(el) || esTextoRico(el)) return textoEntero(el) || el;
+    // `esTextoEscribible` y no solo `esTextoRico`: un párrafo con una negrita
+    // dentro NO es "rico" —sus hijos incluyen el envoltorio del texto suelto—,
+    // así que preguntando solo por eso, el propio párrafo no se resolvía a nada.
+    // Se marcaba al pasar por encima de la negrita y ya no había forma de
+    // desmarcarlo al salir por su borde: los recuadros se quedaban pegados.
+    if (esTextoMixto(el) || esTextoEscribible(el)) return textoEntero(el) || el;
     if (!el.closest) return null;
     var a = el.closest("a[data-wc-id]");
     return a || null;
@@ -965,8 +970,23 @@
   }
 
   // ---------- marcado visual ----------
-  function marcar(el) { el.style.outline = "2px dashed rgba(196,240,0,.95)"; el.style.outlineOffset = "3px"; if (esTextoEscribible(el) || esTextoMixto(el)) el.style.cursor = "text"; }
-  function desmarcar(el) { if (el === editando) return; el.style.outline = ""; el.style.outlineOffset = ""; el.style.cursor = ""; }
+  // Solo puede haber UNO marcado: el ratón está en un sitio, no en cuatro. Que
+  // cada quien se desmarcara por su cuenta al salir dependía de acertar con qué
+  // elemento resolvía el evento de salida, y bastaba con fallar una vez para
+  // dejar el recuadro pegado hasta recargar. Marcar el siguiente borra el
+  // anterior, así que un fallo así se corrige solo en el siguiente movimiento.
+  var marcado = null;
+  function marcar(el) {
+    if (marcado && marcado !== el) desmarcar(marcado);
+    marcado = el;
+    el.style.outline = "2px dashed rgba(196,240,0,.95)"; el.style.outlineOffset = "3px";
+    if (esTextoEscribible(el) || esTextoMixto(el)) el.style.cursor = "text";
+  }
+  function desmarcar(el) {
+    if (el === editando) return;
+    if (el === marcado) marcado = null;
+    el.style.outline = ""; el.style.outlineOffset = ""; el.style.cursor = "";
+  }
 
   // ---------- edición de texto in-situ ----------
   var editando = null, valorPrevio = "", htmlPrevio = "";
