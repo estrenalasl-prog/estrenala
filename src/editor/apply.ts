@@ -1,5 +1,5 @@
 import { walkElementsInOrder, type WalkedElement } from "./walk";
-import { mergeStyleProperty, quitarStyleProperty } from "./style";
+import { mergeStyleProperty, quitarStyleProperty, conPrioridad } from "./style";
 import { sanitizeInline } from "./sanitize-inline";
 
 /** Dónde va una imagen nueva respecto al elemento elegido. */
@@ -415,38 +415,40 @@ export function applyEdits(html: string, ops: PageOp[]): string {
   // el HTML saldría corrupto. Se funden todas en una cadena por nodo y se escribe
   // una sola vez, más abajo.
   const estiloPorNodo = new Map<number, string>();
+  // Todas las declaraciones del editor llevan `!important`: ver `conPrioridad`.
+  const poner = (s: string, prop: string, valor: string) => mergeStyleProperty(s, prop, conPrioridad(valor));
   for (const op of dedup.values()) {
     if (!esOpDeEstilo(op)) continue;
     const el = byId.get(op.nodeId);
     if (!el) continue;
     let s = estiloPorNodo.get(op.nodeId) ?? el.attrs.style ?? "";
     if (op.kind === "style") {
-      s = mergeStyleProperty(s, op.property, op.value);
+      s = poner(s, op.property, op.value);
     } else if (op.kind === "align") {
       const [ml, mr] = MARGENES[op.value];
-      s = mergeStyleProperty(s, "display", "block");
-      s = mergeStyleProperty(s, "margin-left", ml);
-      s = mergeStyleProperty(s, "margin-right", mr);
+      s = poner(s, "display", "block");
+      s = poner(s, "margin-left", ml);
+      s = poner(s, "margin-right", mr);
     } else if (op.kind === "textAlign") {
       // Alinear el TEXTO dentro del bloque, que no es lo mismo que alinear el
       // bloque (`align`, para imágenes). Aquí no se toca `display`: ponerlo en
       // bloque sacaría el elemento de la fila donde estaba.
-      s = mergeStyleProperty(s, "text-align", TEXT_ALIGN[op.value]);
+      s = poner(s, "text-align", TEXT_ALIGN[op.value]);
     } else if (op.kind === "size") {
       // `height: auto` va siempre: sin él, cambiar solo el ancho deforma la foto.
-      s = mergeStyleProperty(s, "display", "block");
-      s = mergeStyleProperty(s, "width", op.value + "%");
-      s = mergeStyleProperty(s, "height", "auto");
+      s = poner(s, "display", "block");
+      s = poner(s, "width", op.value + "%");
+      s = poner(s, "height", "auto");
     } else if (op.kind === "fontSize") {
       // Solo el tamaño. Nada de tocar el interlineado: casi todas las webs lo
       // llevan sin unidad, o sea proporcional, y ya se estira solo.
-      s = mergeStyleProperty(s, "font-size", op.value + "px");
+      s = poner(s, "font-size", op.value + "px");
     } else if (op.kind === "recuadro") {
       for (const prop of PROPIEDADES_RECUADRO) s = quitarStyleProperty(s, prop);
-      for (const [prop, valor] of RECUADROS[op.value]) s = mergeStyleProperty(s, prop, valor);
+      for (const [prop, valor] of RECUADROS[op.value]) s = poner(s, prop, valor);
     } else {
       const sep = `${op.value}px`;
-      for (const prop of PROPIEDADES_MARGEN[op.lado ?? "ambos"]) s = mergeStyleProperty(s, prop, sep);
+      for (const prop of PROPIEDADES_MARGEN[op.lado ?? "ambos"]) s = poner(s, prop, sep);
     }
     estiloPorNodo.set(op.nodeId, s);
   }

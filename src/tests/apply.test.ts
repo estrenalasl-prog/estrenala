@@ -63,12 +63,12 @@ describe("applyEdits — href / src", () => {
 describe("applyEdits — style:color", () => {
   it("inserta style cuando no existe", () => {
     expect(applyEdits(`<p>x</p>`, [{ nodeId: 0, kind: "style", property: "color", value: "#ff0000" }]))
-      .toBe(`<p style="color: #ff0000">x</p>`);
+      .toBe(`<p style="color: #ff0000 !important">x</p>`);
   });
 
   it("mezcla color en un style existente conservando lo demás", () => {
     expect(applyEdits(`<p style="margin: 0">x</p>`, [{ nodeId: 0, kind: "style", property: "color", value: "red" }]))
-      .toBe(`<p style="margin: 0; color: red">x</p>`);
+      .toBe(`<p style="margin: 0; color: red !important">x</p>`);
   });
 });
 
@@ -79,7 +79,7 @@ describe("applyEdits — combinados", () => {
       { nodeId: 0, kind: "style", property: "color", value: "red" },
       { nodeId: 0, kind: "text", value: "bye" },
     ]);
-    expect(out).toBe(`<a href="/n" style="color: red">bye</a>`);
+    expect(out).toBe(`<a href="/n" style="color: red !important">bye</a>`);
   });
 
   it("dedup por (nodeId,kind,property): la última gana", () => {
@@ -95,7 +95,7 @@ describe("applyEdits — combinados", () => {
       { nodeId: 0, kind: "style", property: "color", value: "red" },
     ]);
     expect(out).toContain(`href="/n"`);
-    expect(out).toContain(`style="color: red"`);
+    expect(out).toContain(`style="color: red !important"`);
     expect(out.startsWith("<a ")).toBe(true);
     expect(out.endsWith(">link</a>")).toBe(true);
   });
@@ -266,9 +266,9 @@ describe("applyEdits · alinear", () => {
 
   it("izquierda y derecha sueltan el margen del lado que toca", () => {
     expect(applyEdits(`<img src="/a.png">`, [al(0, "izquierda")]))
-      .toContain("margin-left: 0; margin-right: auto");
+      .toContain("margin-left: 0 !important; margin-right: auto !important");
     expect(applyEdits(`<img src="/a.png">`, [al(0, "derecha")]))
-      .toContain("margin-left: auto; margin-right: 0");
+      .toContain("margin-left: auto !important; margin-right: 0 !important");
   });
 
   // Una imagen es en linea por defecto, y con eso los margenes automaticos no
@@ -286,7 +286,7 @@ describe("applyEdits · alinear", () => {
 
   it("realinear no acumula: gana la ultima", () => {
     const r = applyEdits(`<img src="/a.png">`, [al(0, "centro"), al(0, "derecha")]);
-    expect(r).toContain("margin-left: auto; margin-right: 0");
+    expect(r).toContain("margin-left: auto !important; margin-right: 0 !important");
     expect([...r.matchAll(/margin-left/g)]).toHaveLength(1);
   });
 
@@ -664,5 +664,64 @@ describe("applyEdits · mover bloques", () => {
   it("un hijo único no se mueve a ninguna parte", () => {
     const solo = `<div><p>A</p></div>`;
     expect(applyEdits(solo, [mover(1, 1)])).toBe(solo);
+  });
+});
+
+/**
+ * Sebas, el 2026-08-10: sube la barra del tamaño de letra y el texto no crece.
+ *
+ * No era el editor: el artículo traía dentro su propio
+ * `<style> p, ul, li { color:#000 !important; font-size:20px !important } </style>`,
+ * y una regla `!important` de la hoja de estilos GANA a un estilo en línea
+ * normal. El editor escribía `font-size: 40px` y la página le decía que no. El
+ * color de esos párrafos tampoco se dejaba cambiar, por lo mismo.
+ *
+ * Desde entonces todo lo que escribe el editor lleva `!important`: es la
+ * elección explícita del usuario sobre un elemento concreto, y tiene que ganar.
+ */
+describe("applyEdits · lo que elige el usuario gana al CSS de la página", () => {
+  /** Las declaraciones del atributo `style` del resultado. */
+  function declaraciones(html: string): string[] {
+    const m = html.match(/style="([^"]*)"/);
+    expect(m, `el resultado no tiene atributo style: ${html}`).toBeTruthy();
+    return m![1].split(";").map((d) => d.trim()).filter(Boolean);
+  }
+
+  // Uno de CADA tipo que escribe estilo. Si mañana se añade otro y se le olvida
+  // la prioridad, este test lo canta: la herramienta nueva no haría nada en las
+  // webs que llevan `!important`, que es justo donde más se nota.
+  const casos = [
+    { nombre: "color", html: `<p>x</p>`, op: { nodeId: 0, kind: "style", property: "color", value: "red" } },
+    { nombre: "alineación del texto", html: `<p>x</p>`, op: { nodeId: 0, kind: "textAlign", value: "centro" } },
+    { nombre: "tamaño de la letra", html: `<p>x</p>`, op: { nodeId: 0, kind: "fontSize", value: 40 } },
+    { nombre: "aire", html: `<p>x</p>`, op: { nodeId: 0, kind: "margen", value: 24, lado: "arriba" } },
+    { nombre: "recuadro", html: `<p>x</p>`, op: { nodeId: 0, kind: "recuadro", value: "suave" } },
+    { nombre: "alineación de imagen", html: `<img src="a.png">`, op: { nodeId: 0, kind: "align", value: "centro" } },
+    { nombre: "ancho de imagen", html: `<img src="a.png">`, op: { nodeId: 0, kind: "size", value: 50 } },
+  ] as const;
+
+  for (const c of casos) {
+    it(`${c.nombre}: todas sus declaraciones llevan !important`, () => {
+      const decls = declaraciones(applyEdits(c.html, [c.op as never]));
+      expect(decls.length).toBeGreaterThan(0);
+      for (const d of decls) expect(d, `«${d}» se escribió sin prioridad`).toMatch(/ !important$/);
+    });
+  }
+
+  // Lo que ya tenía la página se queda como estaba: la prioridad es para lo que
+  // el usuario cambia, no para reescribirle el resto de su estilo.
+  it("no le pone prioridad a lo que ya había en el elemento", () => {
+    const r = applyEdits(`<p style="margin: 0">x</p>`, [{ nodeId: 0, kind: "fontSize", value: 40 }]);
+    expect(r).toContain("margin: 0;");
+    expect(r).toContain("font-size: 40px !important");
+  });
+
+  // Quitar el recuadro sigue siendo BORRAR, no escribir ceros con prioridad: un
+  // `padding: 0 !important` dejaría al elemento sin el relleno de su propio CSS.
+  it("«sin recuadro» borra, no escribe ceros con prioridad", () => {
+    const r = applyEdits(`<p style="padding: 18px 20px !important">x</p>`, [
+      { nodeId: 0, kind: "recuadro", value: "ninguno" },
+    ]);
+    expect(r).not.toContain("padding");
   });
 });

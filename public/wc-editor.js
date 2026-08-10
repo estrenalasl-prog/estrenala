@@ -197,15 +197,34 @@
     window.parent.postMessage({ type: "wc-edit", op: op }, "*");
   }
 
+  /**
+   * Todo lo que escribe el editor va con `!important`.
+   *
+   * Sin esto, en una web cuyo CSS lleve `!important` se sube la barra del tamaño
+   * de letra y NO PASA NADA: una regla `!important` de la hoja de estilos gana a
+   * un estilo en línea normal. Lo vio Sebas el 10/08 en un artículo suyo con
+   * `p, ul, li { font-size: 20px !important }` dentro, y las webs hechas con IA
+   * lo llevan a menudo.
+   *
+   * Lo mismo escribe el servidor al guardar (`conPrioridad` en src/editor/style.ts).
+   * Si uno lo pusiera y el otro no, se vería una cosa y se publicaría otra.
+   */
+  function ponerEstilo(el, prop, valor) { el.style.setProperty(prop, valor, "important"); }
+
   /** Cómo devolver a su sitio unas propiedades de estilo en línea. */
   function volverEstilo(el, props) {
     var antes = [];
-    for (var i = 0; i < props.length; i++) antes.push([props[i], el.style.getPropertyValue(props[i])]);
+    for (var i = 0; i < props.length; i++) {
+      // La prioridad se apunta aparte: si la página ya traía un `!important`
+      // suyo, deshacer tiene que devolvérselo y no dejarlo en una declaración
+      // normal que su propio CSS volvería a pisar.
+      antes.push([props[i], el.style.getPropertyValue(props[i]), el.style.getPropertyPriority(props[i])]);
+    }
     return function () {
       for (var j = 0; j < antes.length; j++) {
         // Cadena vacía significa «no había nada puesto»: se deshace quitándola,
         // no escribiéndola, para que el elemento vuelva a heredar de su CSS.
-        if (antes[j][1]) el.style.setProperty(antes[j][0], antes[j][1]);
+        if (antes[j][1]) el.style.setProperty(antes[j][0], antes[j][1], antes[j][2]);
         else el.style.removeProperty(antes[j][0]);
       }
     };
@@ -559,9 +578,9 @@
       var volver = volverEstilo(el, ["display", "margin-left", "margin-right"]);
       // display:block es imprescindible: una imagen es en línea por defecto y sin
       // esto los márgenes automáticos no hacen absolutamente nada.
-      el.style.display = "block";
-      el.style.marginLeft = m[0];
-      el.style.marginRight = m[1];
+      ponerEstilo(el, "display", "block");
+      ponerEstilo(el, "margin-left", m[0]);
+      ponerEstilo(el, "margin-right", m[1]);
       emitir({ page: PAGE, nodeId: idDe(el), kind: "align", value: valor }, volver);
     });
     return b;
@@ -692,7 +711,7 @@
       // Solo `text-align`. Nada de `display:block` como en las imágenes: eso
       // sacaría de su fila a un título que estuviera dentro de una maqueta.
       var volver = volverEstilo(el, ["text-align"]);
-      el.style.textAlign = TEXT_ALIGN_UI[valor];
+      ponerEstilo(el, "text-align", TEXT_ALIGN_UI[valor]);
       emitir({ page: PAGE, nodeId: idDe(el), kind: "textAlign", value: valor }, volver);
     });
     return b;
@@ -707,7 +726,7 @@
       var volver = volverEstilo(el, PROPIEDADES_RECUADRO_UI);
       for (var i = 0; i < PROPIEDADES_RECUADRO_UI.length; i++) el.style.removeProperty(PROPIEDADES_RECUADRO_UI[i]);
       var decls = RECUADROS_UI[valor] || [];
-      for (var j = 0; j < decls.length; j++) el.style.setProperty(decls[j][0], decls[j][1]);
+      for (var j = 0; j < decls.length; j++) ponerEstilo(el, decls[j][0], decls[j][1]);
       emitir({ page: PAGE, nodeId: idDe(el), kind: "recuadro", value: valor }, volver);
       colocarPopSiAbierto();
     });
@@ -888,7 +907,7 @@
       var volverColor = null;
       color.addEventListener("input", function () {
         if (!volverColor) volverColor = volverEstilo(el, ["color"]);
-        el.style.color = color.value;
+        ponerEstilo(el, "color", color.value);
         emitir({ page: PAGE, nodeId: idDe(el), kind: "style", property: "color", value: color.value }, volverColor);
       });
       pop.appendChild(etiqueta("Color")); pop.appendChild(color);
@@ -937,14 +956,14 @@
       var volverFuente = null;
       caja.appendChild(deslizador("Tamaño de la letra", "px", 10, 96, tamanoActual(bloque), function (n, final) {
         if (!volverFuente) volverFuente = volverEstilo(bloque, ["font-size"]);
-        bloque.style.fontSize = n + "px";
+        ponerEstilo(bloque, "font-size", n + "px");
         if (final) { emitir({ page: PAGE, nodeId: idDe(bloque), kind: "fontSize", value: n }, volverFuente); colocarPopSiAbierto(); }
       }));
 
       var volverArriba = null, volverAbajo = null;
       caja.appendChild(deslizador("Aire arriba", "px", 0, 120, margenActualLado(bloque, "marginTop"), function (n, final) {
         if (!volverArriba) volverArriba = volverEstilo(bloque, ["margin-top"]);
-        bloque.style.marginTop = n + "px";
+        ponerEstilo(bloque, "margin-top", n + "px");
         // Recolocar solo al soltar. Subir el aire de arriba empuja el elemento
         // hacia abajo y el menú cuelga de él: si se recolocara en cada píxel del
         // arrastre, el menú iría persiguiendo al ratón mientras se arrastra.
@@ -952,7 +971,7 @@
       }));
       caja.appendChild(deslizador("Aire abajo", "px", 0, 120, margenActualLado(bloque, "marginBottom"), function (n, final) {
         if (!volverAbajo) volverAbajo = volverEstilo(bloque, ["margin-bottom"]);
-        bloque.style.marginBottom = n + "px";
+        ponerEstilo(bloque, "margin-bottom", n + "px");
         if (final) { emitir({ page: PAGE, nodeId: idDe(bloque), kind: "margen", value: n, lado: "abajo" }, volverAbajo); colocarPopSiAbierto(); }
       }));
 
@@ -1041,9 +1060,9 @@
       var volverAncho = null;
       pop.appendChild(deslizador("Tamaño", "%", 10, 100, anchoActual(el), function (n, final) {
         if (!volverAncho) volverAncho = volverEstilo(el, ["display", "width", "height"]);
-        el.style.display = "block";
-        el.style.width = n + "%";
-        el.style.height = "auto"; // sin esto, cambiar solo el ancho deforma la foto
+        ponerEstilo(el, "display", "block");
+        ponerEstilo(el, "width", n + "%");
+        ponerEstilo(el, "height", "auto"); // sin esto, cambiar solo el ancho deforma la foto
         if (final) emitir({ page: PAGE, nodeId: idDe(el), kind: "size", value: n }, volverAncho);
       }));
 
@@ -1053,8 +1072,8 @@
       var volverAire = null;
       pop.appendChild(deslizador("Margen arriba y abajo", "px", 0, 120, margenActual(el), function (n, final) {
         if (!volverAire) volverAire = volverEstilo(el, ["margin-top", "margin-bottom"]);
-        el.style.marginTop = n + "px";
-        el.style.marginBottom = n + "px";
+        ponerEstilo(el, "margin-top", n + "px");
+        ponerEstilo(el, "margin-bottom", n + "px");
         if (final) emitir({ page: PAGE, nodeId: idDe(el), kind: "margen", value: n }, volverAire);
       }));
     }

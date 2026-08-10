@@ -28,9 +28,11 @@ type Mensaje = { type?: string; op?: Record<string, unknown>; clave?: string };
 type Estilo = Record<string, unknown> & {
   _puestas: [string, string][];
   _quitadas: string[];
-  setProperty(n: string, v: string): void;
+  _prioridades: Record<string, string>;
+  setProperty(n: string, v: string, prio?: string): void;
   removeProperty(n: string): void;
   getPropertyValue(n: string): string;
+  getPropertyPriority(n: string): string;
 };
 
 type Rect = { top: number; bottom: number; left: number; right: number; width: number; height: number };
@@ -86,7 +88,8 @@ interface Nodo {
  * propiedad CSS (`cssText`, los métodos, los espías del test) pasa tal cual.
  */
 const CLAVES_DIRECTAS = new Set([
-  "cssText", "setProperty", "removeProperty", "getPropertyValue", "_puestas", "_quitadas",
+  "cssText", "setProperty", "removeProperty", "getPropertyValue", "getPropertyPriority",
+  "_puestas", "_quitadas", "_prioridades",
 ]);
 function conGuiones(n: string): string {
   return n.replace(/[A-Z]/g, (c) => "-" + c.toLowerCase());
@@ -94,13 +97,18 @@ function conGuiones(n: string): string {
 function crearEstilo(): Estilo {
   const puestas: [string, string][] = [];
   const quitadas: string[] = [];
+  // La prioridad (`!important`) va en su propio cajón, como en el navegador: es
+  // un dato aparte del valor, no un trozo del valor.
+  const prioridades: Record<string, string> = {};
   const base: Record<string, unknown> = {
     cssText: "",
-    setProperty(n: string, v: string) { puestas.push([n, v]); base[n] = v; },
-    removeProperty(n: string) { quitadas.push(n); delete base[n]; },
+    setProperty(n: string, v: string, prio?: string) { puestas.push([n, v]); base[n] = v; prioridades[n] = prio || ""; },
+    removeProperty(n: string) { quitadas.push(n); delete base[n]; delete prioridades[n]; },
     getPropertyValue(n: string) { const v = base[n]; return typeof v === "string" ? v : ""; },
+    getPropertyPriority(n: string) { return prioridades[n] ?? ""; },
     _puestas: puestas,
     _quitadas: quitadas,
+    _prioridades: prioridades,
   };
   const nombre = (k: string) => (CLAVES_DIRECTAS.has(k) ? k : conGuiones(k));
   return new Proxy(base, {
@@ -1060,5 +1068,48 @@ describe("wc-editor.js · panel e iframe cuentan lo mismo", () => {
       deshechas.add(c);
     }
     expect([...deshechas].sort()).toEqual([...enElPanel].sort());
+  });
+});
+
+/**
+ * La otra mitad de lo mismo: la vista previa tiene que escribir con la MISMA
+ * prioridad que el servidor. Si el iframe pusiera `!important` y el servidor no
+ * —o al revés—, el usuario vería el cambio y al guardar desaparecería.
+ */
+describe("wc-editor.js · en la vista previa también gana lo que elige el usuario", () => {
+  it("la alineación se escribe con prioridad", () => {
+    const m = abrirMenu("p");
+    botonConTexto(m.menu, "Centro")._disparar("click");
+    expect(m.el.style.getPropertyPriority("text-align")).toBe("important");
+  });
+
+  it("y el recuadro entero, declaración por declaración", () => {
+    const m = abrirMenu("p");
+    botonConTexto(m.menu, "Fondo suave")._disparar("click");
+    for (const [prop] of RECUADROS.suave) {
+      expect(m.el.style.getPropertyPriority(prop), `«${prop}» sin prioridad`).toBe("important");
+    }
+  });
+
+  it("y el tamaño de la letra", () => {
+    const m = abrirMenu("p");
+    const rango = todos(m.menu).find((n) => n.type === "range")!;
+    rango.value = "44"; rango._disparar("change");
+    expect(m.el.style.getPropertyValue("font-size")).toBe("44px");
+    expect(m.el.style.getPropertyPriority("font-size")).toBe("important");
+  });
+
+  // El caso de Sebas al revés: si la página ya traía su propio `!important`,
+  // deshacer tiene que devolvérselo. Dejarlo como declaración normal lo haría
+  // perder contra su propia hoja de estilos, o sea que «deshacer» habría
+  // cambiado la web en vez de dejarla como estaba.
+  it("deshacer devuelve también el !important que ya traía la página", () => {
+    const m = abrirMenu("p");
+    m.el.style.setProperty("font-size", "20px", "important");
+    const rango = todos(m.menu).find((n) => n.type === "range")!;
+    rango.value = "44"; rango._disparar("change");
+    m.deshacer();
+    expect(m.el.style.getPropertyValue("font-size")).toBe("20px");
+    expect(m.el.style.getPropertyPriority("font-size")).toBe("important");
   });
 });

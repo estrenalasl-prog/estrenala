@@ -134,7 +134,7 @@ describe("saveEdits", () => {
 
     const np = `projects/p1/snapshots/${snapshotId}/`;
     const html = storage.files.get(np + "index.html")!.toString();
-    expect(html).toBe(`<a href="/n">x</a><img src="/wc-uploads/${A}.png"><p style="color: red">t</p>`);
+    expect(html).toBe(`<a href="/n">x</a><img src="/wc-uploads/${A}.png"><p style="color: red !important">t</p>`);
     expect(storage.files.get(np + `wc-uploads/${A}.png`)!.toString()).toBe("PNGDATA");
   });
 
