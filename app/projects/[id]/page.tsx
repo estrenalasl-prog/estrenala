@@ -105,7 +105,9 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
         {puede(plan, "blog")
           ? <BlogPanel projectId={id} idioma={idioma} t={textosBlog(idioma)} />
           : <BlogDePago t={textosBlog(idioma)} />}
-        <PreviewPane projectId={id} entryPath={project.entryPath} pages={pages} t={textos.proyecto} />
+        {/* `version`: la vista previa se refresca sola cuando cambia la versión
+            actual del sitio (subir un ZIP, restaurar del historial, guardar). */}
+        <PreviewPane projectId={id} entryPath={project.entryPath} pages={pages} t={textos.proyecto} version={project.currentSnapshotId} />
         {esOwner(rol) && <DangerZone projectId={id} nombre={project.nombre} textos={textos.proyecto} />}
       </main>
     </>

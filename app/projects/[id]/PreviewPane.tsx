@@ -29,6 +29,31 @@ type SnapshotInfo = { id: string; tipo: string; parentId: string | null; created
 const opKey = claveOp;
 
 /**
+ * La dirección del marco de la vista previa.
+ *
+ * Lleva la VERSIÓN que se está mirando, y el `<iframe>` va con `key={src}`:
+ * cuando cambia la versión, el marco se vuelve a montar y pide la página otra
+ * vez.
+ *
+ * Sin eso, subir un ZIP decía «listo» y la vista previa seguía enseñando lo de
+ * antes: `router.refresh()` rehace la página en el servidor, pero el `src` no
+ * cambiaba y el marco se quedaba tal cual. Había que irse a otra página y
+ * volver para verlo. Lo vio Sebas el 2026-08-12 subiendo la web de Quantiva, y
+ * es de los fallos que hacen dudar de si el cambio se ha guardado.
+ *
+ * Va por la versión y no por un aviso de «acabo de subir un ZIP» a propósito:
+ * así vale igual para restaurar del historial, para lo que publique el blog y
+ * para lo que venga. `recarga` se queda para lo que NO cambia de versión, como
+ * tirar los cambios sin guardar.
+ */
+export function srcPreview(
+  { projectId, relPath, editMode, recarga, version }:
+  { projectId: string; relPath: string; editMode: boolean; recarga: number; version: string | null }
+): string {
+  return `/api/projects/${projectId}/preview/${relPath}${editMode ? "?edit=1" : ""}#${recarga}-${version ?? ""}`;
+}
+
+/**
  * Texto alternativo por defecto, sacado del nombre del archivo. No es perfecto,
  * pero una imagen sin `alt` es invisible para Google y para quien use lector de
  * pantalla, y nadie lo escribe si hay que escribirlo a mano.
@@ -66,8 +91,8 @@ function cuando(iso: string): string {
 }
 
 export function PreviewPane({
-  projectId, entryPath, pages, t,
-}: { projectId: string; entryPath: string; pages: string[]; t: Textos }) {
+  projectId, entryPath, pages, t, version,
+}: { projectId: string; entryPath: string; pages: string[]; t: Textos; version: string | null }) {
   const { avisar } = useDialogo();
   const [actual, setActual] = useState(entryPath);
   const [guardando, setGuardando] = useState(false);
@@ -85,7 +110,7 @@ export function PreviewPane({
   const router = useRouter();
 
   const relPath = actual === entryPath ? "" : actual;
-  const src = `/api/projects/${projectId}/preview/${relPath}${editMode ? "?edit=1" : ""}#${recarga}`;
+  const src = srcPreview({ projectId, relPath, editMode, recarga, version });
 
   const cargarHistorial = useCallback(async () => {
     const d = await fetch(`/api/projects/${projectId}/snapshots`).then((r) => r.json()).catch(() => ({}));

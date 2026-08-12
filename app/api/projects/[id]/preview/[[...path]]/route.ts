@@ -22,5 +22,12 @@ export async function GET(
     { storage: getStorage() },
     { projectId: id, storagePrefix: snap.storagePrefix, entryPath: project.entryPath, pathSegments: path ?? [], edit }
   );
-  return new Response(new Uint8Array(r.body), { status: r.status, headers: { "content-type": r.contentType } });
+  // `no-store`: esto es la versión ACTUAL del sitio, y cambia cada vez que se
+  // sube un ZIP, se guarda una edición o se restaura del historial. Guardada en
+  // cualquier caché, alguien acabaría mirando una web que ya no existe y
+  // creyendo que su cambio no se ha aplicado.
+  return new Response(new Uint8Array(r.body), {
+    status: r.status,
+    headers: { "content-type": r.contentType, "cache-control": "no-store" },
+  });
 }
