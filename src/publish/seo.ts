@@ -1,3 +1,5 @@
+import { esVerificacion } from "@/src/seo/paginas";
+
 // Cómo se le habla a Google al servir la web publicada de un cliente.
 //
 // Todo va en CABECERAS, nunca reescribiendo su HTML: el contrato de la
@@ -266,7 +268,11 @@ export function sitemapDeLasPaginas(input: {
     .filter((rel) => /\.html?$/i.test(rel))
     // Las del blog ya las lista el sitemap del blog; y los parciales que empiezan
     // por "_" no son páginas que nadie deba visitar sueltas.
-    .filter((rel) => !rel.split("/").some((t) => t.startsWith("_")));
+    .filter((rel) => !rel.split("/").some((t) => t.startsWith("_")))
+    // Tampoco los archivos de verificación de los buscadores: ofrecerle a Google
+    // que indexe el papelito con el que le demuestras que el dominio es tuyo es
+    // gastar rastreo y arriesgarse a que salga en los resultados.
+    .filter((rel) => !esVerificacion(rel));
 
   const rutas = new Set<string>();
   for (const rel of paginas) {

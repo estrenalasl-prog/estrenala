@@ -1,5 +1,6 @@
 import type { StorageAdapter } from "@/src/storage/types";
 import { examinarSitio, type ExamenSitio } from "@/src/seo/examen";
+import { esVerificacion, pareceUnaPagina } from "@/src/seo/paginas";
 
 /**
  * Examina la web de un proyecto leyendo sus páginas del almacenamiento.
@@ -48,7 +49,9 @@ export function paginasAExaminar(claves: string[], prefijo: string, entryPath: s
     .filter((rel) => /\.html?$/i.test(rel))
     // Los que empiezan por "_" son trozos de plantilla, no páginas que nadie
     // visite sueltas. Mismo criterio que el sitemap.
-    .filter((rel) => !rel.split("/").some((t) => t.startsWith("_")));
+    .filter((rel) => !rel.split("/").some((t) => t.startsWith("_")))
+    // Y los archivos de verificación de los buscadores, que tampoco son páginas.
+    .filter((rel) => !esVerificacion(rel));
 
   return rels.sort((a, b) => {
     if (a === entryPath) return -1;
@@ -69,11 +72,17 @@ export async function examinarProyecto(
   const todas = paginasAExaminar(claves, input.storagePrefix, input.entryPath);
 
   const paginas: { ruta: string; html: string }[] = [];
+  // Los que se descartan al abrirlos no cuentan como páginas del sitio: si
+  // contaran, diría «1 de 6 páginas» de una web que tiene cinco.
+  let noEranPaginas = 0;
   for (const rel of todas.slice(0, MAX_PAGINAS)) {
     const f = await storage.get(input.storagePrefix + rel);
     // Un archivo que está en la lista pero no se puede leer no es motivo para
     // dejar sin examen las otras veinticuatro páginas.
-    if (f) paginas.push({ ruta: rel, html: f.body.toString("utf-8") });
+    if (!f) continue;
+    const html = f.body.toString("utf-8");
+    if (!pareceUnaPagina(html)) { noEranPaginas++; continue; }
+    paginas.push({ ruta: rel, html });
   }
 
   // Cuánto ocupa cada archivo, para poder decirle lo que pesa su web. Va en
@@ -91,7 +100,9 @@ export async function examinarProyecto(
     }
   }
 
-  const examen = examinarSitio({ paginas, totales: todas.length, portada: input.entryPath, bytes });
+  const examen = examinarSitio({
+    paginas, totales: todas.length - noEranPaginas, portada: input.entryPath, bytes,
+  });
   cache.set(input.snapshotId, examen);
   return examen;
 }
