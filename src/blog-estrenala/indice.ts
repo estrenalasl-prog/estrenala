@@ -4,6 +4,7 @@ import { formularioContactoNoEnvia } from "./posts/formulario-contacto-no-envia"
 import { conectarDominioRegistrosDns } from "./posts/conectar-dominio-registros-dns";
 import { webIaPosicionarGoogle } from "./posts/web-ia-posicionar-google";
 import { cambiarTextoSinTocarCodigo } from "./posts/cambiar-texto-sin-tocar-codigo";
+import { puedoDescargarMiWeb } from "./posts/puedo-descargar-mi-web";
 
 /**
  * Todos los artículos, del más nuevo al más viejo.
@@ -14,6 +15,7 @@ import { cambiarTextoSinTocarCodigo } from "./posts/cambiar-texto-sin-tocar-codi
  * primero.
  */
 export const ARTICULOS: Articulo[] = [
+  puedoDescargarMiWeb,
   publicarWebHechaConIa,
   formularioContactoNoEnvia,
   cambiarTextoSinTocarCodigo,
