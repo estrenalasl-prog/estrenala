@@ -27,6 +27,46 @@ describe("leer un envío", () => {
     expect(Object.keys(r.envio.datos)).not.toContain(CAMPO_INDICE);
   });
 
+  /**
+   * Visto el 2026-08-21 analizando una web real hecha con Next.js: junto a los
+   * campos del formulario viajan `$ACTION_REF_1`, `$ACTION_KEY`… que son
+   * fontanería del framework, no algo que haya escrito nadie.
+   */
+  it("la fontanería de la herramienta con la que se hizo la web no se guarda", () => {
+    const r = leerEnvio(envio({
+      "$ACTION_REF_1": "",
+      "$ACTION_1:0": '{"id":"7f3a","bound":null}',
+      "$ACTION_KEY": "k1234",
+      "__VIEWSTATE": "dDwtMTA4NzMyMTIzMzs7Pg==",
+      nombre: "Ana",
+      email: "ana@ejemplo.com",
+    }));
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.envio.datos).toEqual({ nombre: "Ana", email: "ana@ejemplo.com" });
+  });
+
+  // Lo importante no es la fealdad: con el tope de campos, suficiente
+  // fontanería junto a un formulario grande tiraba el mensaje ENTERO y quien
+  // escribió se quedaba sin que le llegara.
+  it("y por tanto no gasta el cupo de campos", () => {
+    const campos: Record<string, string> = { nombre: "Ana" };
+    for (let i = 0; i < MAX_CAMPOS + 5; i++) campos["$ACTION_" + i] = "x";
+    const r = leerEnvio(envio(campos));
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.envio.datos).toEqual({ nombre: "Ana" });
+  });
+
+  // Y no se pasa de listo: un campo normal que EMPIECE por letra se guarda
+  // aunque lleve guiones bajos por en medio.
+  it("un campo de verdad con guiones bajos sí se guarda", () => {
+    const r = leerEnvio(envio({ nombre_completo: "Ana Pérez", tu__mensaje: "Hola" }));
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.envio.datos).toEqual({ nombre_completo: "Ana Pérez", tu__mensaje: "Hola" });
+  });
+
   it("si la trampa viene rellena, se descarta", () => {
     const f = envio({ nombre: "Robot" });
     f.set(CAMPO_TRAMPA, "http://spam.example");

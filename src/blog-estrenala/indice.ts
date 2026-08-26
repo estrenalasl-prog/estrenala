@@ -5,6 +5,7 @@ import { conectarDominioRegistrosDns } from "./posts/conectar-dominio-registros-
 import { webIaPosicionarGoogle } from "./posts/web-ia-posicionar-google";
 import { cambiarTextoSinTocarCodigo } from "./posts/cambiar-texto-sin-tocar-codigo";
 import { puedoDescargarMiWeb } from "./posts/puedo-descargar-mi-web";
+import { webSeVeMalEnElMovil } from "./posts/web-se-ve-mal-en-el-movil";
 
 /**
  * Todos los artículos, del más nuevo al más viejo.
@@ -15,6 +16,7 @@ import { puedoDescargarMiWeb } from "./posts/puedo-descargar-mi-web";
  * primero.
  */
 export const ARTICULOS: Articulo[] = [
+  webSeVeMalEnElMovil,
   puedoDescargarMiWeb,
   publicarWebHechaConIa,
   formularioContactoNoEnvia,

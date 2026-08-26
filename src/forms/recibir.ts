@@ -40,6 +40,31 @@ export type Resultado =
 const CAMPOS_NUESTROS = new Set([CAMPO_TRAMPA, CAMPO_PAGINA, CAMPO_INDICE]);
 
 /**
+ * Cableado de OTROS: campos ocultos que mete la herramienta con la que se hizo
+ * la web, no cosas que haya escrito nadie.
+ *
+ * El caso que lo trajo: una web hecha con Next.js manda `$ACTION_REF_1`,
+ * `$ACTION_1:0`, `$ACTION_KEY`… junto a los campos de verdad. Se vio el
+ * 2026-08-21 analizando bullgodcoach.es. Si esa web se subiera aquí exportada
+ * como archivos estáticos, su formulario SÍ estaría muerto y lo conectaríamos
+ * bien — pero esos campos acabarían en la bandeja del dueño.
+ *
+ * Y no es solo fealdad: son cadenas serializadas que pueden ser largas. Con
+ * `MAX_CAMPOS` en 40, suficiente fontanería junto a un formulario grande tira el
+ * mensaje ENTERO por «demasiados campos», y quien escribió se queda sin que le
+ * lleguen. Vale más filtrarlos que arriesgarse a perder mensajes buenos.
+ *
+ * La regla es por la FORMA y no por una lista de nombres que habría que ir
+ * ampliando: `$` al principio es de React/Next, `__` al principio es de ASP.NET
+ * (`__VIEWSTATE`) y de casi todo lo demás. Ninguna persona llama así a un campo
+ * de su formulario de contacto, y lo que se pierde si nos equivocamos es un
+ * campo oculto que el visitante nunca vio.
+ */
+function esCableadoAjeno(nombre: string): boolean {
+  return nombre.startsWith("$") || nombre.startsWith("__");
+}
+
+/**
  * La ruta en la que se envió, tal como la mandó el formulario.
  *
  * Se exige que empiece por `/` y no tenga `..`: llega del HTML servido, pero un
@@ -73,6 +98,7 @@ export function leerEnvio(form: FormData): Resultado {
   let cuantos = 0;
   for (const [nombre, valor] of form.entries()) {
     if (CAMPOS_NUESTROS.has(nombre)) continue;
+    if (esCableadoAjeno(nombre)) continue;
     // Un archivo no se guarda: la recogida es de texto. Se ignora en silencio
     // para no tirar el resto del mensaje, que sí sirve.
     if (typeof valor !== "string") continue;
