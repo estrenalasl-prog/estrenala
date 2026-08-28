@@ -21,6 +21,12 @@ export const RUTAS_PUBLICAS = ["/login", "/api/login", "/registro", "/api/regist
   // propósito: los artículos cuelgan de él (`/blog/loquesea`). Sin esta línea
   // acabarían en el 307 a /login, o sea que no existirían para Google.
   "/blog",
+  // La versión en Markdown de las páginas de contenido, para quien las lee con
+  // una IA (ver src/agentes/). Por prefijo, como el blog: de aquí cuelgan la
+  // landing en cinco idiomas y todos los artículos. Se llega casi siempre por
+  // reescritura desde el middleware, pero también se puede pedir a pelo, y un
+  // 307 al login sería una respuesta absurda a «dame el texto de tu blog».
+  "/md",
   // Lo llama Stripe (sin cookie); su candado es la firma HMAC del cuerpo.
   "/api/stripe/webhook"];
 
@@ -36,8 +42,11 @@ export const RUTAS_PUBLICAS = ["/login", "/api/login", "/registro", "/api/regist
 // final de middleware.ts). La plataforma no tiene ninguno —usa `icon.png`—, así
 // que seguirá dando 404; pero un 404 es la respuesta correcta a un archivo que
 // no existe, y un 307 al login por pedir un icono, no.
+// `llms.txt` es de la misma familia que robots.txt y sitemap.xml: un archivo de
+// texto en la raíz que se pide sin sesión y que describe el sitio, solo que a
+// quien lo lee con una IA en vez de a un buscador.
 export const ARCHIVOS_PUBLICOS = new Set([
-  "/robots.txt", "/sitemap.xml", "/icon.png", "/apple-icon.png", "/favicon.ico",
+  "/robots.txt", "/sitemap.xml", "/llms.txt", "/icon.png", "/apple-icon.png", "/favicon.ico",
   "/.well-known/security.txt",
 ]);
 

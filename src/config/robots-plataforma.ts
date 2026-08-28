@@ -87,6 +87,59 @@ export type ReglasRobots = {
  * esté puesto, este archivo dice «no rastrees nada», y anunciarle además un mapa
  * de lo que no debe mirar es contradecirse en el mismo archivo.
  */
+/**
+ * Señales de contenido (contentsignals.org): qué se puede hacer con lo que
+ * publicamos, dicho en el propio robots.txt y una sola vez para todos.
+ *
+ * Robots.txt siempre ha servido para decir «no entres». No servía para decir
+ * «entra, léelo, cítame, pero no lo metas en tu entrenamiento», que es
+ * exactamente lo que queremos: nos interesa que un modelo nos lea y responda
+ * citándonos —de ahí viven los artículos—, y no nos aporta nada que nuestro
+ * texto acabe dentro de un modelo sin más.
+ *
+ * Es una reserva de derechos, no un candado técnico: quien quiera saltárselo
+ * puede. Lo que da es una declaración escrita, con fecha y en el sitio donde se
+ * mira, que antes no existía.
+ */
+export const SENALES_CONTENIDO = "search=yes, ai-input=yes, ai-train=no";
+
+/**
+ * El porqué de la línea de arriba, en cristiano y dentro del propio archivo.
+ *
+ * Va en el robots.txt a propósito: quien lo abre —una persona o el equipo legal
+ * de alguien— tiene que poder entender qué se está declarando sin buscar la
+ * especificación por ahí.
+ */
+const COMENTARIO_SENALES = [
+  "# Content-Signal: qué se puede hacer con lo que publicamos aquí.",
+  "#   search=yes    indexarlo y enlazarlo en un buscador: sí.",
+  "#   ai-input=yes  usarlo para responder a alguien, citando la fuente: sí.",
+  "#   ai-train=no   usarlo para entrenar un modelo: no.",
+  "# Más en https://contentsignals.org",
+].join("\n");
+
+/**
+ * El robots.txt como texto.
+ *
+ * Se escribe a mano y no con el generador de Next porque `MetadataRoute.Robots`
+ * solo sabe de `Allow`, `Disallow` y `Sitemap`: no tiene dónde meter un
+ * `Content-Signal` ni un comentario. El formato es EL MISMO que salía antes,
+ * línea por línea, para que un buscador que ya lo tenía guardado no vea un
+ * archivo distinto donde no ha cambiado nada.
+ */
+export function textoRobots(reglas: ReglasRobots, senales?: string): string {
+  const lineas: string[] = [];
+  if (senales) lineas.push(COMENTARIO_SENALES);
+  lineas.push(`User-Agent: ${reglas.rules.userAgent}`);
+  if (senales) lineas.push(`Content-Signal: ${senales}`);
+  if (reglas.rules.allow) lineas.push(`Allow: ${reglas.rules.allow}`);
+  const prohibido = reglas.rules.disallow;
+  const lista = prohibido == null ? [] : Array.isArray(prohibido) ? prohibido : [prohibido];
+  for (const ruta of lista) lineas.push(`Disallow: ${ruta}`);
+  if (reglas.sitemap) lineas.push("", `Sitemap: ${reglas.sitemap}`);
+  return lineas.join("\n") + "\n";
+}
+
 export function reglasRobots(oculta: boolean, sitemap?: string): ReglasRobots {
   if (oculta) return { rules: { userAgent: "*", disallow: "/" } };
   return {

@@ -9,6 +9,7 @@ import {
 import {
   RUTAS_PUBLICAS, ARCHIVOS_PUBLICOS, RUTAS_PRIVADAS, RUTA_NO_ENCONTRADA, bajoAlgunPrefijo,
 } from "@/src/config/rutas-plataforma";
+import { aceptaMarkdown, rutaMarkdown } from "@/src/agentes/rutas";
 
 // Las listas viven en src/config/rutas-plataforma.ts, con sus porqués, para que
 // un test pueda compararlas contra las páginas que existen de verdad en `app/`.
@@ -70,13 +71,25 @@ export async function middleware(req: NextRequest) {
   // toda respuesta de la plataforma sale con noindex. Las webs de clientes
   // mandan sobre su propia indexación con el interruptor de cada proyecto.
   const oculta = plataformaOculta(process.env);
+  const { pathname } = req.nextUrl;
+
+  // La misma página en Markdown, para quien la lee con una IA (ver src/agentes/).
+  // Se calcula una vez porque sirve para dos cosas: servirla a quien la pide por
+  // la cabecera `Accept`, y anunciársela en la cabecera `Link` a quien no sabe
+  // que existe. `null` en todo lo que no sea contenido público.
+  const enMarkdown = rutaMarkdown(pathname);
+  const pideMarkdown = enMarkdown !== null && aceptaMarkdown(req.headers.get("accept"));
+
   const sellar = (res: NextResponse, cabeceras = CABECERAS_SEGURIDAD) => {
     for (const [k, v] of Object.entries(cabeceras)) res.headers.set(k, v);
     if (oculta) res.headers.set("x-robots-tag", ROBOTS_NOINDEX);
+    // A quien recibe el HTML se le dice dónde está la otra versión. A quien ya
+    // ha pedido el Markdown, no: sería un enlace a sí mismo.
+    if (enMarkdown && !pideMarkdown) {
+      res.headers.set("link", `<${enMarkdown}>; rel="alternate"; type="text/markdown"`);
+    }
     return res;
   };
-
-  const { pathname } = req.nextUrl;
 
   // Al apagar la normalización automática de Next (skipTrailingSlashRedirect,
   // ver next.config.ts) la PLATAFORMA se quedaría sin ella y `/login/` pasaría a
@@ -91,6 +104,17 @@ export async function middleware(req: NextRequest) {
     const destino = new URL(req.url);
     destino.pathname = pathname.replace(/\/+$/, "") || "/";
     return sellar(NextResponse.redirect(destino, 308));
+  }
+
+  // Markdown a quien lo pide. Va antes del idioma y de la sesión a propósito:
+  // esto solo se sirve para páginas públicas —las cinco landings y el blog—, así
+  // que ni hay nada que proteger ni nada que decidir por cookie. Y va DESPUÉS de
+  // la barra final para que `/blog/` siga siendo una sola dirección.
+  if (pideMarkdown && enMarkdown) {
+    const destino = req.nextUrl.clone();
+    destino.pathname = enMarkdown;
+    destino.search = "";
+    return sellar(NextResponse.rewrite(destino));
   }
 
   // La raíz es pública: sin sesión sirve la landing de marketing, con sesión el

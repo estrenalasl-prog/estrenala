@@ -31,6 +31,18 @@ export function articuloPorSlug(slug: string): Articulo | undefined {
 
 export const RUTA_BLOG = "/blog";
 
+/**
+ * El título y la descripción del índice del blog.
+ *
+ * Viven aquí y no dentro de `app/blog/page.tsx` porque los necesita también la
+ * versión en Markdown que se les sirve a los agentes de IA (ver `src/agentes/`),
+ * y un route handler no puede importar una página: se traería el CSS con ella.
+ * Con dos copias, la que nadie mira se queda vieja.
+ */
+export const TITULO_BLOG = "Blog — Estrénala";
+export const DESCRIPCION_BLOG =
+  "Cómo publicar una web hecha con IA, conectar un dominio y no romperla después. Escrito para quien no programa.";
+
 export function rutaArticulo(slug: string): string {
   return `${RUTA_BLOG}/${slug}`;
 }

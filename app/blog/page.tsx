@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import "../_landing/landing.css";
 import "./blog.css";
 import { Marco } from "./Marco";
-import { ARTICULOS, RUTA_BLOG, rutaArticulo } from "@/src/blog-estrenala/indice";
+import {
+  ARTICULOS, RUTA_BLOG, rutaArticulo, TITULO_BLOG, DESCRIPCION_BLOG,
+} from "@/src/blog-estrenala/indice";
 import { rutaPortada } from "@/src/blog-estrenala/render";
 import { fechaLarga, minutosDeLectura } from "@/src/blog-estrenala/tipos";
 
@@ -10,9 +12,8 @@ import { fechaLarga, minutosDeLectura } from "@/src/blog-estrenala/tipos";
 // estático se quedaría congelada la del build (donde no hay .env).
 export const dynamic = "force-dynamic";
 
-const TITULO = "Blog — Estrénala";
-const DESCRIPCION =
-  "Cómo publicar una web hecha con IA, conectar un dominio y no romperla después. Escrito para quien no programa.";
+const TITULO = TITULO_BLOG;
+const DESCRIPCION = DESCRIPCION_BLOG;
 
 export const metadata: Metadata = {
   title: TITULO,
