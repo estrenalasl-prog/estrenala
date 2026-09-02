@@ -6,6 +6,7 @@ import { webIaPosicionarGoogle } from "./posts/web-ia-posicionar-google";
 import { cambiarTextoSinTocarCodigo } from "./posts/cambiar-texto-sin-tocar-codigo";
 import { puedoDescargarMiWeb } from "./posts/puedo-descargar-mi-web";
 import { webSeVeMalEnElMovil } from "./posts/web-se-ve-mal-en-el-movil";
+import { puedeChatgptRecomendarTuWeb } from "./posts/puede-chatgpt-recomendar-tu-web";
 
 /**
  * Todos los artículos, del más nuevo al más viejo.
@@ -16,6 +17,7 @@ import { webSeVeMalEnElMovil } from "./posts/web-se-ve-mal-en-el-movil";
  * primero.
  */
 export const ARTICULOS: Articulo[] = [
+  puedeChatgptRecomendarTuWeb,
   webSeVeMalEnElMovil,
   puedoDescargarMiWeb,
   publicarWebHechaConIa,
