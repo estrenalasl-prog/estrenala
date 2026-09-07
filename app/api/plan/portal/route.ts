@@ -23,6 +23,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ url });
   } catch (e) {
     if (e instanceof StripeError) {
+      console.error("portal: Stripe falló", e.message);
       return jsonError("No se pudo abrir la gestión de tu suscripción.", 502);
     }
     return errorJson(e);

@@ -20,6 +20,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true });
   } catch (e) {
     if (e instanceof EditorError) return jsonError(e.message, e.status);
+    console.error("restablecer: fallo inesperado", e instanceof Error ? e.message : e);
     return jsonError("No se pudo cambiar la contraseña", 500);
   }
 }

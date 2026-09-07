@@ -23,7 +23,8 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
   } catch (e) {
     if (e instanceof PublishError) return jsonError(e.message, e.status);
     if (e instanceof EditorError) return jsonError(e.message, e.status);
-    return NextResponse.json({ error: e instanceof Error ? e.message : "Error interno" }, { status: 500 });
+    console.error("publicar: fallo inesperado", e instanceof Error ? e.message : e);
+    return jsonError("No se pudo publicar la web", 500);
   }
 }
 
@@ -37,6 +38,7 @@ export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string 
   } catch (e) {
     if (e instanceof PublishError) return jsonError(e.message, e.status);
     if (e instanceof EditorError) return jsonError(e.message, e.status);
-    return NextResponse.json({ error: e instanceof Error ? e.message : "Error interno" }, { status: 500 });
+    console.error("despublicar: fallo inesperado", e instanceof Error ? e.message : e);
+    return jsonError("No se pudo despublicar la web", 500);
   }
 }

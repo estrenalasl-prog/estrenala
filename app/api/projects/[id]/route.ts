@@ -113,7 +113,8 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       return NextResponse.json(r);
     } catch (e) {
       if (e instanceof PublishError) return jsonError(e.message, e.status);
-      return NextResponse.json({ error: e instanceof Error ? e.message : "Error interno" }, { status: 500 });
+      console.error("subdominio: fallo inesperado", e instanceof Error ? e.message : e);
+      return jsonError("No se pudo cambiar la dirección", 500);
     }
   }
   if (!body.entryPath) return NextResponse.json({ error: "Falta entryPath" }, { status: 400 });
@@ -121,6 +122,10 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     await setEntryPath({ store: projectStore, storage: getStorage() }, { orgId, projectId: id, entryPath: body.entryPath });
     return NextResponse.json({ ok: true });
   } catch (e) {
-    return NextResponse.json({ error: e instanceof Error ? e.message : "Error" }, { status: 400 });
+    // setEntryPath lanza EditorError con un mensaje pensado para leerse; el
+    // resto son cosas de dentro y no salen de aquí.
+    if (e instanceof EditorError) return jsonError(e.message, e.status);
+    console.error("entryPath: fallo inesperado", e instanceof Error ? e.message : e);
+    return jsonError("Error interno", 500);
   }
 }

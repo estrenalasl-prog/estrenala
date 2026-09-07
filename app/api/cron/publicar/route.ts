@@ -1,3 +1,4 @@
+import { jsonError } from "@/src/auth/http";
 import { NextResponse } from "next/server";
 import { getStorage } from "@/src/storage/factory";
 import { getDeploy } from "@/src/publish/deploy-factory";
@@ -21,6 +22,7 @@ export async function POST(req: Request) {
     });
     return NextResponse.json(r);
   } catch (e) {
-    return NextResponse.json({ error: e instanceof Error ? e.message : "Error interno" }, { status: 500 });
+    console.error("cron publicar: fallo inesperado", e instanceof Error ? e.message : e);
+    return jsonError("Error interno", 500);
   }
 }

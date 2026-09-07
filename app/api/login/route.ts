@@ -24,6 +24,8 @@ export async function POST(req: Request) {
     return res;
   } catch (e) {
     if (e instanceof EditorError) return jsonError(e.message, e.status);
+    // Si entrar deja de funcionar, el motivo tiene que quedar en algún sitio.
+    console.error("login: fallo inesperado", e instanceof Error ? e.message : e);
     return jsonError("No se pudo iniciar sesión", 500);
   }
 }

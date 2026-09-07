@@ -41,6 +41,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ url });
   } catch (e) {
     if (e instanceof StripeError) {
+      // Un cobro que no arranca y no deja rastro es lo peor de los dos mundos.
+      console.error("checkout: Stripe falló", e.message);
       return jsonError("No se pudo iniciar el pago. Inténtalo de nuevo.", 502);
     }
     return errorJson(e);

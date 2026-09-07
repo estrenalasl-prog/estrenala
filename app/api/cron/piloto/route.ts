@@ -1,3 +1,4 @@
+import { jsonError } from "@/src/auth/http";
 import { NextResponse } from "next/server";
 import { getStorage } from "@/src/storage/factory";
 import { projectStore } from "@/src/repositories/projects";
@@ -18,6 +19,7 @@ export async function POST(req: Request) {
     const r = await pilotoTick({ store: projectStore, blog: blogStore, storage: getStorage() });
     return NextResponse.json(r);
   } catch (e) {
-    return NextResponse.json({ error: e instanceof Error ? e.message : "Error interno" }, { status: 500 });
+    console.error("cron piloto: fallo inesperado", e instanceof Error ? e.message : e);
+    return jsonError("Error interno", 500);
   }
 }

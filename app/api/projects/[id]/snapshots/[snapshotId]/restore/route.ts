@@ -15,6 +15,7 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string; s
     return NextResponse.json({ ok: true });
   } catch (e) {
     if (e instanceof EditorError) return jsonError(e.message, e.status);
-    return NextResponse.json({ error: e instanceof Error ? e.message : "Error" }, { status: 500 });
+    console.error("restaurar: fallo inesperado", e instanceof Error ? e.message : e);
+    return jsonError("No se pudo restaurar la versión", 500);
   }
 }

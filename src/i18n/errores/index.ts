@@ -72,6 +72,30 @@ export const ERRORES: Record<string, Traducciones> = {
     fr: "Nous recevons beaucoup d'envois en ce moment. Réessaie dans une minute.",
     it: "Stiamo ricevendo molti caricamenti insieme. Riprova tra un minuto.",
   },
+  "No se pudo publicar la web": {
+    en: "The site couldn't be published",
+    pt: "Não foi possível publicar o site",
+    fr: "Le site n'a pas pu être publié",
+    it: "Non è stato possibile pubblicare il sito",
+  },
+  "No se pudo despublicar la web": {
+    en: "The site couldn't be unpublished",
+    pt: "Não foi possível despublicar o site",
+    fr: "Le site n'a pas pu être dépublié",
+    it: "Non è stato possibile annullare la pubblicazione del sito",
+  },
+  "No se pudo cambiar la dirección": {
+    en: "The address couldn't be changed",
+    pt: "Não foi possível mudar o endereço",
+    fr: "L'adresse n'a pas pu être modifiée",
+    it: "Non è stato possibile cambiare l'indirizzo",
+  },
+  "No se pudo restaurar la versión": {
+    en: "That version couldn't be restored",
+    pt: "Não foi possível restaurar essa versão",
+    fr: "Cette version n'a pas pu être restaurée",
+    it: "Non è stato possibile ripristinare quella versione",
+  },
   "No se pudo subir la web": {
     en: "The site couldn't be uploaded",
     pt: "Não foi possível carregar o site",
