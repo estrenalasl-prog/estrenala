@@ -9,6 +9,7 @@ import { accountStore } from "@/src/repositories/accounts";
 import { exigirHuecoDeWeb } from "@/src/planes/planes";
 import { EditorError } from "@/src/editor/errors";
 import { permitirIntento, ipDe } from "@/src/auth/rate-limit";
+import { ocuparSitio, ESPERA_SEGUNDOS } from "@/src/import/aforo";
 
 export const runtime = "nodejs";
 
@@ -42,6 +43,22 @@ export async function POST(req: Request) {
   // esto solo evita que alguien use la puerta como ariete.
   if (!permitirIntento(`subir|${ipDe(req)}`)) {
     return jsonError("Demasiados intentos, espera un momento", 429);
+  }
+
+  // Aforo: cuántas subidas se atienden a la vez (ver src/import/aforo.ts). Va
+  // ANTES del formData, que es justo lo que se trae el archivo a memoria.
+  let soltar: () => void;
+  try {
+    soltar = ocuparSitio();
+  } catch (e) {
+    if (e instanceof EditorError) {
+      // `Retry-After` va en la CABECERA, no en el cuerpo: el tercer argumento de
+      // jsonError se mezcla con el JSON, y ahí no le sirve a nadie.
+      const res = await jsonError(e.message, e.status);
+      res.headers.set("retry-after", String(ESPERA_SEGUNDOS));
+      return res;
+    }
+    throw e;
   }
 
   try {
@@ -90,5 +107,7 @@ export async function POST(req: Request) {
     // navegador — traía dentro nombres de tabla y de bucket.
     console.error("subir: fallo inesperado", e instanceof Error ? e.message : e);
     return jsonError("No se pudo subir la web", 500);
+  } finally {
+    soltar();
   }
 }

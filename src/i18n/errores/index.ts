@@ -66,6 +66,12 @@ export const ERRORES: Record<string, Traducciones> = {
     fr: "Écris ton nom",
     it: "Scrivi il tuo nome",
   },
+  "Estamos recibiendo muchas subidas a la vez. Prueba dentro de un minuto.": {
+    en: "We're handling a lot of uploads right now. Try again in a minute.",
+    pt: "Estamos a receber muitos carregamentos ao mesmo tempo. Tenta daqui a um minuto.",
+    fr: "Nous recevons beaucoup d'envois en ce moment. Réessaie dans une minute.",
+    it: "Stiamo ricevendo molti caricamenti insieme. Riprova tra un minuto.",
+  },
   "No se pudo subir la web": {
     en: "The site couldn't be uploaded",
     pt: "Não foi possível carregar o site",
