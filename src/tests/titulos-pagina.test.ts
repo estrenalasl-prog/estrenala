@@ -63,24 +63,60 @@ describe("las dos 404", () => {
   });
 });
 
+
 /**
- * La verificación de correo NO desbloquea nada: se puede subir y publicar sin
- * ella (comprobado el 2026-09-03 — el único sitio que la mira es el banner del
- * panel). La pantalla de «correo confirmado» decía «Ya puedes publicar tus webs
- * sin límites», o sea, prometía que antes había un límite que no existe.
+ * Qué desbloquea de verdad confirmar el correo.
  *
- * Es el tipo de frase que nadie vuelve a leer y que un desconocido comprueba en
- * treinta segundos.
+ * OJO, que aquí me equivoqué el 2026-09-03 y conviene que quede escrito: al
+ * buscar dónde se exigía la verificación di por hecho que lo único que hacía era
+ * pintar un banner en el panel, y dije que se podía publicar sin confirmar. Es
+ * FALSO. Se puede SUBIR sin confirmar —ahí no se comprueba nada—, pero PUBLICAR
+ * pasa por `exigirEmailVerificado` y responde 403 «Confirma tu correo antes de
+ * publicar».
+ *
+ * Se pasa por alto fácil porque en desarrollo NO se exige: sin envío de correo
+ * configurado, `exigirEmailVerificado` se rinde y deja pasar, así que en local
+ * no se ve nunca. Solo aparece en producción.
+ *
+ * De lo que sí era verdad: la pantalla decía «Ya puedes publicar tus webs sin
+ * límites», y ese «sin límites» sobra — el plan gratuito incluye UNA web.
  */
-describe("lo que promete la pantalla de correo confirmado", () => {
+describe("confirmar el correo", () => {
   const IDIOMAS = ["es", "en", "pt", "fr", "it"] as const;
 
-  it("ninguna versión promete un límite que no existe", () => {
+  it("hace falta para publicar, y por eso la pantalla puede prometerlo", () => {
+    expect(lee("app/api/projects/[id]/publish/route.ts"), "publicar dejó de exigir el correo confirmado")
+      .toContain("exigirEmailVerificado");
+  });
+
+  it("subir NO lo exige: el ZIP entra antes de confirmar", () => {
+    expect(lee("app/api/projects/route.ts")).not.toContain("exigirEmailVerificado");
+  });
+
+  it("ninguna versión promete un «sin límites» que el plan gratuito no da", () => {
     for (const idioma of IDIOMAS) {
-      const fuente = lee(`src/i18n/cuenta/${idioma}.ts`);
-      const linea = fuente.split("\n").find((l) => l.includes("okLead:")) ?? "";
+      const linea = lee(`src/i18n/cuenta/${idioma}.ts`).split("\n").find((l) => l.includes("okLead:")) ?? "";
       expect(linea, `${idioma}: sigue prometiendo publicar «sin límites»`)
         .not.toMatch(/sin límites|without limits|sem limites|sans limite|senza limiti/i);
+    }
+  });
+});
+
+/**
+ * Las cuatro legales existían y estaban enlazadas en el pie, pero el formulario
+ * de alta no las mencionaba. Quien crea una cuenta no tiene por qué ir a
+ * buscarlas: el aviso va donde se acepta, debajo del botón.
+ */
+describe("el aviso legal del registro", () => {
+  it("el formulario enlaza términos y privacidad", () => {
+    const fuente = lee("app/registro/RegistroForm.tsx");
+    expect(fuente).toContain('href="/legal/terminos"');
+    expect(fuente).toContain('href="/legal/privacidad"');
+  });
+
+  it("está en los cinco idiomas", () => {
+    for (const idioma of ["es", "en", "pt", "fr", "it"] as const) {
+      expect(lee(`src/i18n/cuenta/${idioma}.ts`), `falta en ${idioma}`).toContain("legalPrivacidad:");
     }
   });
 });

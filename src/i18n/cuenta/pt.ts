@@ -18,6 +18,10 @@ export const pt: TextosCuenta = {
     creando: "A criar…",
     yaTienes: "Já tens conta?",
     entra: "Entra",
+    legalAntes: "Ao criares a conta aceitas os",
+    legalTerminos: "termos",
+    legalY: "e a",
+    legalPrivacidad: "política de privacidade",
   },
 
   login: {
@@ -68,7 +72,7 @@ export const pt: TextosCuenta = {
   verificar: {
     claim: "O teu site feito com IA, finalmente no ar.",
     okTitulo: "Email confirmado!",
-    okLead: "A tua conta está verificada. Já te podemos escrever se esqueceres a palavra-passe ou se acontecer algo aos teus sites.",
+    okLead: "A tua conta está verificada. Já podes publicar os teus sites.",
     okBoton: "Ir para o meu painel",
     malTitulo: "Este link já não serve",
     malLead: "O link expirou ou já foi usado. Entra e pede um novo a partir do aviso do painel.",

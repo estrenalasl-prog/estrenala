@@ -24,6 +24,10 @@ export const es = {
     creando: "Creando…",
     yaTienes: "¿Ya tienes cuenta?",
     entra: "Entra",
+    legalAntes: "Al crear la cuenta aceptas los",
+    legalTerminos: "términos",
+    legalY: "y la",
+    legalPrivacidad: "política de privacidad",
   },
 
   login: {
@@ -76,7 +80,7 @@ export const es = {
   verificar: {
     claim: "Tu web hecha con IA, por fin en directo.",
     okTitulo: "¡Correo confirmado!",
-    okLead: "Tu cuenta está verificada. Ya podemos escribirte si olvidas la contraseña o si pasa algo con tus webs.",
+    okLead: "Tu cuenta está verificada. Ya puedes publicar tus webs.",
     okBoton: "Ir a mi panel",
     malTitulo: "Este enlace ya no vale",
     malLead: "El enlace ha caducado o ya se usó. Entra y pide uno nuevo desde el aviso del panel.",

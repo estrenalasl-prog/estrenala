@@ -18,6 +18,10 @@ export const fr: TextosCuenta = {
     creando: "Création…",
     yaTienes: "Tu as déjà un compte ?",
     entra: "Connecte-toi",
+    legalAntes: "En créant un compte, tu acceptes les",
+    legalTerminos: "conditions",
+    legalY: "et la",
+    legalPrivacidad: "politique de confidentialité",
   },
 
   login: {
@@ -68,7 +72,7 @@ export const fr: TextosCuenta = {
   verificar: {
     claim: "Ton site fait par l'IA, enfin en ligne.",
     okTitulo: "E-mail confirmé !",
-    okLead: "Ton compte est vérifié. Nous pouvons désormais te joindre si tu oublies ton mot de passe ou si quelque chose arrive à tes sites.",
+    okLead: "Ton compte est vérifié. Tu peux maintenant publier tes sites.",
     okBoton: "Aller à mon tableau de bord",
     malTitulo: "Ce lien ne fonctionne plus",
     malLead: "Le lien a expiré ou a déjà été utilisé. Connecte-toi et demandes-en un nouveau depuis l'avis du tableau de bord.",

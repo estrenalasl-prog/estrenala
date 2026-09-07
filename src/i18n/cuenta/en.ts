@@ -18,6 +18,10 @@ export const en: TextosCuenta = {
     creando: "Creating…",
     yaTienes: "Already have an account?",
     entra: "Sign in",
+    legalAntes: "By creating an account you accept the",
+    legalTerminos: "terms",
+    legalY: "and the",
+    legalPrivacidad: "privacy policy",
   },
 
   login: {
@@ -68,7 +72,7 @@ export const en: TextosCuenta = {
   verificar: {
     claim: "Your AI-built website, finally live.",
     okTitulo: "Email confirmed!",
-    okLead: "Your account is verified. Now we can reach you if you forget your password or something happens to your sites.",
+    okLead: "Your account is verified. You can publish your sites now.",
     okBoton: "Go to my panel",
     malTitulo: "This link no longer works",
     malLead: "The link has expired or has already been used. Sign in and ask for a new one from the notice in the panel.",

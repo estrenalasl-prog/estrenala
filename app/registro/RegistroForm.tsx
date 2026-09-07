@@ -95,6 +95,16 @@ function Formulario({ google, t }: { google: boolean; t: Textos }) {
             {ocupado ? <><span className="cargador" /> {t.creando}</> : t.crear}
           </button>
 
+          {/* Las cuatro legales existían y estaban en el pie, pero el formulario
+              de alta no las mencionaba: quien se registra no tiene por qué ir a
+              buscarlas. Va debajo del botón, que es donde se acepta. */}
+          <p className="ayuda-campo" style={{ marginTop: 16, textAlign: "center" }}>
+            {t.legalAntes}{" "}
+            <Link href="/legal/terminos">{t.legalTerminos}</Link>{" "}
+            {t.legalY}{" "}
+            <Link href="/legal/privacidad">{t.legalPrivacidad}</Link>.
+          </p>
+
           <p className="lead" style={{ marginTop: 22 }}>
             {t.yaTienes} <Link href="/login">{t.entra}</Link>
           </p>
