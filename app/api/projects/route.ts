@@ -9,7 +9,7 @@ import { accountStore } from "@/src/repositories/accounts";
 import { exigirHuecoDeWeb } from "@/src/planes/planes";
 import { EditorError } from "@/src/editor/errors";
 import { permitirIntento, ipDe } from "@/src/auth/rate-limit";
-import { ocuparSitio, ESPERA_SEGUNDOS } from "@/src/import/aforo";
+import { ocuparSitio, subidasEnCurso, ESPERA_SEGUNDOS } from "@/src/import/aforo";
 
 export const runtime = "nodejs";
 
@@ -52,6 +52,12 @@ export async function POST(req: Request) {
     soltar = ocuparSitio();
   } catch (e) {
     if (e instanceof EditorError) {
+      // El rechazo tiene que dejar rastro. Es una defensa funcionando, no un
+      // fallo, pero si no se registra no hay forma de saber si el aforo llegó a
+      // morder alguna vez — y ese es justo el número que decide si toca escribir
+      // en paralelo (docs/ESCALAR-SUBIDAS.md). El contador va dentro porque si
+      // algún día imprime algo distinto del tope, es que alguien no soltó.
+      console.error(`aforo: subida rechazada (${subidasEnCurso()} en curso)`);
       // `Retry-After` va en la CABECERA, no en el cuerpo: el tercer argumento de
       // jsonError se mezcla con el JSON, y ahí no le sirve a nadie.
       const res = await jsonError(e.message, e.status);

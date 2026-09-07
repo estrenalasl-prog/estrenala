@@ -122,4 +122,25 @@ describe("las dos rutas que reciben un ZIP", () => {
         .not.toMatch(/error:\s*e instanceof Error \? e\.message/);
     }
   });
+
+  /**
+   * Un rechazo que no deja rastro es un rechazo que no ha pasado.
+   *
+   * El 2026-09-08, la mañana del lanzamiento, las dos puertas devolvían su 503
+   * sin escribir una sola línea. Si el aforo mordía no había manera de
+   * distinguirlo de que no hubiera mordido nunca, y ese número es justo el que
+   * decide si toca ponerse con la escritura en paralelo — el plan y sus
+   * disparadores están en `docs/ESCALAR-SUBIDAS.md`.
+   *
+   * No es un error del servidor: es una defensa haciendo su trabajo. Va por
+   * `console.error` de todas formas porque stderr se recoge siempre, y con el
+   * prefijo `aforo:` para poder contarlos con un grep.
+   */
+  it("dejan constancia cuando el aforo rechaza", () => {
+    for (const ruta of RUTAS) {
+      const fuente = readFileSync(resolve(process.cwd(), ruta), "utf8");
+      expect(fuente, `${ruta}: rechaza por aforo y no lo registra`)
+        .toMatch(/console\.error\(\s*[`"']aforo:/);
+    }
+  });
 });

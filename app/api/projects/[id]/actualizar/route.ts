@@ -7,7 +7,7 @@ import { actualizarProyecto } from "@/src/projects/actualizar";
 import { ImportError } from "@/src/import/unzip";
 import { EditorError } from "@/src/editor/errors";
 import { permitirIntento, ipDe } from "@/src/auth/rate-limit";
-import { ocuparSitio, ESPERA_SEGUNDOS } from "@/src/import/aforo";
+import { ocuparSitio, subidasEnCurso, ESPERA_SEGUNDOS } from "@/src/import/aforo";
 
 export const runtime = "nodejs";
 
@@ -40,6 +40,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     soltar = ocuparSitio();
   } catch (e) {
     if (e instanceof EditorError) {
+      // Igual que al crear: sin esta línea el 503 no existe para nadie. Y esta
+      // puerta importa más, porque actualizar se puede repetir sin que el plan
+      // lo frene (ver docs/ESCALAR-SUBIDAS.md).
+      console.error(`aforo: actualización rechazada (${subidasEnCurso()} en curso)`);
       const res = await jsonError(e.message, e.status);
       res.headers.set("retry-after", String(ESPERA_SEGUNDOS));
       return res;
