@@ -66,6 +66,12 @@ export const ERRORES: Record<string, Traducciones> = {
     fr: "Écris ton nom",
     it: "Scrivi il tuo nome",
   },
+  "No se pudo subir la web": {
+    en: "The site couldn't be uploaded",
+    pt: "Não foi possível carregar o site",
+    fr: "Le site n'a pas pu être envoyé",
+    it: "Non è stato possibile caricare il sito",
+  },
   "No se pudo crear la cuenta": {
     en: "The account couldn't be created",
     pt: "Não foi possível criar a conta",

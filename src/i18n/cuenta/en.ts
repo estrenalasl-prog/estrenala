@@ -68,7 +68,7 @@ export const en: TextosCuenta = {
   verificar: {
     claim: "Your AI-built website, finally live.",
     okTitulo: "Email confirmed!",
-    okLead: "Your account is verified. You can publish your sites without limits now.",
+    okLead: "Your account is verified. Now we can reach you if you forget your password or something happens to your sites.",
     okBoton: "Go to my panel",
     malTitulo: "This link no longer works",
     malLead: "The link has expired or has already been used. Sign in and ask for a new one from the notice in the panel.",

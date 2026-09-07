@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { AppHeader } from "../_components/AppHeader";
 import { SettingsBody } from "./SettingsBody";
 import { idiomaDeSesion } from "@/src/i18n/servidor";
@@ -11,6 +12,10 @@ import { textosAjustes } from "@/src/i18n/ajustes";
 // El idioma se resuelve aquí y baja como prop: si el cuerpo importara el
 // catálogo entero, el navegador se descargaría los cinco idiomas para enseñar
 // uno.
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: `${textosAjustes(await idiomaDeSesion()).titulo} · Estrénala` };
+}
+
 export default async function SettingsPage() {
   const idioma = await idiomaDeSesion();
   return (

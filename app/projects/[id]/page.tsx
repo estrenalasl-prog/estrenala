@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getContexto } from "@/src/auth/contexto";
@@ -50,6 +51,27 @@ function estadoProyecto(p: ProjectRow, t: TextosPanel["estado"]): { clase: strin
   if (!p.publishedSnapshotId) return { clase: "badge-neutro", texto: t.sinPublicar };
   if (p.publishedSnapshotId === p.currentSnapshotId) return { clase: "badge-exito", texto: t.publicado };
   return { clase: "badge-aviso", texto: t.cambiosSinPublicar };
+}
+
+/**
+ * El nombre de la web en la pestaña.
+ *
+ * Sin título propio se heredaba el de app/layout.tsx —español fijo—, así que con
+ * la cuenta en inglés la pestaña salía en español. Y de paso resuelve algo mejor:
+ * quien tiene tres webs abiertas ahora distingue cuál es cuál sin entrar.
+ *
+ * Si algo falla al leer el nombre, se queda en «Estrénala» y ya está: un título
+ * de pestaña no puede tumbar el panel de nadie.
+ */
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  try {
+    const { id } = await params;
+    const { orgId } = await getContexto();
+    const p = await projectStore.getProject(orgId, id);
+    return { title: p ? `${p.nombre} · Estrénala` : "Estrénala" };
+  } catch {
+    return { title: "Estrénala" };
+  }
 }
 
 export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {

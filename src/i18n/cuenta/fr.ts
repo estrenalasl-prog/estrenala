@@ -68,7 +68,7 @@ export const fr: TextosCuenta = {
   verificar: {
     claim: "Ton site fait par l'IA, enfin en ligne.",
     okTitulo: "E-mail confirmé !",
-    okLead: "Ton compte est vérifié. Tu peux publier tes sites sans limite.",
+    okLead: "Ton compte est vérifié. Nous pouvons désormais te joindre si tu oublies ton mot de passe ou si quelque chose arrive à tes sites.",
     okBoton: "Aller à mon tableau de bord",
     malTitulo: "Ce lien ne fonctionne plus",
     malLead: "Le lien a expiré ou a déjà été utilisé. Connecte-toi et demandes-en un nouveau depuis l'avis du tableau de bord.",

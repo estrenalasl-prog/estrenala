@@ -13,8 +13,16 @@ import { NoEncontrada } from "../_components/NoEncontrada";
  * Es alcanzable por su nombre (`/no-encontrada`), y no pasa nada: lo que enseña
  * es exactamente lo que dice.
  */
+/**
+ * El título es «404», un número: se lee igual en los cinco idiomas.
+ *
+ * Estaba fijo en español («Página no encontrada») mientras el cuerpo SÍ se
+ * traduce, así que con el navegador en inglés salía la pestaña en español y el
+ * <h1> en inglés, en la misma pantalla. Un número no tiene ese problema y no
+ * hace falta resolver el idioma para pintarlo.
+ */
 export const metadata: Metadata = {
-  title: "Página no encontrada · Estrénala",
+  title: "404 · Estrénala",
   robots: { index: false, follow: false },
 };
 

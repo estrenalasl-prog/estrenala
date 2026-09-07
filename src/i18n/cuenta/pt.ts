@@ -68,7 +68,7 @@ export const pt: TextosCuenta = {
   verificar: {
     claim: "O teu site feito com IA, finalmente no ar.",
     okTitulo: "Email confirmado!",
-    okLead: "A tua conta está verificada. Já podes publicar os teus sites sem limites.",
+    okLead: "A tua conta está verificada. Já te podemos escrever se esqueceres a palavra-passe ou se acontecer algo aos teus sites.",
     okBoton: "Ir para o meu painel",
     malTitulo: "Este link já não serve",
     malLead: "O link expirou ou já foi usado. Entra e pede um novo a partir do aviso do painel.",

@@ -8,6 +8,7 @@ import { projectStore } from "@/src/repositories/projects";
 import { accountStore } from "@/src/repositories/accounts";
 import { exigirHuecoDeWeb } from "@/src/planes/planes";
 import { EditorError } from "@/src/editor/errors";
+import { permitirIntento, ipDe } from "@/src/auth/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -16,7 +17,33 @@ export const runtime = "nodejs";
 //  - un .html suelto,
 //  - una carpeta entera (el cliente manda cada archivo con su ruta relativa en
 //    el campo "rutas", en el mismo orden que los "file").
+/**
+ * Tope del CUERPO de la petición, mirado antes de leerlo.
+ *
+ * El límite del contenido son 50 MB (ver src/import/unzip.ts). Aquí se deja
+ * margen para el envoltorio del formulario multiparte, que son unos cientos de
+ * bytes por archivo: lo que pase de aquí lleva de sobra más de 50 MB dentro, así
+ * que el mensaje que ve el usuario es el mismo y sigue siendo verdad.
+ *
+ * Importa que sea ANTES: `req.formData()` se trae el cuerpo entero a memoria, y
+ * sin esta línea cualquiera podía hacer que el servidor cargara lo que quisiera
+ * solo para acabar diciéndole que no.
+ */
+const MAX_CUERPO = 60 * 1024 * 1024;
+
 export async function POST(req: Request) {
+  const largo = Number(req.headers.get("content-length") ?? 0);
+  if (Number.isFinite(largo) && largo > MAX_CUERPO) {
+    return jsonError("Lo que has subido supera 50 MB", 413);
+  }
+
+  // Freno por IP. No había ninguno: con una cuenta se podían encadenar subidas
+  // de 50 MB sin límite. El candado real de cuántas webs caben es el del plan;
+  // esto solo evita que alguien use la puerta como ariete.
+  if (!permitirIntento(`subir|${ipDe(req)}`)) {
+    return jsonError("Demasiados intentos, espera un momento", 429);
+  }
+
   try {
     const form = await req.formData();
     const entradas = form.getAll("file").filter((x): x is File => x instanceof File);
@@ -58,7 +85,10 @@ export async function POST(req: Request) {
   } catch (e) {
     if (e instanceof ImportError) return jsonError(e.message, 400);
     if (e instanceof EditorError) return jsonError(e.message, e.status);
-    const msg = e instanceof Error ? e.message : "Error desconocido";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    // Lo que llegue aquí NO es un fallo previsto: es la base de datos, el
+    // almacenamiento o un bug. Su mensaje va al log del servidor, no al
+    // navegador — traía dentro nombres de tabla y de bucket.
+    console.error("subir: fallo inesperado", e instanceof Error ? e.message : e);
+    return jsonError("No se pudo subir la web", 500);
   }
 }
