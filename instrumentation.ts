@@ -2,6 +2,28 @@
 // el piloto automático (proyectos que publican solos) y después la publicación
 // de programaciones vencidas. El primer tick espera 15 s para no competir con
 // el arranque. Cada mitad tiene su try/catch: una rota no frena a la otra.
+/**
+ * El aviso de `node:tls` al construir es conocido y se queda.
+ *
+ * El build escribe «A Node.js module is loaded ('node:tls') which is not
+ * supported in the Edge Runtime», con la traza `instrumentation.ts` →
+ * `src/certificados/tls.ts`. Compila igual y NUNCA se ejecuta en Edge: la
+ * primera línea de `register()` se va si el runtime no es Node.
+ *
+ * Sale porque Next construye también una instrumentación para Edge (la hay
+ * porque hay middleware) y al trazarla sigue los `import()` dinámicos aunque
+ * estén detrás de esa guarda. Moverlos a otro módulo no lo quita: la traza
+ * seguiría llegando igual, un salto más larga.
+ *
+ * Lo único que lo callaría es esconderle el especificador al bundler, y eso
+ * está descartado: con `output: standalone` solo viaja a la imagen lo que el
+ * compilador ve referenciado, así que la revisión de certificados dejaría de
+ * existir en producción y funcionaría en local. Es el mismo motivo por el que
+ * `next.config.ts` tiene `outputFileTracingIncludes`.
+ *
+ * O sea: cosmético, y arreglarlo cuesta más de lo que vale. Escrito aquí para
+ * no volver a investigarlo cada vez que alguien lee el registro del build.
+ */
 export async function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
   // El hot reload de dev puede volver a llamar a register(): el flag global
