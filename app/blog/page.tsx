@@ -3,7 +3,7 @@ import "../_landing/landing.css";
 import "./blog.css";
 import { Marco } from "./Marco";
 import {
-  ARTICULOS, RUTA_BLOG, rutaArticulo, TITULO_BLOG, DESCRIPCION_BLOG,
+  articulosPublicados, RUTA_BLOG, rutaArticulo, TITULO_BLOG, DESCRIPCION_BLOG,
 } from "@/src/blog-estrenala/indice";
 import { rutaPortada } from "@/src/blog-estrenala/render";
 import { fechaLarga, minutosDeLectura } from "@/src/blog-estrenala/tipos";
@@ -39,7 +39,7 @@ export default function BlogIndice() {
 
       <section className="contenedor">
         <div className="blog-lista">
-          {ARTICULOS.map((a) => (
+          {articulosPublicados().map((a) => (
             <a className="blog-item" key={a.slug} href={rutaArticulo(a.slug)}>
               {/* La portada ya lleva el título dentro, así que para quien no ve
                   la pantalla es una repetición: alt vacío y que la salte. */}

@@ -1,5 +1,5 @@
 import { IDIOMAS, rutaDeIdioma, alternativasHreflang } from "@/src/i18n/idiomas";
-import { ARTICULOS, RUTA_BLOG, rutaArticulo } from "@/src/blog-estrenala/indice";
+import { articulosPublicados, RUTA_BLOG, rutaArticulo } from "@/src/blog-estrenala/indice";
 import { ACTUALIZADO_ISO } from "@/src/legal/titular";
 
 /**
@@ -96,11 +96,16 @@ export function sitemapPlataforma(base: string): EntradaSitemap[] {
   // El índice cambia cuando entra un artículo, así que su fecha es la del más
   // nuevo. Se calcula, no se coge `ARTICULOS[0]`: el orden es cosa del índice y
   // el día que se ordene por otra cosa esto se quedaría mintiendo en silencio.
-  const masNuevo = ARTICULOS.reduce((max, a) => (a.fecha > max ? a.fecha : max), ARTICULOS[0].fecha);
+  //
+  // Se pregunta UNA vez y se guarda: llamando a `articulosPublicados()` tres
+  // veces seguidas, un sitemap que se genere justo al cambiar el día podría
+  // listar un artículo y calcular la fecha del índice sin él.
+  const publicados = articulosPublicados();
+  const masNuevo = publicados.reduce((max, a) => (a.fecha > max ? a.fecha : max), publicados[0].fecha);
 
   const blog: EntradaSitemap[] = [
     { url: absoluta(base, RUTA_BLOG), changeFrequency: "weekly", priority: 0.7, lastModified: masNuevo },
-    ...ARTICULOS.map((a) => ({
+    ...publicados.map((a) => ({
       url: absoluta(base, rutaArticulo(a.slug)),
       changeFrequency: "monthly" as const,
       priority: 0.8,

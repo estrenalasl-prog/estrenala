@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { aceptaMarkdown, rutaMarkdown, paginaDeSegmentos, PREFIJO_MD } from "@/src/agentes/rutas";
 import { markdownDeRuta, sinMarcas, figurasComoTexto } from "@/src/agentes/markdown";
 import { textoLlms } from "@/src/agentes/llms";
-import { ARTICULOS, rutaArticulo, RUTA_BLOG } from "@/src/blog-estrenala/indice";
+import { articulosPublicados, rutaArticulo, RUTA_BLOG } from "@/src/blog-estrenala/indice";
 import { IDIOMAS, rutaDeIdioma } from "@/src/i18n/idiomas";
 import { textosLanding } from "@/src/i18n/landing";
 import { RUTAS_PRIVADAS } from "@/src/config/rutas-plataforma";
@@ -11,6 +11,10 @@ import {
 } from "@/src/config/robots-plataforma";
 
 const BASE = "https://estrenala.com";
+
+// Lo que un visitante puede ver HOY. Los artículos con fecha por delante no
+// salen ni en llms.txt ni en el sitemap ni en /md: ahí está la gracia.
+const PUBLICADOS = articulosPublicados();
 
 /**
  * Lo que se le sirve a quien lee la web con una IA: la misma página en Markdown
@@ -99,7 +103,7 @@ describe("rutaMarkdown", () => {
     const paginas = [
       ...IDIOMAS.map(rutaDeIdioma),
       RUTA_BLOG,
-      ...ARTICULOS.map((a) => rutaArticulo(a.slug)),
+      ...PUBLICADOS.map((a) => rutaArticulo(a.slug)),
     ];
     for (const pagina of paginas) {
       const md = rutaMarkdown(pagina);
@@ -131,7 +135,7 @@ describe("las marcas del catálogo se quitan", () => {
 
 describe("markdownDeRuta", () => {
   it("un artículo trae su título, su dirección de verdad y su cuerpo", () => {
-    const a = ARTICULOS[0];
+    const a = PUBLICADOS[0];
     const md = markdownDeRuta(rutaArticulo(a.slug), BASE)!;
     expect(md.startsWith(`# ${a.titulo}\n`)).toBe(true);
     expect(md).toContain(`> ${a.descripcion}`);
@@ -142,7 +146,7 @@ describe("markdownDeRuta", () => {
 
   // Si esto falla es que el cuerpo llegó a un modelo con el andamiaje dentro.
   it("no quedan marcadores ni etiquetas en ningún artículo", () => {
-    for (const a of ARTICULOS) {
+    for (const a of PUBLICADOS) {
       const md = markdownDeRuta(rutaArticulo(a.slug), BASE)!;
       expect(md, a.slug).not.toContain("{{figura");
       expect(md, a.slug).not.toContain("<svg");
@@ -152,7 +156,7 @@ describe("markdownDeRuta", () => {
 
   it("el índice del blog nombra TODOS los artículos, con su enlace", () => {
     const md = markdownDeRuta(RUTA_BLOG, BASE)!;
-    for (const a of ARTICULOS) {
+    for (const a of PUBLICADOS) {
       expect(md, a.slug).toContain(a.titulo);
       expect(md, a.slug).toContain(`${BASE}${rutaArticulo(a.slug)}`);
     }
@@ -189,7 +193,7 @@ describe("llms.txt", () => {
   });
 
   it("lista todos los artículos con su descripción", () => {
-    for (const a of ARTICULOS) {
+    for (const a of PUBLICADOS) {
       expect(txt, a.slug).toContain(`[${a.titulo}](${BASE}${rutaArticulo(a.slug)})`);
       expect(txt, a.slug).toContain(a.descripcion);
     }
@@ -211,7 +215,7 @@ describe("llms.txt", () => {
 
   it("todos los enlaces son absolutos: un archivo así se lee fuera de contexto", () => {
     const enlaces = [...txt.matchAll(/\]\(([^)]+)\)/g)].map((m) => m[1]);
-    expect(enlaces.length).toBeGreaterThan(ARTICULOS.length);
+    expect(enlaces.length).toBeGreaterThan(PUBLICADOS.length);
     for (const e of enlaces) expect(e.startsWith(BASE), e).toBe(true);
   });
 });

@@ -17,7 +17,7 @@
  * para cada página — y si un modelo acaba citándonos, cita la buena.
  */
 import { IDIOMAS, IDIOMA_POR_DEFECTO, NOMBRE_IDIOMA, rutaDeIdioma } from "@/src/i18n/idiomas";
-import { ARTICULOS, rutaArticulo, RUTA_BLOG, DESCRIPCION_BLOG } from "@/src/blog-estrenala/indice";
+import { articulosPublicados, rutaArticulo, RUTA_BLOG, DESCRIPCION_BLOG } from "@/src/blog-estrenala/indice";
 import { textosLanding } from "@/src/i18n/landing";
 
 const absoluta = (base: string, ruta: string) => new URL(ruta, base).toString();
@@ -44,7 +44,7 @@ export function textoLlms(base: string): string {
     (i) => `- [${NOMBRE_IDIOMA[i]}](${absoluta(base, rutaDeIdioma(i))}): la misma página en ${NOMBRE_IDIOMA[i]}.`
   );
 
-  const articulos = ARTICULOS.map(
+  const articulos = articulosPublicados().map(
     (a) => `- [${a.titulo}](${absoluta(base, rutaArticulo(a.slug))}): ${a.descripcion}`
   );
 

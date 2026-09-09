@@ -8,7 +8,7 @@ export const webLovableDatosAbiertos: Articulo = {
     "Si tu web hecha con Lovable guarda datos, el navegador habla directo con la base. Cómo comprobar en un minuto si cualquiera puede leerlos.",
   entradilla:
     "Le pediste a la IA un formulario de reservas y funciona: escribes, le das a enviar y la reserva aparece. Lo que casi nadie comprueba es quién más puede ver esa lista. La respuesta, por defecto, suele ser: cualquiera.",
-  fecha: "2026-09-09",
+  fecha: "2026-09-11",
   tema: "Seguridad",
   resumen: [
     "La comprobación de un minuto que te dice si tu base de datos está abierta.",

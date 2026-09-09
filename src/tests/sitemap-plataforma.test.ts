@@ -1,7 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { sitemapPlataforma, urlSitemap } from "@/src/config/sitemap-plataforma";
 import { reglasRobots, ZONAS_PRIVADAS } from "@/src/config/robots-plataforma";
-import { ARTICULOS, rutaArticulo } from "@/src/blog-estrenala/indice";
+import { articulosPublicados, rutaArticulo } from "@/src/blog-estrenala/indice";
+
+// Lo que un visitante puede ver HOY. Los artículos con fecha por delante no
+// salen ni en llms.txt ni en el sitemap ni en /md: ahí está la gracia.
+const PUBLICADOS = articulosPublicados();
 
 const BASE = "https://estrenala.com";
 const urls = () => sitemapPlataforma(BASE).map((e) => e.url);
@@ -17,7 +21,7 @@ describe("el sitemap de la plataforma", () => {
     expect(urls().sort()).toEqual([
       "https://estrenala.com/",
       "https://estrenala.com/blog",
-      ...ARTICULOS.map((a) => `https://estrenala.com${rutaArticulo(a.slug)}`),
+      ...PUBLICADOS.map((a) => `https://estrenala.com${rutaArticulo(a.slug)}`),
       "https://estrenala.com/en",
       "https://estrenala.com/fr",
       "https://estrenala.com/it",
@@ -32,7 +36,7 @@ describe("el sitemap de la plataforma", () => {
   /** Se escriben para que Google los enseñe: mandan sobre el papeleo legal. */
   it("los artículos pesan más que las legales", () => {
     const e = sitemapPlataforma(BASE);
-    const art = e.find((x) => x.url.includes(rutaArticulo(ARTICULOS[0].slug)))!;
+    const art = e.find((x) => x.url.includes(rutaArticulo(PUBLICADOS[0].slug)))!;
     const legal = e.find((x) => x.url.includes("/legal/"))!;
     expect(art.priority).toBeGreaterThan(legal.priority);
   });

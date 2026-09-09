@@ -14,7 +14,7 @@
 import { esIdioma, rutaDeIdioma, IDIOMA_POR_DEFECTO, type Idioma } from "@/src/i18n/idiomas";
 import { textosLanding } from "@/src/i18n/landing";
 import {
-  ARTICULOS, articuloPorSlug, rutaArticulo, RUTA_BLOG, TITULO_BLOG, DESCRIPCION_BLOG,
+  articulosPublicados, articuloPorSlug, rutaArticulo, RUTA_BLOG, TITULO_BLOG, DESCRIPCION_BLOG,
 } from "@/src/blog-estrenala/indice";
 import { fechaLarga, minutosDeLectura, type Articulo } from "@/src/blog-estrenala/tipos";
 import { FIGURAS } from "@/src/blog-estrenala/figuras";
@@ -81,7 +81,7 @@ function landing(idioma: Idioma, base: string): string {
 
 /** El índice del blog: de qué va cada artículo, para poder elegir cuál abrir. */
 function indiceBlog(base: string): string {
-  const fichas = ARTICULOS.map((a) =>
+  const fichas = articulosPublicados().map((a) =>
     [
       `### [${a.titulo}](${absoluta(base, rutaArticulo(a.slug))})`,
       `${a.fecha} · ${a.tema} · ${minutosDeLectura(a.cuerpo)} min`,

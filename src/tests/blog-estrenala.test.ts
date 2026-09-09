@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { ARTICULOS, articuloPorSlug, rutaArticulo, RUTA_BLOG } from "@/src/blog-estrenala/indice";
+import { ARTICULOS, articulosPublicados, articuloPorSlug, rutaArticulo, RUTA_BLOG } from "@/src/blog-estrenala/indice";
 import { anclaDe, conAnclas, cuerpoAHtml, datosEstructurados, rutaPortada } from "@/src/blog-estrenala/render";
 import { otrosArticulos } from "@/src/blog-estrenala/indice";
 import { svgPortada } from "@/src/blog-estrenala/portada";
@@ -51,7 +51,8 @@ describe("los artículos del blog", () => {
   });
 
   it("se encuentran por su slug, y lo que no existe no se inventa", () => {
-    expect(articuloPorSlug(ARTICULOS[0].slug)).toBe(ARTICULOS[0]);
+    const publicado = articulosPublicados()[0];
+    expect(articuloPorSlug(publicado.slug)).toBe(publicado);
     expect(articuloPorSlug("no-existe")).toBeUndefined();
   });
 });
@@ -354,8 +355,14 @@ describe("lo que se le cuenta a Google", () => {
 describe("el blog está donde Google puede verlo", () => {
   it("el sitemap trae el índice y todos los artículos", () => {
     const urls = sitemapPlataforma(BASE).map((e) => e.url);
+    const publicados = articulosPublicados();
     expect(urls).toContain(`${BASE}${RUTA_BLOG}`);
-    for (const a of ARTICULOS) expect(urls).toContain(`${BASE}${rutaArticulo(a.slug)}`);
+    for (const a of publicados) expect(urls).toContain(`${BASE}${rutaArticulo(a.slug)}`);
+    // Y los que aún no tocan, NO: un sitemap que anuncia una dirección que
+    // devuelve 404 es peor que uno corto.
+    for (const a of ARTICULOS.filter((x) => !publicados.includes(x))) {
+      expect(urls, `${a.slug} se anuncia antes de tiempo`).not.toContain(`${BASE}${rutaArticulo(a.slug)}`);
+    }
   });
 
   it("el robots.txt no lo prohíbe", () => {
@@ -407,7 +414,7 @@ describe("las fechas del sitemap son datos, no estimaciones", () => {
   const de = (ruta: string) => entradas.find((e) => e.url === `${BASE_S}${ruta}`);
 
   it("cada artículo declara SU fecha", () => {
-    for (const a of ARTICULOS) {
+    for (const a of articulosPublicados()) {
       expect(de(rutaArticulo(a.slug))?.lastModified, a.slug).toBe(a.fecha);
     }
   });
@@ -415,7 +422,9 @@ describe("las fechas del sitemap son datos, no estimaciones", () => {
   // Para que publicar un artículo refresque también el índice: es la página que
   // los enlaza, y si se queda con fecha vieja Google no vuelve a por los nuevos.
   it("el índice del blog lleva la fecha del artículo más nuevo", () => {
-    const masNuevo = [...ARTICULOS].map((a) => a.fecha).sort().at(-1);
+    // De los publicados: si saliera la de un artículo que todavía no existe, el
+    // sitemap estaría prometiendo un cambio que Google no va a encontrar.
+    const masNuevo = articulosPublicados().map((a) => a.fecha).sort().at(-1);
     expect(de(RUTA_BLOG)?.lastModified).toBe(masNuevo);
   });
 
@@ -450,5 +459,48 @@ describe("las fechas del sitemap son datos, no estimaciones", () => {
   it("el texto de las legales y su fecha ISO no pueden discrepar", () => {
     expect(ACTUALIZADO).toBe("26 de julio de 2026");
     expect(ACTUALIZADO_ISO).toBe("2026-07-26");
+  });
+});
+
+/**
+ * Escribir con adelanto: un artículo no sale hasta el día que lleva escrito.
+ *
+ * Puesto el 2026-09-09, al pasar a dos artículos por semana. Antes no había
+ * filtro y la fecha tenía que ser siempre «hoy»: fechar uno el viernes lo
+ * publicaba igual el día que se desplegara, con el viernes escrito debajo del
+ * título. O sea que publicar era desplegar a mano el día justo.
+ *
+ * Se prueba pasándole una fecha pasada en vez de inventar artículos: así se
+ * ejercita con el contenido de verdad y no con un montaje que puede acabar
+ * pareciéndose poco al real.
+ */
+describe("los artículos con fecha por delante", () => {
+  const ANTES = "2026-08-10";
+
+  it("no salen en la lista publicada", () => {
+    const publicados = articulosPublicados(ANTES);
+    expect(publicados.length, "no hay artículos posteriores: la prueba no prueba nada").toBeLessThan(ARTICULOS.length);
+    for (const a of publicados) expect(a.fecha <= ANTES, `${a.slug} es del futuro y aparece`).toBe(true);
+  });
+
+  it("el de hoy SÍ sale: el corte es «hasta hoy», no «antes de hoy»", () => {
+    const hoy = ARTICULOS[0].fecha;
+    expect(articulosPublicados(hoy).map((a) => a.slug)).toContain(ARTICULOS[0].slug);
+  });
+
+  it("no se pueden leer acertando la dirección", () => {
+    const posterior = ARTICULOS.find((a) => a.fecha > ANTES)!;
+    // Con el reloj puesto ANTES de su fecha no existe; el día que le toca, sí.
+    // Se comparan las dos con fecha inyectada y no contra «hoy»: si no, el test
+    // diría cosas distintas según el día en que se ejecute.
+    expect(articuloPorSlug(posterior.slug, ANTES), "se lee un artículo que aún no toca").toBeUndefined();
+    expect(articuloPorSlug(posterior.slug, posterior.fecha), "el día de su fecha debería leerse").toBeDefined();
+  });
+
+  it("no se enlazan desde el «sigue leyendo» de otro", () => {
+    const futuro = ARTICULOS.find((a) => a.fecha > ANTES)!;
+    const viejo = ARTICULOS[ARTICULOS.length - 1];
+    const sugeridos = otrosArticulos(viejo.slug, 99, ANTES).map((a) => a.slug);
+    expect(sugeridos, "el «sigue leyendo» adelanta un artículo sin publicar").not.toContain(futuro.slug);
   });
 });
