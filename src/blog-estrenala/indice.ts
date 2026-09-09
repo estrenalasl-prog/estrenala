@@ -7,6 +7,7 @@ import { cambiarTextoSinTocarCodigo } from "./posts/cambiar-texto-sin-tocar-codi
 import { puedoDescargarMiWeb } from "./posts/puedo-descargar-mi-web";
 import { webSeVeMalEnElMovil } from "./posts/web-se-ve-mal-en-el-movil";
 import { puedeChatgptRecomendarTuWeb } from "./posts/puede-chatgpt-recomendar-tu-web";
+import { publicarWebV0LovableBolt } from "./posts/publicar-web-v0-lovable-bolt";
 
 /**
  * Todos los artículos, del más nuevo al más viejo.
@@ -17,6 +18,7 @@ import { puedeChatgptRecomendarTuWeb } from "./posts/puede-chatgpt-recomendar-tu
  * primero.
  */
 export const ARTICULOS: Articulo[] = [
+  publicarWebV0LovableBolt,
   puedeChatgptRecomendarTuWeb,
   webSeVeMalEnElMovil,
   puedoDescargarMiWeb,
