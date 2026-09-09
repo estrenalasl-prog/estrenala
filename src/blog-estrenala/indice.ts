@@ -8,6 +8,7 @@ import { puedoDescargarMiWeb } from "./posts/puedo-descargar-mi-web";
 import { webSeVeMalEnElMovil } from "./posts/web-se-ve-mal-en-el-movil";
 import { puedeChatgptRecomendarTuWeb } from "./posts/puede-chatgpt-recomendar-tu-web";
 import { publicarWebV0LovableBolt } from "./posts/publicar-web-v0-lovable-bolt";
+import { webLovableDatosAbiertos } from "./posts/web-lovable-datos-abiertos";
 
 /**
  * Todos los artículos, del más nuevo al más viejo.
@@ -18,6 +19,7 @@ import { publicarWebV0LovableBolt } from "./posts/publicar-web-v0-lovable-bolt";
  * primero.
  */
 export const ARTICULOS: Articulo[] = [
+  webLovableDatosAbiertos,
   publicarWebV0LovableBolt,
   puedeChatgptRecomendarTuWeb,
   webSeVeMalEnElMovil,
